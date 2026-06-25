@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>درس الكتاب | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand">
+      <img src="logo.png" style="width:28px;height:28px;object-fit:contain;">
+      Connect Three
+    </a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:6px">📖 درس الكتاب</h1>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">أجب على أسئلة الدرس من هنا</p>
+
+  <div class="card glow" id="formCard">
+    <div class="empty-state">
+      <div style="font-size:48px;margin-bottom:12px">📋</div>
+      <div>الفورم مش متاح لسه، تابع بعدين</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+async function loadForm(){
+  var res = await supabase.rpc("get_form_url");
+  var card = document.getElementById("formCard");
+  var url = res.data;
+
+  if(!url || url.trim() === ""){
+    card.innerHTML = '<div class="empty-state"><div style="font-size:48px;margin-bottom:12px">📋</div><div>الفورم مش متاح لسه، تابع بعدين</div></div>';
+    return;
+  }
+
+  card.innerHTML = '<p style="text-align:center;color:var(--mist-dim);font-size:14px;margin-bottom:16px">اضغط الزرار عشان تفتح فورم الدرس</p><a href="' + url + '" target="_blank" class="btn">فتح فورم الدرس 📋</a>';
+}
+
+loadForm();
+</script>
+</body>
+</html>

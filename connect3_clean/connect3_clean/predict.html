@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>توقع النتيجة | مؤتمر الشباب</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand"><span class="dot"></span> مؤتمر الشباب</a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:18px">توقع نتيجة المباراة النهائية</h1>
+
+  <div id="lockBanner" class="lock-banner" style="display:none">
+    ⏱️ التوقعات مقفولة دلوقتي، المباراة بدأت أو قربت تبدأ
+  </div>
+  <div id="successMsg" class="success-msg"></div>
+
+  <div class="card glow">
+    <div class="scoreboard">
+      <div class="team-block">
+        <div class="team-name" id="team1Name">—</div>
+        <div class="score-control">
+          <div class="score-digit" id="score1Digit">0</div>
+          <div class="stepper-row">
+            <button class="step-btn" id="s1minus">−</button>
+            <button class="step-btn" id="s1plus">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="score-sep">×</div>
+      <div class="team-block">
+        <div class="team-name" id="team2Name">—</div>
+        <div class="score-control">
+          <div class="score-digit" id="score2Digit">0</div>
+          <div class="stepper-row">
+            <button class="step-btn" id="s2minus">−</button>
+            <button class="step-btn" id="s2plus">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn" id="saveBtn" style="margin-top:24px">حفظ توقعي</button>
+  </div>
+
+  <p style="font-size:12px;color:var(--mist-dim);text-align:center">
+    تقدر تغيّر توقعك أكتر من مرة لحد ما المباراة تبدأ
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+var score1 = 0, score2 = 0, locked = false;
+
+function render(){
+  document.getElementById("score1Digit").textContent = score1;
+  document.getElementById("score2Digit").textContent = score2;
+}
+
+function clampSet(which, delta){
+  if(locked) return;
+  if(which === 1) score1 = Math.max(0, Math.min(20, score1 + delta));
+  else score2 = Math.max(0, Math.min(20, score2 + delta));
+  render();
+}
+
+document.getElementById("s1minus").addEventListener("click", function(){ clampSet(1, -1); });
+document.getElementById("s1plus").addEventListener("click", function(){ clampSet(1, 1); });
+document.getElementById("s2minus").addEventListener("click", function(){ clampSet(2, -1); });
+document.getElementById("s2plus").addEventListener("click", function(){ clampSet(2, 1); });
+
+async function init(){
+  if(!member) return;
+  var info = await supabase.rpc("get_match_info");
+  if(info.data && info.data.length){
+    locked = info.data[0].locked;
+    document.getElementById("team1Name").textContent = info.data[0].team1;
+    document.getElementById("team2Name").textContent = info.data[0].team2;
+  }
+  if(locked){
+    document.getElementById("lockBanner").style.display = "block";
+    document.getElementById("saveBtn").disabled = true;
+  }
+  var pred = await supabase.rpc("get_my_prediction", { p_member_id: member.id });
+  if(pred.data && pred.data.length){
+    score1 = pred.data[0].score1;
+    score2 = pred.data[0].score2;
+  }
+  render();
+}
+
+document.getElementById("saveBtn").addEventListener("click", async function(){
+  var btn = document.getElementById("saveBtn");
+  btn.disabled = true; btn.textContent = "بنحفظ...";
+  var res = await supabase.rpc("submit_prediction", { p_member_id: member.id, p_score1: score1, p_score2: score2 });
+  btn.disabled = false; btn.textContent = "حفظ توقعي";
+  var successMsg = document.getElementById("successMsg");
+  if(res.error){
+    successMsg.style.background = "rgba(240,86,61,0.12)";
+    successMsg.style.borderColor = "var(--coral)";
+    successMsg.style.color = "#ffb3a6";
+    successMsg.textContent = "حصل خطأ، حاول تاني";
+  } else {
+    successMsg.textContent = "تم حفظ توقعك ✅";
+  }
+  successMsg.style.display = "block";
+  setTimeout(function(){ successMsg.style.display = "none"; }, 3000);
+});
+
+init();
+</script>
+</body>
+</html>
