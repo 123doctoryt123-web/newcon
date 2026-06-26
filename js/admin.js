@@ -103,7 +103,7 @@ async function loadMembers() {
         '<button class="btn outline small" data-id="' + m.id + '" onclick="resetMemberPass(this)">ريست</button>' +
       '</td>' +
       '</tr>';
-  }).join("") || '<tr><td colspan="4">لسه مفيش شباب</td></tr>';
+  }).join("") || '<tr><td colspan="3">لسه مفيش شباب</td></tr>';
 }
 
 async function addMember() {
@@ -143,8 +143,6 @@ async function resetMemberPass(btn) {
     return;
   }
   var newPass = res.data[0].new_password;
-  var cell = document.getElementById("pass-" + btn.dataset.id);
-  if (cell) cell.textContent = newPass;
   alert("✅ الباسورد الجديد: " + newPass + "\nاحتفظ بيه وابعته للشاب");
 }
 
