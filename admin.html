@@ -50,6 +50,7 @@
       <div class="tab" data-tab="book">درس الكتاب</div>
       <div class="tab" data-tab="qr">QR الحضور</div>
       <div class="tab" data-tab="notifications">الإشعارات</div>
+      <div class="tab" data-tab="retreat">الخلوة</div>
       <div class="tab" data-tab="settings">الإعدادات</div>
     </div>
 
@@ -294,6 +295,79 @@
       </div>
     </div>
 
+    <!-- الخلوة -->
+    <div class="tab-panel" id="panel-retreat">
+      <!-- إعدادات المكان -->
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong>📍 تعديل مكان كل يوم</strong>
+        <div style="margin-top:14px;display:grid;gap:10px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="min-width:80px;margin:0">19 يوليو</label>
+            <input type="text" id="loc1Input" placeholder="مثال: الكنيسة فوق" style="margin:0;flex:1">
+            <button class="btn small outline" onclick="updateLocation(1)">حفظ</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="min-width:80px;margin:0">20 يوليو</label>
+            <input type="text" id="loc2Input" placeholder="المكان" style="margin:0;flex:1">
+            <button class="btn small outline" onclick="updateLocation(2)">حفظ</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="min-width:80px;margin:0">21 يوليو</label>
+            <input type="text" id="loc3Input" placeholder="المكان" style="margin:0;flex:1">
+            <button class="btn small outline" onclick="updateLocation(3)">حفظ</button>
+          </div>
+        </div>
+        <div id="retreatLocMsg" style="margin-top:10px;font-size:13px"></div>
+      </div>
+
+      <!-- إحصائيات سريعة -->
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(200,150,90,0.08);border-radius:10px">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--gold)" id="retreatBookedCount">—</div>
+            <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">محجوز</div>
+          </div>
+          <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(192,83,58,0.08);border-radius:10px">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--coral)" id="retreatFreeCount">—</div>
+            <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">متاح</div>
+          </div>
+          <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(74,124,111,0.08);border-radius:10px">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:#a9e6c4" id="retreatTotalCount">—</div>
+            <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">إجمالي</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- جدول المواعيد -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong>جدول المواعيد</strong>
+          <div style="display:flex;gap:6px">
+            <button class="btn small outline" onclick="filterRetreatDay(0)" id="retreatFilterAll" style="border-color:var(--gold);color:var(--gold)">الكل</button>
+            <button class="btn small outline" onclick="filterRetreatDay(1)" id="retreatFilter1">يوم 1</button>
+            <button class="btn small outline" onclick="filterRetreatDay(2)" id="retreatFilter2">يوم 2</button>
+            <button class="btn small outline" onclick="filterRetreatDay(3)" id="retreatFilter3">يوم 3</button>
+          </div>
+        </div>
+        <div id="retreatTableWrap" style="overflow-x:auto">
+          <table id="retreatTable">
+            <thead>
+              <tr>
+                <th>اليوم</th>
+                <th>الوقت</th>
+                <th>المكان</th>
+                <th>الشاب</th>
+                <th class="no-print"></th>
+              </tr>
+            </thead>
+            <tbody id="retreatTableBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--mist-dim)">بنحمّل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- الإعدادات -->
     <div class="tab-panel" id="panel-settings">
       <div class="card">
@@ -321,6 +395,136 @@ window.addEventListener("DOMContentLoaded", function () {
     el.textContent = url;
   }
 });
+</script>
+<script>
+// ============================================================
+// الخلوة — JavaScript
+// ============================================================
+var retreatAllSlots = [];
+var retreatCurrentFilter = 0;
+var retreatDayNames = { 1: '19 يوليو', 2: '20 يوليو', 3: '21 يوليو' };
+
+// تحميل المواعيد لما يفتح التاب
+document.addEventListener("tabChanged", function(e) {
+  if (e.detail === "retreat") loadRetreatSlots();
+});
+
+// hook على نظام التابات الموجود
+(function patchTabSystem(){
+  var observer = new MutationObserver(function(){
+    var panel = document.getElementById("panel-retreat");
+    if (panel && panel.classList.contains("active")) {
+      loadRetreatSlots();
+    }
+  });
+  var panelEl = document.getElementById("panel-retreat");
+  if (panelEl) observer.observe(panelEl, { attributes: true, attributeFilter: ["class"] });
+})();
+
+async function loadRetreatSlots() {
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if (!pass) return;
+
+  var res = await supabase.rpc("admin_list_retreat_slots", { p_password: pass });
+  if (res.error) {
+    document.getElementById("retreatTableBody").innerHTML =
+      '<tr><td colspan="5" style="color:var(--coral)">خطأ: ' + res.error.message + '</td></tr>';
+    return;
+  }
+
+  retreatAllSlots = res.data || [];
+  updateRetreatStats();
+  renderRetreatTable(retreatCurrentFilter);
+
+  // حط المكان الحالي في الـ inputs (أول slot من كل يوم)
+  [1,2,3].forEach(function(d){
+    var s = retreatAllSlots.find(function(x){ return x.day === d; });
+    if (s) {
+      var el = document.getElementById("loc" + d + "Input");
+      if (el && !el.value) el.value = s.location;
+    }
+  });
+}
+
+function updateRetreatStats() {
+  var booked = retreatAllSlots.filter(function(s){ return s.member_name; }).length;
+  var free   = retreatAllSlots.length - booked;
+  document.getElementById("retreatBookedCount").textContent = booked;
+  document.getElementById("retreatFreeCount").textContent   = free;
+  document.getElementById("retreatTotalCount").textContent  = retreatAllSlots.length;
+}
+
+function filterRetreatDay(day) {
+  retreatCurrentFilter = day;
+  // تلوين الأزرار
+  [0,1,2,3].forEach(function(d){
+    var id = d === 0 ? "retreatFilterAll" : "retreatFilter" + d;
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    btn.style.borderColor = (d === day) ? "var(--gold)" : "";
+    btn.style.color       = (d === day) ? "var(--gold)"  : "";
+  });
+  renderRetreatTable(day);
+}
+
+function renderRetreatTable(day) {
+  var slots = day === 0 ? retreatAllSlots : retreatAllSlots.filter(function(s){ return s.day === day; });
+  var tbody = document.getElementById("retreatTableBody");
+  if (!slots.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--mist-dim)">لا توجد مواعيد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = slots.map(function(s) {
+    var nameCell = s.member_name
+      ? '<strong>' + esc(s.member_name) + '</strong><br><small style="color:var(--mist-dim)">' + esc(s.member_username) + '</small>'
+      : '<span style="color:var(--line)">— فاضي —</span>';
+    var cancelBtn = s.member_name && s.id
+      ? '<button class="btn small danger" onclick="cancelRetreatSlot(\'' + s.id + '\')">إلغاء</button>'
+      : '';
+    return '<tr>' +
+      '<td>' + retreatDayNames[s.day] + '</td>' +
+      '<td style="font-family:var(--font-display);font-weight:700;color:var(--gold)">' + esc(s.time_label) + '</td>' +
+      '<td>' + esc(s.location) + '</td>' +
+      '<td>' + nameCell + '</td>' +
+      '<td class="no-print">' + cancelBtn + '</td>' +
+      '</tr>';
+  }).join("");
+}
+
+async function updateLocation(day) {
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  var loc  = document.getElementById("loc" + day + "Input").value.trim();
+  var msg  = document.getElementById("retreatLocMsg");
+  if (!loc) { msg.textContent = "اكتب المكان الأول"; msg.style.color = "var(--coral)"; return; }
+
+  var res = await supabase.rpc("admin_update_retreat_location", {
+    p_password: pass, p_day: day, p_location: loc
+  });
+  if (res.error) {
+    msg.textContent = "❌ " + res.error.message; msg.style.color = "var(--coral)";
+  } else {
+    msg.textContent = "✅ اتحدّث مكان يوم " + retreatDayNames[day];
+    msg.style.color = "var(--pitch)";
+    loadRetreatSlots();
+    setTimeout(function(){ msg.textContent = ""; }, 3000);
+  }
+}
+
+async function cancelRetreatSlot(slotId) {
+  if (!confirm("هتلغي الحجز ده؟")) return;
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  var res = await supabase.rpc("admin_cancel_retreat_slot", {
+    p_password: pass, p_slot_id: slotId
+  });
+  if (res.error) { alert("خطأ: " + res.error.message); return; }
+  loadRetreatSlots();
+}
+
+function esc(s) {
+  return (s || "").toString().replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
 </script>
 </body>
 </html>
