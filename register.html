@@ -136,9 +136,9 @@ async function doRegister() {
 
   // سجّل الدخول تلقائياً
   saveSession({ id: d.id, name: d.name, username: d.username });
-  okBox.textContent = "✅ تم التسجيل! بنودّيك للداشبورد...";
+  okBox.textContent = "✅ تم التسجيل! بنجهّز موعد خلوتك...";
   okBox.style.display = "block";
-  setTimeout(function () { window.location.href = "dashboard.html"; }, 1200);
+  setTimeout(function () { window.location.href = "retreat.html"; }, 1200);
 }
 
 document.getElementById("registerBtn").addEventListener("click", doRegister);
