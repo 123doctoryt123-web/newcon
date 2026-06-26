@@ -137,6 +137,21 @@
     </div>
   </div>
 
+  <!-- بانر آخر إعلان من الأدمن -->
+  <div id="latestAnnouncementBanner" style="display:none;margin-bottom:14px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--gold);background:linear-gradient(135deg,rgba(200,150,90,0.13),rgba(192,83,58,0.09))">
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px">
+      <div style="font-size:24px;flex-shrink:0;margin-top:2px">📢</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px">
+          <strong id="announcementTitle" style="font-size:14px;color:var(--gold);font-family:var(--font-display)"></strong>
+          <span id="announcementTime" style="font-size:11px;color:var(--mist-dim);white-space:nowrap;flex-shrink:0"></span>
+        </div>
+        <p id="announcementBody" style="font-size:13px;color:var(--mist);margin:0;line-height:1.6"></p>
+      </div>
+      <button onclick="dismissAnnouncement()" style="background:none;border:none;color:var(--mist-dim);font-size:16px;cursor:pointer;flex-shrink:0;padding:0;line-height:1;margin-top:2px" aria-label="إغلاق">✕</button>
+    </div>
+  </div>
+
   <!-- بانر الترحيب -->
   <div class="hero-banner">
     <div class="hero-top">
@@ -353,6 +368,50 @@ async function loadPredictBadge(){
 loadTeamInfo();
 loadPredictBadge();
 if(member){ setupNotifButton(member.id); }
+
+// ---------- آخر إعلان من الأدمن ----------
+async function loadLatestAnnouncement(){
+  var banner = document.getElementById("latestAnnouncementBanner");
+  if(!banner) return;
+
+  try {
+    var res = await supabase.rpc("get_latest_announcement");
+    if(res.error || !res.data || res.data.length === 0) return;
+
+    var ann = res.data[0];
+
+    // لو المستخدم أقفله قبل كده ومحتفظين بالـ id، ما نعرضوش
+    var dismissed = localStorage.getItem("dismissed_ann");
+    if(dismissed && dismissed == String(ann.id)) return;
+
+    document.getElementById("announcementTitle").textContent = ann.title;
+    document.getElementById("announcementBody").textContent  = ann.body;
+
+    // تنسيق الوقت بالعربي
+    var d = new Date(ann.created_at);
+    var timeStr = d.toLocaleString("ar-EG", {
+      day: "numeric", month: "short",
+      hour: "2-digit", minute: "2-digit"
+    });
+    document.getElementById("announcementTime").textContent = timeStr;
+
+    banner.style.display = "block";
+    // حفظ الـ id عشان نعرف أوقفنا البانر ده قبل كده
+    banner.setAttribute("data-ann-id", ann.id);
+  } catch(e) {
+    console.warn("تعذّر تحميل الإعلان:", e);
+  }
+}
+
+function dismissAnnouncement(){
+  var banner = document.getElementById("latestAnnouncementBanner");
+  if(!banner) return;
+  var annId = banner.getAttribute("data-ann-id");
+  if(annId) localStorage.setItem("dismissed_ann", annId);
+  banner.style.display = "none";
+}
+
+loadLatestAnnouncement();
 
 // إظهار بانر تنبيه لو الإشعارات متوقفة (denied أو لسه مالم يطلب الإذن)
 (function checkNotifStatus(){
