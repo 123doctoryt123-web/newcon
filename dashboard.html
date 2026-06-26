@@ -125,6 +125,18 @@
     <a href="#" class="logout-link" id="logoutBtn">خروج</a>
   </div>
 
+  <!-- بانر تنبيه الإشعارات (يظهر بس لو الإشعارات متوقفة) -->
+  <div class="card" id="notifWarningBanner" style="display:none;margin-bottom:14px;border-color:var(--coral);cursor:pointer" onclick="document.getElementById('notifBtn').scrollIntoView({behavior:'smooth',block:'center'})">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:22px">🔔</div>
+      <div style="flex:1">
+        <strong style="font-size:14px;color:var(--coral)">الإشعارات متوقفة عندك</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin-top:3px">دوس هنا عشان تفعّلها تاني وما تفوّتش أي تنبيه مهم</p>
+      </div>
+      <div style="color:var(--coral);font-size:18px">‹</div>
+    </div>
+  </div>
+
   <!-- بانر الترحيب -->
   <div class="hero-banner">
     <div class="hero-top">
@@ -341,6 +353,16 @@ async function loadPredictBadge(){
 loadTeamInfo();
 loadPredictBadge();
 if(member){ setupNotifButton(member.id); }
+
+// إظهار بانر تنبيه لو الإشعارات متوقفة (denied أو لسه مالم يطلب الإذن)
+(function checkNotifStatus(){
+  var banner = document.getElementById("notifWarningBanner");
+  if (!banner) return;
+  if (!("Notification" in window)) return; // المتصفح مش بيدعم خالص، مفيش معنى للبانر
+  if (Notification.permission === "denied" || Notification.permission === "default") {
+    banner.style.display = "block";
+  }
+})();
 </script>
 </body>
 </html>
