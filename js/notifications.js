@@ -1,5 +1,5 @@
 // ============================================================
-// notifications.js — إشعارات Push (مصلّح مع تسجيل SW)
+// notifications.js — إشعارات Push
 // ============================================================
 var VAPID_PUBLIC = "BDjDn65U9lmoWIWUcCdrFi_ZswSN1CpWieyntx0wUws43LcIXpONaDJufCabdTMRz-9Ag8QHl3DNFvaDm0SjoWM";
 var EDGE_FUNCTION_URL = "https://ujlonszkibczmkasryuq.supabase.co/functions/v1/smooth-action";
@@ -14,32 +14,63 @@ function urlBase64ToUint8Array(base64String) {
   return output;
 }
 
-// تسجيل الـ Service Worker أول ما الصفحة تتحمل
+// path الـ SW ديناميكي بناءً على مكان الموقع
+var SW_PATH = (function() {
+  var loc = window.location.pathname;
+  var dir = loc.substring(0, loc.lastIndexOf("/") + 1);
+  return dir + "sw.js";
+})();
+
+// تسجيل الـ Service Worker
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch(function (err) {
+  navigator.serviceWorker.register(SW_PATH).then(function(reg) {
+    console.log("SW registered at scope:", reg.scope);
+  }).catch(function (err) {
     console.warn("SW registration failed:", err);
   });
 }
 
 async function registerPush(memberId) {
-  if (!("Notification" in window) || !("serviceWorker" in navigator)) return false;
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    console.warn("PUSH FAIL: browser missing Notification or SW support");
+    return false;
+  }
 
   var perm = await Notification.requestPermission();
+  console.log("Notification permission:", perm);
   if (perm !== "granted") return false;
 
-  // انتظر لحد ما الـ SW يبقى جاهز
-  var reg = await navigator.serviceWorker.ready;
+  var reg;
+  try {
+    reg = await navigator.serviceWorker.ready;
+    console.log("SW ready, scope:", reg.scope);
+  } catch(e) {
+    console.error("SW not ready:", e);
+    return false;
+  }
 
-  var sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
-  });
+  // تحقق إن pushManager موجود (iOS بيحتاج PWA)
+  if (!reg.pushManager) {
+    console.warn("PUSH FAIL: pushManager not available");
+    return false;
+  }
+
+  var sub;
+  try {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+    });
+    console.log("Push subscribed:", sub.endpoint);
+  } catch(e) {
+    console.error("pushManager.subscribe failed:", e.name, e.message);
+    return false;
+  }
 
   var subJson = sub.toJSON();
 
-  // تحقق إن البيانات كلها موجودة وسليمة قبل أي حفظ
   if (!subJson.endpoint || !subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
-    console.warn("اشتراك ناقص، تم تجاهله:", subJson);
+    console.warn("Incomplete subscription:", subJson);
     return false;
   }
 
@@ -51,7 +82,12 @@ async function registerPush(memberId) {
     p_auth: subJson.keys.auth,
   });
 
-  // وفي Edge Function كمان (للإرسال)
+  if (res.error) {
+    console.error("Supabase save failed:", res.error);
+    return false;
+  }
+
+  // Edge Function
   try {
     await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
@@ -72,36 +108,31 @@ async function registerPush(memberId) {
     console.warn("Edge Function subscribe failed:", e);
   }
 
-  return !res.error;
+  return true;
 }
 
 // ============================================================
-// هل الجهاز iPhone/iPad في Safari العادي (مش PWA مضافة للهوم سكرين)؟
+// iOS detection
 // ============================================================
 function isIosSafariNotPwa() {
-  var ua = navigator.userAgent;
-  var isIos = /iphone|ipad|ipod/i.test(ua);
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   var isInPwa = window.navigator.standalone === true;
   return isIos && !isInPwa;
 }
 
 function showIosInstallBanner() {
   if (document.getElementById("iosPwaBanner")) return;
-
   var banner = document.createElement("div");
   banner.id = "iosPwaBanner";
   banner.style.cssText =
     "position:fixed;bottom:0;right:0;left:0;z-index:9999;" +
     "background:#16273d;border-top:2px solid #c8964d;" +
     "padding:16px 16px 28px;font-family:sans-serif;direction:rtl";
-
   banner.innerHTML =
     '<div style="display:flex;align-items:flex-start;gap:12px">' +
       '<div style="font-size:28px;flex-shrink:0">📲</div>' +
       '<div style="flex:1">' +
-        '<strong style="font-size:14px;color:#c8964d;display:block;margin-bottom:7px">' +
-          'عشان تشتغل الإشعارات على iPhone' +
-        '</strong>' +
+        '<strong style="font-size:14px;color:#c8964d;display:block;margin-bottom:7px">عشان تشتغل الإشعارات على iPhone</strong>' +
         '<p style="font-size:13px;color:#ccc;margin:0;line-height:1.8">' +
           '١. اضغط زرار <strong style="color:#fff">المشاركة ⎋</strong> في أسفل Safari<br>' +
           '٢. اختار <strong style="color:#fff">"إضافة إلى الشاشة الرئيسية"</strong><br>' +
@@ -111,44 +142,50 @@ function showIosInstallBanner() {
       '<button onclick="document.getElementById(\'iosPwaBanner\').remove()" ' +
         'style="background:none;border:none;color:#888;font-size:22px;cursor:pointer;padding:0;line-height:1;flex-shrink:0">✕</button>' +
     '</div>';
-
   document.body.appendChild(banner);
 }
 
 // ============================================================
-// زرار تفعيل الإشعارات — بيتعامل مع iOS بشكل مختلف
+// زرار تفعيل الإشعارات
 // ============================================================
 function setupNotifButton(memberId) {
   var btn = document.getElementById("notifBtn");
   if (!btn) return;
 
-  // iPhone/iPad في Safari العادي — الإشعارات مش ممكنة بدون PWA
   if (isIosSafariNotPwa()) {
     btn.textContent = "📲 أضف الموقع للهوم سكرين لتفعيل الإشعارات";
     btn.style.color = "var(--gold)";
     btn.style.borderColor = "var(--gold)";
     btn.addEventListener("click", function () { showIosInstallBanner(); });
-    // بانر تلقائي بعد ثانيتين
     setTimeout(showIosInstallBanner, 2000);
     return;
   }
 
-  // باقي المتصفحات اللي مش بتدعم الإشعارات
   if (!("Notification" in window) || !("serviceWorker" in navigator)) {
     btn.textContent = "❌ المتصفح مش بيدعم الإشعارات";
     btn.disabled = true;
     return;
   }
 
-  // الإشعارات مفعّلة فعلاً
   if (Notification.permission === "granted") {
+    // محتمل اشتراك موجود — جرب تجدده في الخلفية بهدوء
+    navigator.serviceWorker.ready.then(function(reg) {
+      if (!reg.pushManager) return;
+      reg.pushManager.getSubscription().then(function(existing) {
+        if (!existing) {
+          // الإذن موجود بس الاشتراك انمسح — جدده
+          registerPush(memberId).then(function(ok) {
+            if (ok) console.log("Push re-subscribed silently");
+          });
+        }
+      });
+    });
     btn.textContent = "🔔 الإشعارات مفعّلة ✅";
     btn.style.color = "var(--gold)";
     btn.disabled = true;
     return;
   }
 
-  // الحالة العادية — زرار تفعيل
   btn.addEventListener("click", async function () {
     btn.disabled = true;
     btn.textContent = "جاري التفعيل...";
@@ -162,7 +199,7 @@ function setupNotifButton(memberId) {
         btn.disabled = false;
       }
     } catch (e) {
-      console.error(e);
+      console.error("setupNotifButton error:", e);
       btn.textContent = "❌ حصل خطأ، حاول تاني";
       btn.disabled = false;
     }
