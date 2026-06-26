@@ -2,6 +2,7 @@
 // admin.js (مُحدَّث)
 // ============================================================
 var EDGE_FUNCTION_URL = "https://ujlonszkibczmkasryuq.supabase.co/functions/v1/smooth-action";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbG9uc3praWJjem1rYXNyeXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNjE5NTcsImV4cCI6MjA5NzczNzk1N30.WgHQOnblLlGjyyAKq2PBTq2zkjTps8CX6E4Hx1_ZwYQ";
 
 function getAdminPass() { return sessionStorage.getItem("adminPass"); }
 function setAdminPass(p) { sessionStorage.setItem("adminPass", p); }
@@ -295,7 +296,11 @@ async function sendNotification(isAlarm) {
   try {
     var res = await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({
         action: "send_notification",
         title: title,
