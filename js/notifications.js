@@ -3,6 +3,7 @@
 // ============================================================
 var VAPID_PUBLIC = "BDjDn65U9lmoWIWUcCdrFi_ZswSN1CpWieyntx0wUws43LcIXpONaDJufCabdTMRz-9Ag8QHl3DNFvaDm0SjoWM";
 var EDGE_FUNCTION_URL = "https://ujlonszkibczmkasryuq.supabase.co/functions/v1/smooth-action";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbG9uc3praWJjem1rYXNyeXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNjE5NTcsImV4cCI6MjA5NzczNzk1N30.WgHQOnblLlGjyyAKq2PBTq2zkjTps8CX6E4Hx1_ZwYQ";
 
 function urlBase64ToUint8Array(base64String) {
   var padding = "=".repeat((4 - base64String.length % 4) % 4);
@@ -36,6 +37,12 @@ async function registerPush(memberId) {
 
   var subJson = sub.toJSON();
 
+  // تحقق إن البيانات كلها موجودة وسليمة قبل أي حفظ
+  if (!subJson.endpoint || !subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
+    console.warn("اشتراك ناقص، تم تجاهله:", subJson);
+    return false;
+  }
+
   // احفظ في Supabase
   var res = await supabase.rpc("save_push_subscription", {
     p_member_id: memberId,
@@ -48,7 +55,11 @@ async function registerPush(memberId) {
   try {
     await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({
         action: "subscribe",
         member_id: memberId,
