@@ -57,6 +57,13 @@ document.addEventListener("DOMContentLoaded", function () {
     location.reload();
   });
 
+  // الإعلانات على الموقع
+  var postAnnBtn = document.getElementById("postAnnBtn");
+  if (postAnnBtn) postAnnBtn.addEventListener("click", postAnnouncement);
+  var clearAnnBtn = document.getElementById("clearAnnBtn");
+  if (clearAnnBtn) clearAnnBtn.addEventListener("click", clearAnnouncement);
+  loadCurrentAnnouncement();
+
   // الإشعارات
   var sendBtn = document.getElementById("sendNotifBtn");
   var alarmBtn = document.getElementById("sendAlarmBtn");
@@ -342,4 +349,80 @@ async function changePass() {
   document.getElementById("newAdminPass").value = "";
   msg.innerHTML = '<div class="success-msg" style="display:block">✅ تم تغيير كلمة السر</div>';
   setTimeout(function () { msg.innerHTML = ""; }, 3000);
+}
+
+// ============================================================
+// إدارة الإعلانات على الموقع
+// ============================================================
+async function loadCurrentAnnouncement() {
+  var card = document.getElementById("currentAnnCard");
+  var preview = document.getElementById("currentAnnPreview");
+  if (!card || !preview) return;
+
+  var res = await supabase.rpc("get_latest_announcement");
+  if (res.error || !res.data || res.data.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+  var ann = res.data[0];
+  var d = new Date(ann.created_at);
+  var timeStr = d.toLocaleString("ar-EG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  preview.innerHTML =
+    '<div style="font-weight:700;color:var(--gold);margin-bottom:5px">' + escapeHtml(ann.title) + '</div>' +
+    '<div style="font-size:13px;color:var(--mist)">' + escapeHtml(ann.body) + '</div>' +
+    '<div style="font-size:11px;color:var(--mist-dim);margin-top:6px">⏰ ' + timeStr + '</div>';
+  card.setAttribute("data-ann-id", ann.id);
+  card.style.display = "block";
+}
+
+async function postAnnouncement() {
+  var title = document.getElementById("annTitle").value.trim();
+  var body  = document.getElementById("annBody").value.trim();
+  var msg   = document.getElementById("annMsg");
+  var btn   = document.getElementById("postAnnBtn");
+
+  if (!title || !body) {
+    msg.innerHTML = '<div class="error-msg" style="display:block">اكتب العنوان والنص الأول</div>';
+    return;
+  }
+  btn.disabled = true; btn.textContent = "بننشر...";
+
+  var res = await supabase.rpc("admin_save_announcement", {
+    p_password: getAdminPass(),
+    p_title: title,
+    p_body: body,
+  });
+
+  btn.disabled = false; btn.textContent = "📌 نشر على الموقع";
+
+  if (res.error) {
+    msg.innerHTML = '<div class="error-msg" style="display:block">خطأ: ' + escapeHtml(res.error.message) + '</div>';
+    return;
+  }
+
+  msg.innerHTML = '<div class="success-msg" style="display:block">✅ تم النشر — هيظهر للشباب فور ما يفتحوا الداشبورد</div>';
+  document.getElementById("annTitle").value = "";
+  document.getElementById("annBody").value  = "";
+  setTimeout(function () { msg.innerHTML = ""; }, 5000);
+  loadCurrentAnnouncement();
+}
+
+async function clearAnnouncement() {
+  var card = document.getElementById("currentAnnCard");
+  var annId = card ? card.getAttribute("data-ann-id") : null;
+  if (!annId) return;
+
+  var btn = document.getElementById("clearAnnBtn");
+  btn.disabled = true; btn.textContent = "بنمسح...";
+
+  var res = await supabase.rpc("admin_delete_announcement", {
+    p_password: getAdminPass(),
+    p_id: parseInt(annId),
+  });
+
+  btn.disabled = false; btn.textContent = "🗑️ مسح الإعلان من الموقع";
+
+  if (!res.error) {
+    card.style.display = "none";
+  }
 }
