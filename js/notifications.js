@@ -75,16 +75,72 @@ async function registerPush(memberId) {
   return !res.error;
 }
 
+// ============================================================
+// هل الجهاز iPhone/iPad في Safari العادي (مش PWA مضافة للهوم سكرين)؟
+// ============================================================
+function isIosSafariNotPwa() {
+  var ua = navigator.userAgent;
+  var isIos = /iphone|ipad|ipod/i.test(ua);
+  var isInPwa = window.navigator.standalone === true;
+  return isIos && !isInPwa;
+}
+
+function showIosInstallBanner() {
+  if (document.getElementById("iosPwaBanner")) return;
+
+  var banner = document.createElement("div");
+  banner.id = "iosPwaBanner";
+  banner.style.cssText =
+    "position:fixed;bottom:0;right:0;left:0;z-index:9999;" +
+    "background:#16273d;border-top:2px solid #c8964d;" +
+    "padding:16px 16px 28px;font-family:sans-serif;direction:rtl";
+
+  banner.innerHTML =
+    '<div style="display:flex;align-items:flex-start;gap:12px">' +
+      '<div style="font-size:28px;flex-shrink:0">📲</div>' +
+      '<div style="flex:1">' +
+        '<strong style="font-size:14px;color:#c8964d;display:block;margin-bottom:7px">' +
+          'عشان تشتغل الإشعارات على iPhone' +
+        '</strong>' +
+        '<p style="font-size:13px;color:#ccc;margin:0;line-height:1.8">' +
+          '١. اضغط زرار <strong style="color:#fff">المشاركة ⎋</strong> في أسفل Safari<br>' +
+          '٢. اختار <strong style="color:#fff">"إضافة إلى الشاشة الرئيسية"</strong><br>' +
+          '٣. افتح التطبيق من الهوم سكرين وفعّل الإشعارات' +
+        '</p>' +
+      '</div>' +
+      '<button onclick="document.getElementById(\'iosPwaBanner\').remove()" ' +
+        'style="background:none;border:none;color:#888;font-size:22px;cursor:pointer;padding:0;line-height:1;flex-shrink:0">✕</button>' +
+    '</div>';
+
+  document.body.appendChild(banner);
+}
+
+// ============================================================
+// زرار تفعيل الإشعارات — بيتعامل مع iOS بشكل مختلف
+// ============================================================
 function setupNotifButton(memberId) {
   var btn = document.getElementById("notifBtn");
   if (!btn) return;
 
+  // iPhone/iPad في Safari العادي — الإشعارات مش ممكنة بدون PWA
+  if (isIosSafariNotPwa()) {
+    btn.textContent = "📲 أضف الموقع للهوم سكرين لتفعيل الإشعارات";
+    btn.style.color = "var(--gold)";
+    btn.style.borderColor = "var(--gold)";
+    btn.addEventListener("click", function () { showIosInstallBanner(); });
+    // بانر تلقائي بعد ثانيتين
+    setTimeout(showIosInstallBanner, 2000);
+    return;
+  }
+
+  // باقي المتصفحات اللي مش بتدعم الإشعارات
   if (!("Notification" in window) || !("serviceWorker" in navigator)) {
     btn.textContent = "❌ المتصفح مش بيدعم الإشعارات";
     btn.disabled = true;
     return;
   }
 
+  // الإشعارات مفعّلة فعلاً
   if (Notification.permission === "granted") {
     btn.textContent = "🔔 الإشعارات مفعّلة ✅";
     btn.style.color = "var(--gold)";
@@ -92,6 +148,7 @@ function setupNotifButton(memberId) {
     return;
   }
 
+  // الحالة العادية — زرار تفعيل
   btn.addEventListener("click", async function () {
     btn.disabled = true;
     btn.textContent = "جاري التفعيل...";
