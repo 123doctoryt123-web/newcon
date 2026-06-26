@@ -1,9 +1,11 @@
 // ============================================================
 // notifications.js — إشعارات Push
 // ============================================================
+// الثوابت دي بتيجي من supabaseclient.js:
+//   window.SUPABASE_ANON_KEY
+//   window.EDGE_FUNCTION_URL
+
 var VAPID_PUBLIC = "BDjDn65U9lmoWIWUcCdrFi_ZswSN1CpWieyntx0wUws43LcIXpONaDJufCabdTMRz-9Ag8QHl3DNFvaDm0SjoWM";
-var EDGE_FUNCTION_URL = "https://ujlonszkibczmkasryuq.supabase.co/functions/v1/smooth-action";
-var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbG9uc3praWJjem1rYXNyeXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNjE5NTcsImV4cCI6MjA5NzczNzk1N30.WgHQOnblLlGjyyAKq2PBTq2zkjTps8CX6E4Hx1_ZwYQ";
 
 function urlBase64ToUint8Array(base64String) {
   var padding = "=".repeat((4 - base64String.length % 4) % 4);
@@ -49,7 +51,6 @@ async function registerPush(memberId) {
     return false;
   }
 
-  // تحقق إن pushManager موجود (iOS بيحتاج PWA)
   if (!reg.pushManager) {
     console.warn("PUSH FAIL: pushManager not available");
     return false;
@@ -89,12 +90,12 @@ async function registerPush(memberId) {
 
   // Edge Function
   try {
-    await fetch(EDGE_FUNCTION_URL, {
+    await fetch(window.EDGE_FUNCTION_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+        "apikey": window.SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + window.SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         action: "subscribe",
@@ -168,12 +169,10 @@ function setupNotifButton(memberId) {
   }
 
   if (Notification.permission === "granted") {
-    // محتمل اشتراك موجود — جرب تجدده في الخلفية بهدوء
     navigator.serviceWorker.ready.then(function(reg) {
       if (!reg.pushManager) return;
       reg.pushManager.getSubscription().then(function(existing) {
         if (!existing) {
-          // الإذن موجود بس الاشتراك انمسح — جدده
           registerPush(memberId).then(function(ok) {
             if (ok) console.log("Push re-subscribed silently");
           });
