@@ -297,6 +297,37 @@
 
     <!-- الخلوة -->
     <div class="tab-panel" id="panel-retreat">
+      <!-- حجز يدوي -->
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong>📌 تعيين موعد يدوي</strong>
+        <div style="margin-top:14px;display:grid;gap:10px">
+          <div>
+            <label>اختار الشاب</label>
+            <select id="manualMemberSelect" style="margin-bottom:0">
+              <option value="">— اختار شاب —</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>اليوم</label>
+              <select id="manualDaySelect" style="margin-bottom:0" onchange="loadManualSlots()">
+                <option value="1">19 يوليو</option>
+                <option value="2">20 يوليو</option>
+                <option value="3">21 يوليو</option>
+              </select>
+            </div>
+            <div>
+              <label>الموعد</label>
+              <select id="manualSlotSelect" style="margin-bottom:0">
+                <option value="">— اختار وقت —</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn" onclick="adminBookManual()">📌 حجز الموعد</button>
+          <div id="manualBookMsg" style="font-size:13px"></div>
+        </div>
+      </div>
+
       <!-- إعدادات المكان -->
       <div class="card no-print" style="margin-bottom:14px">
         <strong>📍 تعديل مكان كل يوم</strong>
@@ -398,8 +429,60 @@ window.addEventListener("DOMContentLoaded", function () {
 </script>
 <script>
 // ============================================================
-// الخلوة — JavaScript
+// الحجز اليدوي
 // ============================================================
+async function loadManualMembers() {
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if (!pass) return;
+  var res = await supabase.rpc("admin_list_members", { p_password: pass });
+  if (res.error || !res.data) return;
+  var sel = document.getElementById("manualMemberSelect");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— اختار شاب —</option>' +
+    res.data.map(function(m){
+      return '<option value="' + m.id + '">' + esc(m.name) + ' (' + esc(m.username) + ')</option>';
+    }).join("");
+}
+
+function loadManualSlots() {
+  var day = parseInt(document.getElementById("manualDaySelect").value);
+  var slots = retreatAllSlots.filter(function(s){ return s.day === day && !s.member_name; });
+  var sel = document.getElementById("manualSlotSelect");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— اختار وقت —</option>' +
+    slots.map(function(s){
+      return '<option value="' + s.id + '">' + esc(s.time_label) + '</option>';
+    }).join("");
+}
+
+async function adminBookManual() {
+  var pass     = sessionStorage.getItem("adminPass") || window._adminPass;
+  var memberId = document.getElementById("manualMemberSelect").value;
+  var slotId   = document.getElementById("manualSlotSelect").value;
+  var msg      = document.getElementById("manualBookMsg");
+
+  if (!memberId) { msg.textContent = "اختار شاب الأول"; msg.style.color = "var(--coral)"; return; }
+  if (!slotId)   { msg.textContent = "اختار موعد"; msg.style.color = "var(--coral)"; return; }
+
+  var res = await supabase.rpc("admin_book_retreat_for_member", {
+    p_password: pass, p_member_id: memberId, p_slot_id: slotId
+  });
+
+  if (res.error) {
+    var errText = res.error.message.includes("slot_already_booked")
+      ? "❌ الموعد ده محجوز بالفعل"
+      : "❌ " + res.error.message;
+    msg.textContent = errText; msg.style.color = "var(--coral)";
+  } else {
+    msg.textContent = "✅ تم الحجز!"; msg.style.color = "var(--pitch)";
+    document.getElementById("manualMemberSelect").value = "";
+    document.getElementById("manualSlotSelect").value = "";
+    loadRetreatSlots();
+    setTimeout(function(){ msg.textContent = ""; }, 3000);
+  }
+}
+
+
 var retreatAllSlots = [];
 var retreatCurrentFilter = 0;
 var retreatDayNames = { 1: '19 يوليو', 2: '20 يوليو', 3: '21 يوليو' };
@@ -435,6 +518,8 @@ async function loadRetreatSlots() {
   retreatAllSlots = res.data || [];
   updateRetreatStats();
   renderRetreatTable(retreatCurrentFilter);
+  loadManualMembers();
+  loadManualSlots();
 
   // حط المكان الحالي في الـ inputs (أول slot من كل يوم)
   [1,2,3].forEach(function(d){
