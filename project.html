@@ -59,7 +59,7 @@ document.getElementById("logoutBtn").addEventListener("click", logout);
 var typeLabels = { photo: "صورة", video: "فيديو", document: "ملف", other: "تانى", link: "رابط", pdf: "PDF", text: "نص" };
 
 function escapeHtml(s){
-  return (s || "").replace(/[&<>"']/g, function(c){
+  return (s || "").toString().replace(/[&<>"']/g, function(c){
     return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
   });
 }
@@ -72,7 +72,7 @@ async function loadmaterials(){
     return;
   }
   box.innerHTML = res.data.map(function(mat){
-    return '<div class="material-item"><span class="badge">' + (typeLabels[mat.type] || mat.type) + '</span><h3>' + escapeHtml(mat.title) + '</h3>' +
+    return '<div class="material-item"><span class="badge">' + escapeHtml(typeLabels[mat.type] || mat.type) + '</span><h3>' + escapeHtml(mat.title) + '</h3>' +
       (mat.description ? '<p>' + escapeHtml(mat.description) + '</p>' : '') +
       (mat.content ? '<p>' + escapeHtml(mat.content) + '</p>' : '') +
       (mat.url ? '<a class="btn outline" href="' + escapeHtml(mat.url) + '" target="_blank">فتح</a>' : '') +
@@ -88,7 +88,7 @@ async function loadmysubmissions(){
     return;
   }
   box.innerHTML = res.data.map(function(s){
-    return '<div class="submission-item"><div><span class="badge">' + (typeLabels[s.type] || s.type) + '</span><br><a href="' + escapeHtml(s.link) + '" target="_blank">' + escapeHtml(s.link) + '</a>' +
+    return '<div class="submission-item"><div><span class="badge">' + escapeHtml(typeLabels[s.type] || s.type) + '</span><br><a href="' + escapeHtml(s.link) + '" target="_blank">' + escapeHtml(s.link) + '</a>' +
       (s.note ? '<div class="meta">' + escapeHtml(s.note) + '</div>' : '') +
       '</div><button class="btn danger small" data-id="' + s.id + '">حذف</button></div>';
   }).join("");
