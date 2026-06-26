@@ -294,6 +294,13 @@ async function sendNotification(isAlarm) {
   btn.disabled = true; btn.textContent = "بنبعت...";
 
   try {
+    // احفظ الإعلان في قاعدة البيانات أولاً عشان يظهر في الداشبورد
+    await supabase.rpc("admin_save_announcement", {
+      p_password: getAdminPass(),
+      p_title:    title,
+      p_body:     body,
+    });
+
     var res = await fetch(EDGE_FUNCTION_URL, {
       method: "POST",
       headers: {
