@@ -18,6 +18,13 @@
       <div id="errorMsg"   class="error-msg"></div>
       <div id="successMsg" class="success-msg"></div>
 
+      <label for="inviteInput">كود الدعوة</label>
+      <input type="text" id="inviteInput" placeholder="اكتب كود المؤتمر"
+             style="direction:ltr;text-align:left" autocomplete="off">
+      <p style="font-size:11px;color:var(--mist-dim);margin-top:-10px;margin-bottom:14px">
+        اسأل المسؤول عن الكود لو مش معاك
+      </p>
+
       <label for="nameInput">اسمك الكامل</label>
       <input type="text" id="nameInput" placeholder="مثال: يوسف ماهر" autocomplete="name">
 
@@ -50,6 +57,7 @@
 if (getSession()) window.location.href = "dashboard.html";
 
 async function doRegister() {
+  var invite   = document.getElementById("inviteInput").value.trim();
   var name     = document.getElementById("nameInput").value.trim();
   var username = document.getElementById("usernameInput").value.trim().toLowerCase();
   var password = document.getElementById("passwordInput").value;
@@ -61,7 +69,14 @@ async function doRegister() {
   errBox.style.display = "none";
   okBox.style.display  = "none";
 
-  // تحقق
+  // تحقق من الـ invite code
+  if (!invite) {
+    errBox.textContent = "اكتب كود الدعوة";
+    errBox.style.display = "block";
+    return;
+  }
+
+  // تحقق من باقي الحقول
   if (!name || !username || !password) {
     errBox.textContent = "اكمل كل الخانات";
     errBox.style.display = "block";
@@ -86,19 +101,26 @@ async function doRegister() {
   btn.disabled = true; btn.textContent = "بنسجّل...";
 
   var res = await supabase.rpc("self_register", {
-    p_name:     name,
-    p_username: username,
-    p_password: password,
+    p_name:        name,
+    p_username:    username,
+    p_password:    password,
+    p_invite_code: invite,
   });
 
   btn.disabled = false; btn.textContent = "تسجيل ✅";
 
   if (res.error) {
     var msg = "حصل خطأ، حاول تاني";
-    if (res.error.message && res.error.message.includes("username_taken")) {
+    if (res.error.message && res.error.message.includes("invalid_invite_code")) {
+      msg = "❌ كود الدعوة غلط";
+    } else if (res.error.message && res.error.message.includes("username_taken")) {
       msg = "اليوزر ده موجود بالفعل، اختار اسم تاني";
     } else if (res.error.message && res.error.message.includes("empty_fields")) {
       msg = "اكمل كل الخانات";
+    } else if (res.error.message && res.error.message.includes("password_too_short")) {
+      msg = "كلمة السر لازم تكون 6 حروف على الأقل";
+    } else if (res.error.message && res.error.message.includes("name_too_long")) {
+      msg = "الاسم طويل جداً";
     }
     errBox.textContent = msg;
     errBox.style.display = "block";
