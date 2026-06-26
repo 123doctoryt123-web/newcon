@@ -1,13 +1,24 @@
-const CACHE_NAME = 'connect3-v3';
+const CACHE_NAME = 'connect3-v4';
 const urlsToCache = [
   '/', '/index.html', '/dashboard.html', '/predict.html',
   '/project.html', '/program.html', '/spy.html', '/book.html',
   '/message.html', '/myqr.html', '/register.html', '/scan.html', '/css/style.css', '/js/auth.js',
-  '/js/supabaseclient.js', '/logo.png'
+  '/js/supabaseclient.js'
 ];
 
 self.addEventListener('install', function(e){
-  e.waitUntil(caches.open(CACHE_NAME).then(function(c){ return c.addAll(urlsToCache); }));
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(function(c){
+      // نحاول نكاش كل ملف لوحده، ولو واحد فشل (404 مثلاً) منوقفش باقي الملفات
+      return Promise.all(
+        urlsToCache.map(function(url){
+          return c.add(url).catch(function(err){
+            console.warn('SW cache failed for', url, err);
+          });
+        })
+      );
+    })
+  );
   self.skipWaiting();
 });
 
