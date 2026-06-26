@@ -1,8 +1,10 @@
 // ============================================================
-// admin.js (مُحدَّث)
+// admin.js
 // ============================================================
-var EDGE_FUNCTION_URL = "https://ujlonszkibczmkasryuq.supabase.co/functions/v1/smooth-action";
-var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbG9uc3praWJjem1rYXNyeXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNjE5NTcsImV4cCI6MjA5NzczNzk1N30.WgHQOnblLlGjyyAKq2PBTq2zkjTps8CX6E4Hx1_ZwYQ";
+// الثوابت دي بتيجي من supabaseclient.js:
+//   window.EDGE_FUNCTION_URL
+//   window.SUPABASE_ANON_KEY
+//   supabase (الـ client)
 
 function getAdminPass() { return sessionStorage.getItem("adminPass"); }
 function setAdminPass(p) { sessionStorage.setItem("adminPass", p); }
@@ -142,7 +144,7 @@ async function resetMemberPass(btn) {
     alert("حصل خطأ أثناء ريست الباسورد");
     return;
   }
-var newPass = res.data;
+  var newPass = res.data;
   alert("✅ الباسورد الجديد: " + newPass + "\nاحتفظ بيه وابعته للشاب");
 }
 
@@ -285,7 +287,7 @@ async function loadAttendanceLog() {
 }
 
 // ============================================================
-// الإشعارات — بترسل عبر Edge Function فعلياً
+// الإشعارات — بترسل عبر Edge Function
 // ============================================================
 async function sendNotification(isAlarm) {
   var title = document.getElementById("notifTitle").value.trim();
@@ -299,19 +301,18 @@ async function sendNotification(isAlarm) {
   btn.disabled = true; btn.textContent = "بنبعت...";
 
   try {
-    // احفظ الإعلان في قاعدة البيانات أولاً عشان يظهر في الداشبورد
     await supabase.rpc("admin_save_announcement", {
       p_password: getAdminPass(),
       p_title:    title,
       p_body:     body,
     });
 
-    var res = await fetch(EDGE_FUNCTION_URL, {
+    var res = await fetch(window.EDGE_FUNCTION_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+        "apikey": window.SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + window.SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         action: "send_notification",
