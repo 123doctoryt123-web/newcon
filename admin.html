@@ -258,19 +258,39 @@
 
     <!-- الإشعارات -->
     <div class="tab-panel" id="panel-notifications">
+
+      <!-- كارت النشر على الموقع -->
+      <div class="card" style="margin-bottom:14px">
+        <strong>📢 نشر إعلان على الموقع</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">يظهر للشباب فور ما يفتحوا الداشبورد — حتى لو الإشعار ما وصلش</p>
+        <label>عنوان الإعلان</label>
+        <input type="text" id="annTitle" placeholder="مثال: موعد الأكل جاهز! 🍽️">
+        <label>نص الإعلان</label>
+        <textarea id="annBody" placeholder="مثال: الأكل جاهز في قاعة الطعام دلوقتي"></textarea>
+        <button class="btn" id="postAnnBtn">📌 نشر على الموقع</button>
+        <div id="annMsg" style="margin-top:10px"></div>
+      </div>
+
+      <!-- آخر إعلان منشور -->
+      <div class="card" id="currentAnnCard" style="margin-bottom:14px;display:none">
+        <strong style="font-size:13px;color:var(--mist-dim)">📋 الإعلان الحالي على الموقع</strong>
+        <div id="currentAnnPreview" style="margin-top:10px;padding:12px;background:rgba(200,150,90,0.08);border:1px solid var(--line);border-radius:10px"></div>
+        <button class="btn danger" id="clearAnnBtn" style="margin-top:10px;font-size:13px">🗑️ مسح الإعلان من الموقع</button>
+      </div>
+
+      <!-- كارت الإشعار Push -->
       <div class="card">
-        <strong>🔔 إرسال إشعار للشباب</strong>
-        <div style="margin-top:14px">
-          <label>عنوان الإشعار</label>
-          <input type="text" id="notifTitle" placeholder="مثال: موعد الأكل جاهز! 🍽️">
-          <label>نص الإشعار</label>
-          <textarea id="notifBody" placeholder="مثال: الأكل جاهز في قاعة الطعام دلوقتي"></textarea>
-          <button class="btn" id="sendNotifBtn">🔔 إرسال إشعار</button>
-          <div style="margin-top:10px">
-            <button class="btn danger" id="sendAlarmBtn">⏰ إرسال منبه (بصوت عالي)</button>
-          </div>
-          <div id="notifMsg" style="margin-top:10px"></div>
+        <strong>🔔 إرسال إشعار Push للشباب</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">بيبعت notification للأجهزة — وبينشر الإعلان على الموقع تلقائياً كمان</p>
+        <label>عنوان الإشعار</label>
+        <input type="text" id="notifTitle" placeholder="مثال: موعد الأكل جاهز! 🍽️">
+        <label>نص الإشعار</label>
+        <textarea id="notifBody" placeholder="مثال: الأكل جاهز في قاعة الطعام دلوقتي"></textarea>
+        <button class="btn" id="sendNotifBtn">🔔 إرسال إشعار</button>
+        <div style="margin-top:10px">
+          <button class="btn danger" id="sendAlarmBtn">⏰ إرسال منبه (بصوت عالي)</button>
         </div>
+        <div id="notifMsg" style="margin-top:10px"></div>
       </div>
     </div>
 
