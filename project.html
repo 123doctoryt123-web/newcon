@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مشروعي | مؤتمر الشباب</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand"><span class="dot"></span> مؤتمر الشباب</a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:6px">المواد والمراجع</h1>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">كل اللي ممكن يساعدك فى مشروعك</p>
+
+  <div class="card" id="materialsCard">
+    <div id="materialsList"><div class="empty-state">بنحمّل المواد...</div></div>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:6px">ارفع شغلك</h1>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">
+    حمّل الصورة أو الفيديو على جوجل درايڤ، خليه "Anyone with the link"، وحط الرابط هنا
+  </p>
+
+  <div class="card">
+    <div id="submitError" class="error-msg"></div>
+    <div id="submitSuccess" class="success-msg"></div>
+    <label for="linkType">نوع الملف</label>
+    <select id="linkType">
+      <option value="photo">صورة</option>
+      <option value="video">فيديو</option>
+      <option value="document">ملف / مستند</option>
+      <option value="other">حاجة تانية</option>
+    </select>
+    <label for="driveLink">رابط جوجل درايڤ</label>
+    <input type="url" id="driveLink" placeholder="https://drive.google.com/...">
+    <label for="noteText">ملاحظة (اختياري)</label>
+    <textarea id="noteText" placeholder="مثلاً: ده الجزء الأول من المشروع"></textarea>
+    <button class="btn" id="submitBtn">رفع الرابط</button>
+  </div>
+
+  <h1 class="display" style="font-size:18px;margin-bottom:6px">مشاركاتي</h1>
+  <div class="card">
+    <div id="mySubmissions"><div class="empty-state">لسه مرفعتش حاجة</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+var typeLabels = { photo: "صورة", video: "فيديو", document: "ملف", other: "تانى", link: "رابط", pdf: "PDF", text: "نص" };
+
+function escapeHtml(s){
+  return (s || "").replace(/[&<>"']/g, function(c){
+    return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
+  });
+}
+
+async function loadmaterials(){
+  var res = await supabase.from("materials").select("*").order("created_at", { ascending: true });
+  var box = document.getElementById("materialsList");
+  if(res.error || !res.data || res.data.length === 0){
+    box.innerHTML = '<div class="empty-state">لسه مفيش مواد متاحة، تابع بعدين</div>';
+    return;
+  }
+  box.innerHTML = res.data.map(function(mat){
+    return '<div class="material-item"><span class="badge">' + (typeLabels[mat.type] || mat.type) + '</span><h3>' + escapeHtml(mat.title) + '</h3>' +
+      (mat.description ? '<p>' + escapeHtml(mat.description) + '</p>' : '') +
+      (mat.content ? '<p>' + escapeHtml(mat.content) + '</p>' : '') +
+      (mat.url ? '<a class="btn outline" href="' + escapeHtml(mat.url) + '" target="_blank">فتح</a>' : '') +
+      '</div>';
+  }).join("");
+}
+
+async function loadmysubmissions(){
+  var res = await supabase.rpc("get_my_submissions", { p_member_id: member.id });
+  var box = document.getElementById("mySubmissions");
+  if(!res.data || res.data.length === 0){
+    box.innerHTML = '<div class="empty-state">لسه مرفعتش حاجة</div>';
+    return;
+  }
+  box.innerHTML = res.data.map(function(s){
+    return '<div class="submission-item"><div><span class="badge">' + (typeLabels[s.type] || s.type) + '</span><br><a href="' + escapeHtml(s.link) + '" target="_blank">' + escapeHtml(s.link) + '</a>' +
+      (s.note ? '<div class="meta">' + escapeHtml(s.note) + '</div>' : '') +
+      '</div><button class="btn danger small" data-id="' + s.id + '">حذف</button></div>';
+  }).join("");
+
+  box.querySelectorAll("button[data-id]").forEach(function(btn){
+    btn.addEventListener("click", async function(){
+      await supabase.rpc("delete_my_submission", { p_member_id: member.id, p_id: btn.dataset.id });
+      loadmysubmissions();
+    });
+  });
+}
+
+document.getElementById("submitBtn").addEventListener("click", async function(){
+  var link = document.getElementById("driveLink").value.trim();
+  var note = document.getElementById("noteText").value.trim();
+  var type = document.getElementById("linkType").value;
+  var errBox = document.getElementById("submitError");
+  var okBox = document.getElementById("submitSuccess");
+  errBox.style.display = "none"; okBox.style.display = "none";
+
+  if(!link.startsWith("http")){
+    errBox.textContent = "حط رابط صحيح يبدأ بـ http";
+    errBox.style.display = "block";
+    return;
+  }
+
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true; btn.textContent = "بنرفع...";
+
+  var res = await supabase.rpc("submit_project_link", { p_member_id: member.id, p_link: link, p_note: note, p_type: type });
+  btn.disabled = false; btn.textContent = "رفع الرابط";
+
+  if(res.error){
+    errBox.textContent = "حصل خطأ، حاول تاني";
+    errBox.style.display = "block";
+    return;
+  }
+
+  okBox.textContent = "تم رفع الرابط ✅";
+  okBox.style.display = "block";
+  document.getElementById("driveLink").value = "";
+  document.getElementById("noteText").value = "";
+  loadmysubmissions();
+});
+
+loadmaterials();
+loadmysubmissions();
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سكان الحضور | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<!-- مكتبة قراءة QR -->
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+.scan-type-row{ display:flex; gap:10px; margin-bottom:20px; }
+.scan-type-btn{
+  flex:1; padding:18px 10px; border-radius:var(--radius);
+  border:2px solid var(--line); background: var(--ink-2);
+  color:var(--mist-dim); font-family:var(--font-display); font-weight:700;
+  font-size:16px; cursor:pointer; text-align:center; transition: all .15s;
+}
+.scan-type-btn.active{ border-color:var(--coral); background:rgba(192,83,58,0.15); color:var(--mist); }
+.scan-type-btn.book.active{ border-color:var(--gold); background:rgba(200,150,90,0.12); }
+
+#reader{ width:100%; border-radius:var(--radius); overflow:hidden; margin-bottom:16px; }
+
+.result-banner{
+  padding:18px; border-radius:var(--radius); text-align:center;
+  font-family:var(--font-display); font-weight:700; font-size:18px;
+  margin-bottom:16px; display:none;
+}
+.result-banner.ok    { background:rgba(74,124,111,0.2); border:1px solid var(--pitch); color:#a9e6c4; }
+.result-banner.dup   { background:rgba(200,150,90,0.15); border:1px solid var(--gold); color:var(--gold); }
+.result-banner.err   { background:rgba(192,83,58,0.15); border:1px solid var(--coral); color:#ffb3a6; }
+
+.manual-section{ margin-top:10px; }
+.scan-log-item{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;
+}
+.scan-log-item:last-child{ border-bottom:none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="admin.html" class="brand"><span class="dot"></span> لوحة التحكم</a>
+    <span id="scanTypeLabel" style="font-size:13px;color:var(--gold);font-weight:700"></span>
+  </div>
+
+  <!-- شاشة تسجيل دخول الأدمن -->
+  <div id="loginSection">
+    <div class="card glow" style="margin-top:20px">
+      <h2 style="font-size:17px;margin-bottom:14px">🔐 دخول الأدمن</h2>
+      <div id="loginErr" class="error-msg"></div>
+      <label>كلمة سر الأدمن</label>
+      <input type="password" id="adminPassScan" placeholder="••••••">
+      <button class="btn" id="loginScanBtn">دخول</button>
+    </div>
+  </div>
+
+  <!-- لوحة السكان -->
+  <div id="scanSection" style="display:none">
+
+    <h1 class="display" style="font-size:18px;margin-bottom:14px">📷 سكان الحضور</h1>
+
+    <!-- اختيار النوع -->
+    <div class="scan-type-row">
+      <button class="scan-type-btn book active" id="btnBook" onclick="setScanType('book')">📖 درس الكتاب</button>
+      <button class="scan-type-btn"             id="btnProject" onclick="setScanType('project')">🗂️ المشروع</button>
+    </div>
+
+    <!-- نتيجة السكان -->
+    <div class="result-banner" id="resultBanner"></div>
+
+    <!-- الكاميرا -->
+    <div class="card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <strong style="font-size:14px">📷 سكان بالكاميرا</strong>
+        <div style="display:flex;gap:8px">
+          <button class="btn small outline" id="startCamBtn">تشغيل</button>
+          <button class="btn small outline" id="stopCamBtn" style="display:none">إيقاف</button>
+        </div>
+      </div>
+      <div id="reader"></div>
+    </div>
+
+    <!-- إدخال يدوي -->
+    <div class="card manual-section">
+      <strong style="font-size:14px">⌨️ إدخال يدوي (لو الكاميرا مش شغالة)</strong>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <input type="text" id="manualId" placeholder="الـ member ID أو اليوزر" style="margin-bottom:0;flex:1">
+        <button class="btn small" id="manualScanBtn" style="width:auto">سكان</button>
+      </div>
+      <p style="font-size:11px;color:var(--mist-dim);margin-top:6px">
+        تقدر تكتب اسم المستخدم (username) بالكامل أو الـ ID
+      </p>
+    </div>
+
+    <!-- سجل اليوم -->
+    <div class="card" style="margin-top:4px">
+      <strong style="font-size:14px">📋 سجل اليوم (<span id="logCount">0</span>)</strong>
+      <div id="scanLogList" style="margin-top:10px">
+        <div class="empty-state">لسه مفيش سجل</div>
+      </div>
+    </div>
+
+  </div><!-- /scanSection -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseclient.js"></script>
+<script>
+var adminPass = sessionStorage.getItem("adminPass") || "";
+var currentScanType = "book";
+var html5QrCode = null;
+var scanCooldown = false;
+var sessionLog = []; // سجل السكانات في هذه الجلسة
+
+// ============================================================
+// دخول
+// ============================================================
+document.getElementById("loginScanBtn").addEventListener("click", async function () {
+  var pass = document.getElementById("adminPassScan").value.trim();
+  if (!pass) return;
+  var res = await supabase.rpc("admin_check", { p_password: pass });
+  if (res.error || !res.data) {
+    document.getElementById("loginErr").textContent = "كلمة السر غير صحيحة";
+    document.getElementById("loginErr").style.display = "block";
+    return;
+  }
+  adminPass = pass;
+  sessionStorage.setItem("adminPass", pass);
+  document.getElementById("loginSection").style.display = "none";
+  document.getElementById("scanSection").style.display = "block";
+  updateTypeLabel();
+  loadTodayLog();
+});
+
+document.getElementById("adminPassScan").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") document.getElementById("loginScanBtn").click();
+});
+
+// لو الأدمن مسجّل دخوله بالفعل
+if (adminPass) {
+  supabase.rpc("admin_check", { p_password: adminPass }).then(function (res) {
+    if (!res.error && res.data) {
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("scanSection").style.display = "block";
+      updateTypeLabel();
+      loadTodayLog();
+    }
+  });
+}
+
+// ============================================================
+// اختيار نوع السكان
+// ============================================================
+function setScanType(type) {
+  currentScanType = type;
+  document.getElementById("btnBook").classList.toggle("active", type === "book");
+  document.getElementById("btnProject").classList.toggle("active", type === "project");
+  updateTypeLabel();
+}
+
+function updateTypeLabel() {
+  document.getElementById("scanTypeLabel").textContent =
+    currentScanType === "book" ? "📖 درس الكتاب" : "🗂️ المشروع";
+}
+
+// ============================================================
+// الكاميرا
+// ============================================================
+document.getElementById("startCamBtn").addEventListener("click", startCamera);
+document.getElementById("stopCamBtn").addEventListener("click", stopCamera);
+
+function startCamera() {
+  if (html5QrCode) return;
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    onQrSuccess,
+    function () {}
+  ).then(function () {
+    document.getElementById("startCamBtn").style.display = "none";
+    document.getElementById("stopCamBtn").style.display = "inline-flex";
+  }).catch(function (err) {
+    showResult("err", "❌ مش قادر يفتح الكاميرا:\n" + err);
+    html5QrCode = null;
+  });
+}
+
+function stopCamera() {
+  if (!html5QrCode) return;
+  html5QrCode.stop().then(function () {
+    html5QrCode.clear();
+    html5QrCode = null;
+    document.getElementById("startCamBtn").style.display = "inline-flex";
+    document.getElementById("stopCamBtn").style.display = "none";
+    document.getElementById("reader").innerHTML = "";
+  });
+}
+
+async function onQrSuccess(decodedText) {
+  if (scanCooldown) return;
+  scanCooldown = true;
+  setTimeout(function () { scanCooldown = false; }, 3000);
+  await processScan(decodedText.trim());
+}
+
+// ============================================================
+// الإدخال اليدوي
+// ============================================================
+document.getElementById("manualScanBtn").addEventListener("click", async function () {
+  var val = document.getElementById("manualId").value.trim();
+  if (!val) return;
+  await processScan(val);
+  document.getElementById("manualId").value = "";
+});
+
+document.getElementById("manualId").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") document.getElementById("manualScanBtn").click();
+});
+
+// ============================================================
+// معالجة السكان
+// ============================================================
+async function processScan(rawValue) {
+  // القيمة ممكن تكون member UUID أو اسم المستخدم
+  var memberId = null;
+
+  // شوف لو UUID (36 حرف بأقواس)
+  var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(rawValue)) {
+    memberId = rawValue;
+  } else {
+    // ابحث بالـ username
+    var res = await supabase
+      .from("members")
+      .select("id")
+      .ilike("username", rawValue)
+      .maybeSingle();
+    if (res.error || !res.data) {
+      showResult("err", "❌ مش لاقي العضو: " + rawValue);
+      return;
+    }
+    memberId = res.data.id;
+  }
+
+  var res = await supabase.rpc("admin_scan_qr", {
+    p_password:  adminPass,
+    p_member_id: memberId,
+    p_scan_type: currentScanType,
+  });
+
+  if (res.error) {
+    showResult("err", "❌ حصل خطأ: " + res.error.message);
+    return;
+  }
+
+  var d = res.data && res.data[0];
+  if (!d) { showResult("err", "❌ حصل خطأ غير متوقع"); return; }
+
+  if (d.status === "ok") {
+    showResult("ok", "✅ " + d.member_name + "\n+" + d.points_added + " نقطة");
+    addToLog(d.member_name, currentScanType, d.points_added);
+  } else if (d.status === "already_scanned") {
+    showResult("dup", "⚠️ " + d.member_name + "\nسكان قبل كده بالفعل النهارده");
+  } else {
+    showResult("err", "❌ العضو مش موجود");
+  }
+}
+
+// ============================================================
+// UI مساعد
+// ============================================================
+function showResult(type, text) {
+  var el = document.getElementById("resultBanner");
+  el.className = "result-banner " + type;
+  el.style.display = "block";
+  el.innerText = text;
+  setTimeout(function () { el.style.display = "none"; }, 4000);
+}
+
+function addToLog(name, type, pts) {
+  var now = new Date();
+  var timeStr = now.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+  var label = type === "book" ? "📖 الكتاب" : "🗂️ المشروع";
+  sessionLog.unshift({ name: name, label: label, pts: pts, time: timeStr });
+  renderLog();
+}
+
+async function loadTodayLog() {
+  var res = await supabase.rpc("admin_list_attendance", { p_password: adminPass });
+  if (res.error || !res.data) return;
+  var today = new Date().toDateString();
+  sessionLog = res.data
+    .filter(function (a) { return new Date(a.scanned_at).toDateString() === today; })
+    .map(function (a) {
+      var d = new Date(a.scanned_at);
+      return {
+        name: a.member_name,
+        label: a.scan_type === "book" ? "📖 الكتاب" : "🗂️ المشروع",
+        pts: null,
+        time: d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+      };
+    });
+  renderLog();
+}
+
+function renderLog() {
+  document.getElementById("logCount").textContent = sessionLog.length;
+  var box = document.getElementById("scanLogList");
+  if (!sessionLog.length) { box.innerHTML = '<div class="empty-state">لسه مفيش سجل</div>'; return; }
+  box.innerHTML = sessionLog.map(function (item) {
+    return '<div class="scan-log-item">' +
+      '<div><strong>' + escapeHtml(item.name) + '</strong> — ' + item.label + '</div>' +
+      '<div style="color:var(--mist-dim)">' + item.time + (item.pts ? ' <span style="color:var(--gold)">+' + item.pts + '</span>' : '') + '</div>' +
+      '</div>';
+  }).join("");
+}
+
+function escapeHtml(s) {
+  return (s || "").toString().replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+</script>
+</body>
+</html>

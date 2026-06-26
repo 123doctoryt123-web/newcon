@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.program-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.program-row input{ margin-bottom:0; flex:1; }
+.reg-link-box{
+  background: rgba(200,150,90,0.08); border:1px solid var(--gold);
+  border-radius: var(--radius-sm); padding:14px; margin-top:14px; font-size:13px;
+}
+.reg-link-box a{ color:var(--gold); word-break:break-all; }
+</style>
+</head>
+<body>
+
+<div class="container wide">
+
+  <div id="adminLoginScreen">
+    <div class="login-wrap" style="min-height:80vh">
+      <div class="login-card">
+        <div class="login-logo">لوحة <span>التحكم</span></div>
+        <div class="card glow" style="text-align:right">
+          <div id="adminErrorMsg" class="error-msg"></div>
+          <label for="adminPassInput">كلمة سر الأدمن</label>
+          <input type="password" id="adminPassInput" placeholder="••••••">
+          <button class="btn" id="adminLoginBtn">دخول</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminPanel" style="display:none">
+    <div class="topbar no-print">
+      <div class="brand"><span class="dot"></span> لوحة التحكم</div>
+      <a href="#" class="logout-link" id="adminLogoutBtn">خروج</a>
+    </div>
+
+    <div class="tabs no-print" style="flex-wrap:wrap">
+      <div class="tab active" data-tab="members">الشباب</div>
+      <div class="tab" data-tab="teams">الفرق</div>
+      <div class="tab" data-tab="materials">المواد</div>
+      <div class="tab" data-tab="predictions">التوقعات</div>
+      <div class="tab" data-tab="submissions">المشاركات</div>
+      <div class="tab" data-tab="program">البرنامج</div>
+      <div class="tab" data-tab="spy">الجاسوس</div>
+      <div class="tab" data-tab="book">درس الكتاب</div>
+      <div class="tab" data-tab="qr">QR الحضور</div>
+      <div class="tab" data-tab="notifications">الإشعارات</div>
+      <div class="tab" data-tab="settings">الإعدادات</div>
+    </div>
+
+    <!-- الشباب -->
+    <div class="tab-panel active" id="panel-members">
+      <div class="card no-print">
+        <label for="newMemberName">إضافة شاب جديد (الأدمن يضيفه)</label>
+        <input type="text" id="newMemberName" placeholder="اسم الشاب">
+        <button class="btn" id="addMemberBtn">إضافة وتوليد بيانات الدخول</button>
+        <div id="newMemberResult" style="margin-top:14px"></div>
+        <div class="reg-link-box">
+          <strong>🔗 لينك التسجيل الذاتي</strong><br>
+          أرسله للشاب عشان يسجّل بنفسه:<br>
+          <a id="regLinkEl" href="register.html" target="_blank"></a>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px" class="no-print">
+          <strong>كل الشباب (<span id="memberCount">0</span>)</strong>
+          <button class="btn small outline" id="printMembersBtn">طباعة / تحميل</button>
+        </div>
+        <table id="membersTable">
+          <thead><tr><th>الاسم</th><th>اليوزر</th><th>الباسورد</th><th class="no-print"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- الفرق -->
+    <div class="tab-panel" id="panel-teams">
+      <div class="card no-print">
+        <strong>توزيع الفرق والنقاط</strong>
+        <div style="margin-top:14px">
+          <label for="teamMemberSelect">اختار الشاب</label>
+          <select id="teamMemberSelect"></select>
+          <label for="teamNameInput">اسم الفريق</label>
+          <input type="text" id="teamNameInput" placeholder="مثال: فريق مارمرقس">
+          <label for="teamPointsInput">النقاط</label>
+          <input type="number" id="teamPointsInput" value="0">
+          <button class="btn" id="saveTeamStatsBtn">حفظ التعديلات</button>
+          <div id="teamStatsMsg" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <strong>كل الشباب وفرقهم</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>الاسم</th><th>الفريق</th><th>النقاط</th></tr></thead>
+          <tbody id="teamsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- المواد -->
+    <div class="tab-panel" id="panel-materials">
+      <div class="card no-print">
+        <label for="matTitle">عنوان المادة</label>
+        <input type="text" id="matTitle" placeholder="مثال: مرجع عن الموضوع">
+        <label for="matType">النوع</label>
+        <select id="matType">
+          <option value="link">رابط</option>
+          <option value="pdf">PDF</option>
+          <option value="video">فيديو</option>
+          <option value="text">نص فقط</option>
+        </select>
+        <label for="matUrl">رابط (لو فيه)</label>
+        <input type="url" id="matUrl" placeholder="https://...">
+        <label for="matDesc">وصف مختصر</label>
+        <textarea id="matDesc" placeholder="وصف بسيط للمادة"></textarea>
+        <label for="matContent">نص إضافي (اختياري)</label>
+        <textarea id="matContent" placeholder="ممكن تحط هنا نص كامل لو مش رابط"></textarea>
+        <button class="btn" id="addMaterialBtn">إضافة المادة</button>
+      </div>
+      <div class="card">
+        <strong>المواد الحالية</strong>
+        <div id="materialsAdminList" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- التوقعات -->
+    <div class="tab-panel" id="panel-predictions">
+      <div class="card no-print">
+        <label>اسم الفريق الأول</label>
+        <input type="text" id="team1Input" placeholder="مثال: الأرجنتين">
+        <label>اسم الفريق الثاني</label>
+        <input type="text" id="team2Input" placeholder="مثال: فرنسا">
+        <button class="btn outline" id="saveTeamsBtn">حفظ أسماء الفريقين</button>
+        <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between">
+          <span id="lockStatusText">حالة التوقعات: ...</span>
+          <button class="btn small" id="toggleLockBtn">تغيير</button>
+        </div>
+      </div>
+      <div class="card">
+        <strong>توقعات الشباب (<span id="predCount">0</span>)</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>الاسم</th><th>اليوزر</th><th>التوقع</th><th>آخر تحديث</th></tr></thead>
+          <tbody id="predTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- المشاركات -->
+    <div class="tab-panel" id="panel-submissions">
+      <div class="card">
+        <strong>مشاركات المشروع (<span id="subCount">0</span>)</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>الاسم</th><th>النوع</th><th>الرابط</th><th>ملاحظة</th></tr></thead>
+          <tbody id="subTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- البرنامج -->
+    <div class="tab-panel" id="panel-program">
+      <div class="card no-print">
+        <strong>إضافة نشاط للبرنامج</strong>
+        <div style="margin-top:14px">
+          <label>اليوم</label>
+          <select id="progDay">
+            <option value="1">اليوم الأول — 19 يوليو</option>
+            <option value="2">اليوم الثاني — 20 يوليو</option>
+            <option value="3">اليوم الثالث — 21 يوليو</option>
+          </select>
+          <label>الوقت</label>
+          <input type="text" id="progTime" placeholder="مثال: 7:00 ص">
+          <label>اسم النشاط</label>
+          <input type="text" id="progTitle" placeholder="مثال: صلاة الصباح">
+          <label>الترتيب (رقم)</label>
+          <input type="number" id="progOrder" placeholder="1" value="1">
+          <button class="btn" id="addProgBtn">إضافة للبرنامج</button>
+        </div>
+      </div>
+      <div class="card">
+        <strong>البرنامج الحالي</strong>
+        <div id="programAdminList" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- الجاسوس -->
+    <div class="tab-panel" id="panel-spy">
+      <div class="card">
+        <strong>🕵️ لعبة الجاسوس</strong>
+        <label>الكلمة السرية</label>
+        <input type="text" id="spyWord" placeholder="مثال: بطاطس">
+        <label>عدد الجواسيس</label>
+        <input type="number" id="spyCount" value="1" min="1">
+        <label>اختار اللاعبين</label>
+        <div id="spyMembersList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn small outline" id="selectAllSpyBtn">تحديد الكل</button>
+          <button class="btn small outline" id="deselectAllSpyBtn">إلغاء الكل</button>
+        </div>
+        <button class="btn" id="startSpyBtn" style="margin-top:14px">🎮 ابدأ لعبة جديدة</button>
+        <button class="btn danger" id="stopSpyBtn" style="margin-top:10px">⏹️ إيقاف اللعبة</button>
+        <div id="spyMsg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- درس الكتاب -->
+    <div class="tab-panel" id="panel-book">
+      <div class="card">
+        <strong>📖 رابط فورم درس الكتاب</strong>
+        <div style="margin-top:14px">
+          <label>رابط جوجل فورم</label>
+          <input type="url" id="formUrl" placeholder="https://forms.google.com/...">
+          <button class="btn" id="saveFormBtn">حفظ الرابط</button>
+          <div id="formMsg" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR الحضور -->
+    <div class="tab-panel" id="panel-qr">
+      <div class="card">
+        <strong>📷 تسجيل الحضور بالـ QR</strong>
+        <p style="font-size:13px;color:var(--mist-dim);margin:10px 0">
+          افتح صفحة السكان على تليفونك أو أي جهاز عندك، وامسح الـ QR بتاع كل شاب.
+        </p>
+        <a href="scan.html" target="_blank" class="btn" style="margin-bottom:14px">
+          📷 فتح صفحة السكان
+        </a>
+
+        <div style="margin-top:6px">
+          <strong style="font-size:14px">إعدادات النقاط</strong>
+          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>نقاط درس الكتاب</label>
+              <input type="number" id="bookScanPts" value="5" min="0">
+            </div>
+            <div>
+              <label>نقاط المشروع</label>
+              <input type="number" id="projectScanPts" value="10" min="0">
+            </div>
+          </div>
+          <button class="btn outline" id="saveScanPointsBtn">حفظ النقاط</button>
+          <div id="scanPointsMsg" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:4px">
+        <strong>📋 سجل الحضور الكامل</strong>
+        <div id="attendanceLog" style="margin-top:10px">
+          <div class="empty-state">بنحمّل...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- الإشعارات -->
+    <div class="tab-panel" id="panel-notifications">
+      <div class="card">
+        <strong>🔔 إرسال إشعار للشباب</strong>
+        <div style="margin-top:14px">
+          <label>عنوان الإشعار</label>
+          <input type="text" id="notifTitle" placeholder="مثال: موعد الأكل جاهز! 🍽️">
+          <label>نص الإشعار</label>
+          <textarea id="notifBody" placeholder="مثال: الأكل جاهز في قاعة الطعام دلوقتي"></textarea>
+          <button class="btn" id="sendNotifBtn">🔔 إرسال إشعار</button>
+          <div style="margin-top:10px">
+            <button class="btn danger" id="sendAlarmBtn">⏰ إرسال منبه (بصوت عالي)</button>
+          </div>
+          <div id="notifMsg" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- الإعدادات -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="card">
+        <label for="newAdminPass">تغيير كلمة سر الأدمن</label>
+        <input type="password" id="newAdminPass" placeholder="كلمة سر جديدة">
+        <button class="btn outline" id="changePassBtn">تغيير</button>
+        <div id="settingsMsg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+  </div><!-- /adminPanel -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/adminextra.js"></script>
+<script>
+// اعرض لينك التسجيل الذاتي
+window.addEventListener("DOMContentLoaded", function () {
+  var el = document.getElementById("regLinkEl");
+  if (el) {
+    var url = window.location.origin + window.location.pathname.replace("admin.html", "") + "register.html";
+    el.href = url;
+    el.textContent = url;
+  }
+});
+</script>
+</body>
+</html>
