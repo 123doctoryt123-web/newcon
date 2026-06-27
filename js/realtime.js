@@ -9,110 +9,132 @@
   var page = location.pathname.split("/").pop() || "index.html";
 
   // ============================================================
-  // مساعد: reload ناعم (بدون وميض)
+  // مساعد: يربط channel، يطبع حالة الاتصال في الـ console،
+  // ويعيد المحاولة تلقائياً لو الاتصال قفل أو حصل فيه تايم آوت
   // ============================================================
-  function softReload(fn) {
-    if (typeof fn === "function") fn();
-    else location.reload();
+  function subscribeWithRetry(channelName, configureFn) {
+    function start() {
+      var channel = supabase.channel(channelName);
+      configureFn(channel);
+      channel.subscribe(function (status, err) {
+        console.log("[realtime] " + channelName + " -> " + status, err || "");
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // حاول تاني بعد 3 ثواني
+          setTimeout(function () {
+            try { supabase.removeChannel(channel); } catch (e) {}
+            start();
+          }, 3000);
+        }
+      });
+      return channel;
+    }
+    return start();
   }
+
+  console.log("[realtime] تم تحميل realtime.js على صفحة:", page);
 
   // ============================================================
   // 1) الداشبورد — إعلانات جديدة
   // ============================================================
   if (page === "dashboard.html") {
-    supabase
-      .channel("rt-announcements")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-announcements", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "announcements"
-      }, function () {
+      }, function (payload) {
+        console.log("[realtime] announcements event:", payload);
         if (typeof loadLatestAnnouncement === "function") loadLatestAnnouncement();
-      })
-      .subscribe();
+      });
+    });
 
     // تحديث النقاط والفريق لو تغيرت
-    supabase
-      .channel("rt-members-dash")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-members-dash", function (channel) {
+      channel.on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "members"
       }, function () {
         if (typeof loadTeamInfo === "function") loadTeamInfo();
-      })
-      .subscribe();
+      });
+    });
+
+    // ------------------------------------------------------------
+    // شبكة أمان: بوللينج كل 15 ثانية للإعلانات
+    // عشان لو الـ WebSocket انقطع لأي سبب (الجهاز قفل، الشبكة
+    // اتقطعت لحظة، التاب فضل فاتح فترة طويلة...) يفضل التحديث
+    // شغال برضو حتى لو متأخر شوية
+    // ------------------------------------------------------------
+    setInterval(function () {
+      if (typeof loadLatestAnnouncement === "function") loadLatestAnnouncement();
+    }, 15000);
   }
 
   // ============================================================
   // 2) البرنامج — نشاط جديد
   // ============================================================
   if (page === "program.html") {
-    supabase
-      .channel("rt-program")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-program", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "program_items"
       }, function () {
         if (typeof loadProgram === "function") loadProgram();
-      })
-      .subscribe();
+      });
+    });
   }
 
   // ============================================================
   // 3) الجاسوس — لعبة جديدة / إيقاف
   // ============================================================
   if (page === "spy.html") {
-    supabase
-      .channel("rt-spy")
-      .on("postgres_changes", {
-        event: "*", schema: "public", table: "spy_games"
-      }, function () {
-        if (typeof loadGame === "function") loadGame();
-      })
-      .on("postgres_changes", {
-        event: "*", schema: "public", table: "spy_roles"
-      }, function () {
-        if (typeof loadGame === "function") loadGame();
-      })
-      .subscribe();
+    subscribeWithRetry("rt-spy", function (channel) {
+      channel
+        .on("postgres_changes", {
+          event: "*", schema: "public", table: "spy_games"
+        }, function () {
+          if (typeof loadGame === "function") loadGame();
+        })
+        .on("postgres_changes", {
+          event: "*", schema: "public", table: "spy_roles"
+        }, function () {
+          if (typeof loadGame === "function") loadGame();
+        });
+    });
   }
 
   // ============================================================
   // 4) التوقعات — قفل / فتح + تغيير أسماء الفرق
   // ============================================================
   if (page === "predict.html") {
-    supabase
-      .channel("rt-settings-predict")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-settings-predict", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "settings"
       }, function () {
         if (typeof init === "function") init();
-      })
-      .subscribe();
+      });
+    });
   }
 
   // ============================================================
   // 5) الخلوة — لما الأدمن يغيّر الموعد أو المكان
   // ============================================================
   if (page === "retreat.html") {
-    supabase
-      .channel("rt-retreat")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-retreat", function (channel) {
+      channel.on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "retreat_slots"
       }, function (payload) {
         if (typeof loadRetreatSlot === "function") loadRetreatSlot();
-      })
-      .subscribe();
+      });
+    });
   }
 
   // ============================================================
   // 6) درس الكتاب — لما الأدمن يغيّر الرابط
   // ============================================================
   if (page === "book.html") {
-    supabase
-      .channel("rt-settings-book")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-settings-book", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "settings"
       }, function () {
         if (typeof loadForm === "function") loadForm();
-      })
-      .subscribe();
+      });
+    });
   }
 
   // ============================================================
@@ -120,49 +142,61 @@
   // ============================================================
   if (page === "admin.html") {
     // تحديث قايمة الشباب
-    supabase
-      .channel("rt-admin-members")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-admin-members", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "members"
       }, function () {
         if (typeof loadMembers === "function") loadMembers();
         if (typeof loadManualMembers === "function") loadManualMembers();
-      })
-      .subscribe();
+      });
+    });
 
     // تحديث الخلوة
-    supabase
-      .channel("rt-admin-retreat")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-admin-retreat", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "retreat_slots"
       }, function () {
         if (typeof loadRetreatSlots === "function") loadRetreatSlots();
-      })
-      .subscribe();
+      });
+    });
 
     // تحديث الإعلانات
-    supabase
-      .channel("rt-admin-ann")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-admin-ann", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "announcements"
       }, function () {
         if (typeof loadCurrentAnnouncement === "function") loadCurrentAnnouncement();
-      })
-      .subscribe();
+      });
+    });
   }
 
   // ============================================================
   // 8) المواد والمشاركات
   // ============================================================
   if (page === "project.html") {
-    supabase
-      .channel("rt-materials")
-      .on("postgres_changes", {
+    subscribeWithRetry("rt-materials", function (channel) {
+      channel.on("postgres_changes", {
         event: "*", schema: "public", table: "materials"
       }, function () {
         if (typeof loadmaterials === "function") loadmaterials();
-      })
-      .subscribe();
+      });
+    });
   }
+
+  // ============================================================
+  // 9) إعادة الاشتراك لو الصفحة رجعت تظهر بعد ما كانت مخفية
+  // (مثلاً المستخدم رجع للتاب بعد ما سرّح أو غيّر تاب تاني)
+  // ============================================================
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      console.log("[realtime] الصفحة رجعت تظهر — بنحدّث البيانات");
+      if (page === "dashboard.html" && typeof loadLatestAnnouncement === "function") {
+        loadLatestAnnouncement();
+      }
+      if (page === "admin.html" && typeof loadCurrentAnnouncement === "function") {
+        loadCurrentAnnouncement();
+      }
+    }
+  });
 
 })();
