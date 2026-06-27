@@ -1,9 +1,11 @@
-const CACHE_NAME = 'connect3-v4';
+const CACHE_NAME = 'connect3-v5';
 const urlsToCache = [
   '/', '/index.html', '/dashboard.html', '/predict.html',
   '/project.html', '/program.html', '/spy.html', '/book.html',
-  '/message.html', '/myqr.html', '/register.html', '/scan.html', '/css/style.css', '/js/auth.js',
-  '/js/supabaseclient.js'
+  '/message.html', '/myqr.html', '/register.html', '/scan.html',
+  '/admin.html', '/retreat.html',
+  '/css/style.css', '/js/auth.js',
+  '/js/supabaseclient.js', '/js/realtime.js'
 ];
 
 self.addEventListener('install', function(e){
