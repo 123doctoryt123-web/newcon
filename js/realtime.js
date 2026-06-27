@@ -25,7 +25,7 @@
       .on("postgres_changes", {
         event: "*", schema: "public", table: "announcements"
       }, function () {
-        if (typeof loadAnnouncement === "function") loadAnnouncement();
+        if (typeof loadLatestAnnouncement === "function") loadLatestAnnouncement();
       })
       .subscribe();
 
@@ -35,7 +35,7 @@
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "members"
       }, function () {
-        if (typeof loadMemberStats === "function") loadMemberStats();
+        if (typeof loadTeamInfo === "function") loadTeamInfo();
       })
       .subscribe();
   }
