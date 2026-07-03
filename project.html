@@ -14,8 +14,22 @@
     <a href="#" class="logout-link" id="logoutBtn">خروج</a>
   </div>
 
+
+  <!-- مجموعة المشروع -->
+  <div class="card" id="projectGroupCard" style="margin-bottom:20px;display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#a07840);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🗂️</div>
+      <div>
+        <div style="font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--mist)" id="groupNameLabel">مجموعتي في المشروع</div>
+        <div style="font-size:11px;color:var(--mist-dim)" id="groupTeamLabel"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--mist-dim);margin-bottom:10px">زملائي في المجموعة 👥</div>
+    <div id="groupMembersList"></div>
+  </div>
+
   <h1 class="display" style="font-size:20px;margin-bottom:6px">المواد والمراجع</h1>
-  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">كل اللي ممكن يساعدك فى مشروعك</p>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">كل اللي ممكن يساعدك في مشروعك</p>
 
   <div class="card" id="materialsCard">
     <div id="materialsList"><div class="empty-state">بنحمّل المواد...</div></div>
@@ -62,6 +76,39 @@ function escapeHtml(s){
   return (s || "").toString().replace(/[&<>"']/g, function(c){
     return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
   });
+}
+
+
+async function loadMyProjectGroup(){
+  if(!member) return;
+  var res = await supabase.rpc("get_my_project_group", { p_member_id: member.id });
+  var card = document.getElementById("projectGroupCard");
+  if(res.error || !res.data || res.data.length === 0){
+    if(card) card.style.display = "none";
+    return;
+  }
+  // أول صف فيه بيانات المجموعة
+  var first = res.data[0];
+  document.getElementById("groupNameLabel").textContent = first.group_name || "مجموعتي في المشروع";
+  document.getElementById("groupTeamLabel").textContent = "فريق " + (first.team_name || "");
+  // عرض الأعضاء ما عدا نفسي
+  var others = res.data.filter(function(r){ return r.member_id !== member.id; });
+  var myRow  = res.data.find(function(r){ return r.member_id === member.id; });
+  var membersHtml = res.data.map(function(r){
+    var isMe = r.member_id === member.id;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">' +
+      '<div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;' +
+      (isMe ? 'background:linear-gradient(135deg,var(--gold),var(--coral));color:#fff;box-shadow:0 0 12px rgba(200,150,90,0.3)' : 'background:var(--ink-3);border:1px solid var(--line);color:var(--mist-dim)') +
+      '">' + escapeHtml((r.member_name||'?').trim().charAt(0)) + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-size:14px;color:' + (isMe ? 'var(--gold)' : 'var(--mist)') + ';font-weight:' + (isMe ? '700' : '400') + '">' +
+          escapeHtml(r.member_name) + (isMe ? ' <small style="font-size:11px;opacity:.7">(أنا)</small>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById("groupMembersList").innerHTML = membersHtml || '<div class="empty-state">مفيش أعضاء</div>';
+  if(card) card.style.display = "block";
 }
 
 async function loadmaterials(){
@@ -136,6 +183,7 @@ document.getElementById("submitBtn").addEventListener("click", async function(){
 
 loadmaterials();
 loadmysubmissions();
+loadMyProjectGroup();
 </script>
 <script src="js/realtime.js"></script>
 </body>
