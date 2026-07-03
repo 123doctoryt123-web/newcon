@@ -1,6 +1,12 @@
 // ============================================================
 // adminextra.js — الفرق، البرنامج، الجاسوس، درس الكتاب
 // ============================================================
+// ============================================================
+// القادة ومجموعات المشاريع
+// ============================================================
+var groupSelectedIds = new Set();
+var leadersMembersCache = [];
+
 document.addEventListener("DOMContentLoaded",function(){
   document.getElementById("saveTeamStatsBtn").addEventListener("click",saveMemberTeam);
   document.getElementById("teamMemberSelect").addEventListener("change",fillTeamInputsFromSelection);
@@ -13,7 +19,30 @@ document.addEventListener("DOMContentLoaded",function(){
   loadTeamsAdmin();
   loadProgramAdmin();
   loadFormUrl();
+
+  // القادة والمشاريع — listeners بس، التحميل هيحصل لما التاب ينفتح
+  var setLeaderBtn = document.getElementById('setLeaderBtn');
+  if(setLeaderBtn) setLeaderBtn.addEventListener('click', setMemberRole);
+  var createGroupBtn = document.getElementById('createGroupBtn');
+  if(createGroupBtn) createGroupBtn.addEventListener('click', createProjectGroup);
 });
+
+// تحميل بيانات القادة لما تاب "leaders" ينفتح
+(function watchLeadersTab(){
+  var panel = document.getElementById('panel-leaders');
+  if(!panel) return;
+  var loaded = false;
+  var observer = new MutationObserver(function(){
+    if(panel.classList.contains('active') && !loaded){
+      loaded = true;
+      loadLeadersAdmin();
+      loadProjectGroups();
+    }
+    // لو اتأغلق التاب نرجع نسمح بالتحديث المرة الجاية
+    if(!panel.classList.contains('active')) loaded = false;
+  });
+  observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+})();
 
 function escHtml(s){
   return(s||"").toString().replace(/[&<>"']/g,function(c){
@@ -178,4 +207,207 @@ async function saveFormUrl(){
   btn.disabled=false; btn.textContent="حفظ الرابط";
   msg.innerHTML='<div class="success-msg" style="display:block">✅ تم حفظ الرابط</div>';
   setTimeout(function(){ msg.innerHTML=""; },3000);
+}
+
+
+// ============================================================
+// القادة: تحميل وتعيين الأدوار
+// ============================================================
+async function loadLeadersAdmin(){
+  var pass = getAdminPass();
+  if(!pass){ console.warn('loadLeadersAdmin: no admin pass yet'); return; }
+
+  // نجيب الشباب من admin_list_members (الموجودة دايماً) أو admin_list_members_teams
+  var res = await supabase.rpc("admin_list_members_teams", {p_password: pass});
+
+  // لو فشلت بسبب missing role column، نجرب admin_list_members كـ fallback
+  if(res.error){
+    console.warn('admin_list_members_teams error:', res.error.message);
+    var fallback = await supabase.rpc("admin_list_members", {p_password: pass});
+    if(fallback.error || !fallback.data){ 
+      console.error('fallback also failed:', fallback.error);
+      return; 
+    }
+    // نحوّل البيانات للشكل المتوقع
+    leadersMembersCache = fallback.data.map(function(m){
+      return { id: m.id, name: m.name, username: m.username, team_name: m.team_name||'', points: m.points||0, role: m.role||'member' };
+    });
+  } else {
+    leadersMembersCache = res.data || [];
+  }
+
+  if(!leadersMembersCache.length){
+    // عرض رسالة مؤقتة
+    var tbody = document.getElementById("leadersTableBody");
+    if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب مضافين</td></tr>';
+    var sel = document.getElementById("leaderMemberSelect");
+    if(sel) sel.innerHTML = '<option value="">— مفيش شباب —</option>';
+    return;
+  }
+
+  // ملأ select تعيين القائد
+  var sel = document.getElementById("leaderMemberSelect");
+  if(sel){
+    sel.innerHTML = '<option value="">— اختار شاب —</option>' +
+      leadersMembersCache.map(function(m){
+        return '<option value="'+m.id+'" data-role="'+(m.role||'member')+'">' +
+          escHtml(m.name) + (m.team_name ? ' ('+escHtml(m.team_name)+')' : ' (بدون فريق)') +
+          (m.role==='leader' ? ' 👑' : '') + '</option>';
+      }).join('');
+    // لما يتغير الاختيار، نظهر الدور الحالي
+    sel.onchange = function(){
+      var opt = sel.options[sel.selectedIndex];
+      if(opt && opt.dataset.role){
+        var roleEl = document.getElementById('leaderRoleSelect');
+        if(roleEl) roleEl.value = opt.dataset.role;
+      }
+    };
+  }
+
+  // ملأ جدول الأدوار
+  var tbody = document.getElementById("leadersTableBody");
+  if(tbody){
+    var roleLabel = {
+      leader: '<span style="color:var(--gold);font-weight:700">👑 قائد</span>',
+      member: '<span style="color:var(--mist-dim)">عضو</span>'
+    };
+    tbody.innerHTML = leadersMembersCache.map(function(m){
+      return '<tr>' +
+        '<td>' + escHtml(m.name) + '</td>' +
+        '<td>' + escHtml(m.team_name||'—') + '</td>' +
+        '<td>' + (roleLabel[m.role] || '<span style="color:var(--mist-dim)">عضو</span>') + '</td>' +
+        '<td>' + (m.points||0) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // ملأ اختيار أعضاء المجموعة
+  renderGroupMembersCheckList();
+}
+
+async function setMemberRole(){
+  var memberId = document.getElementById('leaderMemberSelect').value;
+  var role     = document.getElementById('leaderRoleSelect').value;
+  var msg      = document.getElementById('leaderMsg');
+  if(!memberId){ msg.innerHTML = '<div class="error-msg" style="display:block">اختار شاب الأول</div>'; return; }
+  var btn = document.getElementById('setLeaderBtn');
+  btn.disabled = true; btn.textContent = 'بنحفظ...';
+  var res = await supabase.rpc('admin_set_member_role', {p_password: getAdminPass(), p_member_id: memberId, p_role: role});
+  btn.disabled = false; btn.textContent = 'حفظ الدور';
+  if(res.error){
+    msg.innerHTML = '<div class="error-msg" style="display:block">❌ حصل خطأ: ' + escHtml(res.error.message) + '</div>';
+    return;
+  }
+  var label = role === 'leader' ? '👑 قائد فريق' : 'عضو عادي';
+  msg.innerHTML = '<div class="success-msg" style="display:block">✅ تم تعيينه كـ ' + label + '</div>';
+  setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+  loadLeadersAdmin();
+}
+
+// ============================================================
+// مجموعات المشاريع
+// ============================================================
+function renderGroupMembersCheckList(){
+  var box = document.getElementById('groupMembersCheckList');
+  if(!box) return;
+  if(!leadersMembersCache.length){
+    box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">لسه مفيش شباب</span>';
+    return;
+  }
+  box.innerHTML = leadersMembersCache.map(function(m){
+    var selected = groupSelectedIds.has(m.id);
+    return '<button class="btn small ' + (selected ? '' : 'outline') + ' grp-member-btn" data-id="' + m.id + '" style="margin:2px">' +
+      (selected ? '✅ ' : '') + escHtml(m.name) +
+      '<small style="opacity:.6;font-size:10px"> ' + escHtml(m.team_name||'') + '</small>' +
+      '</button>';
+  }).join('');
+  box.querySelectorAll('.grp-member-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.id;
+      if(groupSelectedIds.has(id)) groupSelectedIds.delete(id); else groupSelectedIds.add(id);
+      var countEl = document.getElementById('groupSelCount');
+      if(countEl) countEl.textContent = 'تم اختيار: ' + groupSelectedIds.size;
+      renderGroupMembersCheckList();
+    });
+  });
+}
+
+async function createProjectGroup(){
+  var name    = document.getElementById('groupNameInput').value.trim();
+  var ids     = Array.from(groupSelectedIds);
+  var msg     = document.getElementById('groupMsg');
+  if(!name){ msg.innerHTML = '<div class="error-msg" style="display:block">اكتب اسم المجموعة الأول</div>'; return; }
+  if(ids.length < 2 || ids.length > 5){
+    msg.innerHTML = '<div class="error-msg" style="display:block">لازم تختار من 2 لـ 5 أعضاء</div>'; return;
+  }
+  // نجيب team_name من أول عضو مختار
+  var firstMember = leadersMembersCache.find(function(m){ return m.id === ids[0]; });
+  var teamName = firstMember ? (firstMember.team_name || '') : '';
+
+  var btn = document.getElementById('createGroupBtn');
+  btn.disabled = true; btn.textContent = 'بننشئ...';
+  var res = await supabase.rpc('admin_create_project_group', {
+    p_password: getAdminPass(),
+    p_team_name: teamName,
+    p_name: name,
+    p_member_ids: ids
+  });
+  btn.disabled = false; btn.textContent = '✅ إنشاء المجموعة';
+  if(res.error){
+    msg.innerHTML = '<div class="error-msg" style="display:block">❌ ' + escHtml(res.error.message) + '</div>'; return;
+  }
+  msg.innerHTML = '<div class="success-msg" style="display:block">✅ تم إنشاء مجموعة "' + escHtml(name) + '" بـ ' + ids.length + ' أعضاء</div>';
+  document.getElementById('groupNameInput').value = '';
+  groupSelectedIds.clear();
+  renderGroupMembersCheckList();
+  var countEl = document.getElementById('groupSelCount');
+  if(countEl) countEl.textContent = 'تم اختيار: 0';
+  setTimeout(function(){ msg.innerHTML = ''; }, 4000);
+  loadProjectGroups();
+}
+
+async function loadProjectGroups(){
+  var pass = getAdminPass();
+  if(!pass) return;
+  var res = await supabase.rpc('admin_list_project_groups', {p_password: pass});
+  var box = document.getElementById('groupsList');
+  var countEl = document.getElementById('groupCount');
+  if(!box) return;
+  if(res.error){
+    box.innerHTML = '<div class="empty-state" style="color:var(--coral)">❌ ' + escHtml(res.error.message) + '<br><small>تأكد إنك شغّلت LEADERS_AND_GROUPS.sql</small></div>';
+    if(countEl) countEl.textContent = '!';
+    return;
+  }
+  if(!res.data || res.data.length === 0){
+    box.innerHTML = '<div class="empty-state">لسه مفيش مجموعات</div>';
+    if(countEl) countEl.textContent = '0';
+    return;
+  }
+  // نجمّع المجموعات (كل صف = عضو في مجموعة)
+  var groups = {};
+  res.data.forEach(function(row){
+    if(!groups[row.group_id]){
+      groups[row.group_id] = { id: row.group_id, name: row.group_name, team: row.team_name, members: [] };
+    }
+    groups[row.group_id].members.push(row.member_name);
+  });
+  var groupsArr = Object.values(groups);
+  if(countEl) countEl.textContent = groupsArr.length;
+  box.innerHTML = groupsArr.map(function(g){
+    return '<div class="submission-item" style="align-items:flex-start">' +
+      '<div style="flex:1">' +
+        '<strong>' + escHtml(g.name) + '</strong>' +
+        '<div style="font-size:11px;color:var(--mist-dim);margin:3px 0">فريق: ' + escHtml(g.team||'—') + '</div>' +
+        '<div style="font-size:12px;color:var(--mist);margin-top:4px">👥 ' + g.members.map(escHtml).join(' · ') + '</div>' +
+      '</div>' +
+      '<button class="btn danger small" data-gid="' + g.id + '" style="flex-shrink:0;margin-top:2px">حذف</button>' +
+    '</div>';
+  }).join('');
+  box.querySelectorAll('button[data-gid]').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      if(!confirm('هتحذف المجموعة دي؟')) return;
+      await supabase.rpc('admin_delete_project_group', {p_password: getAdminPass(), p_group_id: btn.dataset.gid});
+      loadProjectGroups();
+    });
+  });
 }
