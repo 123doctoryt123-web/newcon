@@ -5,8 +5,7 @@
 //   window.SUPABASE_ANON_KEY
 //   window.EDGE_FUNCTION_URL
 
-var VAPID_PUBLIC = "BDjDn65U9lmoWIWUcCdrFi_ZswSN1CpWieyntx0wUws43LcIXpONaDJufCabdTMRz-9Ag8QHl3DNFvaDm0SjoWM";
-
+var VAPID_PUBLIC = "BEhoqrduxd4JR0IQLGVblsOHek-BBrOM2lKxwh-oM4YkjGfmb_AA8HpgZp2wzfkM1ERoiTgeZEtTGx6qKP41WSU";
 function urlBase64ToUint8Array(base64String) {
   var padding = "=".repeat((4 - base64String.length % 4) % 4);
   var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
