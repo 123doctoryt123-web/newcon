@@ -34,6 +34,7 @@ function showPanel() {
   document.getElementById("adminPanel").style.display = "block";
   loadMembers();
   loadMaterialsAdmin();
+  loadMaterialGroupsDropdown();
   loadMatchSettings();
   loadPredictions();
   loadSubmissions();
@@ -152,13 +153,20 @@ async function resetMemberPass(btn) {
 // المواد
 // ============================================================
 async function loadMaterialsAdmin() {
-  var res = await supabase.from("materials").select("*").order("created_at", { ascending: false });
+  var res = await supabase.rpc("admin_list_materials", { p_password: getAdminPass() });
+  if (res.error) {
+    // fallback to direct query if function not yet created
+    res = await supabase.from("materials").select("*").order("created_at", { ascending: false });
+  }
   var box = document.getElementById("materialsAdminList");
   var items = res.data || [];
   if (items.length === 0) { box.innerHTML = '<div style="color:var(--mist-dim)">لسه مفيش مواد</div>'; return; }
   box.innerHTML = items.map(function (m) {
     var link = m.url ? '<a href="' + escapeHtml(m.url) + '" target="_blank" style="font-size:12px">فتح الرابط</a>' : '';
-    return '<div class="submission-item"><div><strong>' + escapeHtml(m.title) + '</strong> <span style="font-size:11px;color:var(--mist-dim)">[' + escapeHtml(m.type) + ']</span> ' + link +
+    var groupLabel = m.group_name
+      ? '<span style="font-size:11px;background:var(--ink-3);padding:2px 7px;border-radius:20px;color:var(--gold)">👥 ' + escapeHtml(m.group_name) + '</span>'
+      : '<span style="font-size:11px;background:var(--ink-3);padding:2px 7px;border-radius:20px;color:var(--mist-dim)">🌐 للكل</span>';
+    return '<div class="submission-item"><div><strong>' + escapeHtml(m.title) + '</strong> <span style="font-size:11px;color:var(--mist-dim)">[' + escapeHtml(m.type) + ']</span> ' + groupLabel + ' ' + link +
       (m.description ? '<div style="font-size:12px;color:var(--mist-dim)">' + escapeHtml(m.description) + '</div>' : '') +
       '</div><button class="btn danger small" data-id="' + m.id + '" onclick="deleteMaterial(this)">حذف</button></div>';
   }).join("");
@@ -170,16 +178,37 @@ async function addMaterial() {
   var url = document.getElementById("matUrl").value.trim();
   var desc = document.getElementById("matDesc").value.trim();
   var content = document.getElementById("matContent").value.trim();
+  var matGroupEl = document.getElementById("matGroup");
+  var groupVal = matGroupEl ? matGroupEl.value : "";
   if (!title) return;
   var btn = document.getElementById("addMaterialBtn");
   btn.disabled = true; btn.textContent = "بنضيف...";
   await supabase.rpc("admin_add_material", {
     p_password: getAdminPass(), p_title: title, p_description: desc,
     p_type: type, p_url: url || null, p_content: content || null,
+    p_group_id: groupVal ? groupVal : null,   // uuid — لا نحوّله لـ int
   });
   btn.disabled = false; btn.textContent = "إضافة المادة";
   ["matTitle", "matUrl", "matDesc", "matContent"].forEach(function (id) { document.getElementById(id).value = ""; });
+  if (matGroupEl) matGroupEl.value = "";
   loadMaterialsAdmin();
+}
+
+async function loadMaterialGroupsDropdown() {
+  var res = await supabase.rpc("admin_list_project_groups", { p_password: getAdminPass() });
+  if (res.error || !res.data) return;
+  var sel = document.getElementById("matGroup");
+  if (!sel) return;
+  var seen = {};
+  res.data.forEach(function(r) {
+    if (!seen[r.group_id]) {
+      seen[r.group_id] = r.group_name;
+      var opt = document.createElement("option");
+      opt.value = r.group_id;
+      opt.textContent = "👥 " + r.group_name;
+      sel.appendChild(opt);
+    }
+  });
 }
 
 async function deleteMaterial(btn) {
