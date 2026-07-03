@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة القائد | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ---- بانر الترحيب ---- */
+.hero-banner{
+  position:relative; overflow:hidden;
+  background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
+  border:1px solid var(--line); border-radius: var(--radius);
+  padding:22px 20px; margin-bottom:18px;
+}
+.hero-banner::before{
+  content:""; position:absolute; top:-40px; left:-40px; width:160px; height:160px;
+  background: radial-gradient(circle, rgba(200,150,90,0.18), transparent 70%);
+  pointer-events:none;
+}
+.hero-top{ display:flex; align-items:center; gap:12px; position:relative; z-index:1; }
+.avatar-circle{
+  width:48px; height:48px; border-radius:50%; flex-shrink:0;
+  background: linear-gradient(135deg, var(--gold), var(--coral));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:800; font-size:20px; color:#fff;
+  box-shadow: 0 0 18px rgba(200,150,90,0.35);
+}
+.hero-greet{ font-size:12px; color:var(--mist-dim); margin-bottom:2px; }
+.hero-name{ font-family:var(--font-display); font-weight:800; font-size:18px; color:var(--mist); }
+.leader-crown{
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(200,150,90,0.15); border:1px solid var(--gold);
+  border-radius:99px; padding:4px 12px;
+  font-size:11px; font-weight:700; color:var(--gold);
+  margin-top:8px; position:relative; z-index:1;
+}
+
+/* ---- إحصائيات الفريق ---- */
+.stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+.stat-card{
+  background:var(--ink-2); border:1px solid var(--line);
+  border-radius:var(--radius); padding:16px 14px; text-align:center;
+}
+.stat-num{
+  font-family:var(--font-display); font-weight:800; font-size:28px; color:var(--gold);
+}
+.stat-label{ font-size:11px; color:var(--mist-dim); margin-top:4px; }
+
+/* ---- أعضاء الفريق ---- */
+.member-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 0; border-bottom:1px solid var(--line);
+}
+.member-row:last-child{ border-bottom:none; }
+.member-avatar{
+  width:36px; height:36px; border-radius:50%; flex-shrink:0;
+  background: linear-gradient(135deg, var(--ink-3), var(--ink-2));
+  border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--mist-dim);
+}
+.member-info{ flex:1; margin-right:10px; }
+.member-name{ font-size:14px; color:var(--mist); font-weight:600; }
+.member-username{ font-size:11px; color:var(--mist-dim); }
+.member-pts{ font-family:var(--font-display); font-weight:700; font-size:14px; color:var(--gold); }
+.attend-dots{ display:flex; gap:4px; margin-top:3px; }
+.attend-dot{
+  width:8px; height:8px; border-radius:50%;
+  background:var(--line);
+}
+.attend-dot.book   { background:var(--gold); }
+.attend-dot.project{ background:var(--coral); }
+
+/* ---- التوقعات ---- */
+.predict-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;
+}
+.predict-row:last-child{ border-bottom:none; }
+.predict-score{
+  font-family:var(--font-display); font-weight:800; font-size:16px; color:var(--gold);
+  letter-spacing:2px;
+}
+
+/* ---- فاصل ---- */
+.section-label{
+  font-size:11px; font-weight:700; color:var(--mist-dim); letter-spacing:1px;
+  text-transform:uppercase; margin:20px 0 10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> Connect Three</div>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <!-- شاشة الدخول -->
+  <div id="loginSection">
+    <div class="card glow" style="margin-top:30px">
+      <h2 style="font-size:18px;margin-bottom:6px">👑 لوحة القائد</h2>
+      <p style="font-size:13px;color:var(--mist-dim);margin-bottom:18px">
+        سجّل دخولك بحسابك الشخصي
+      </p>
+      <div id="loginErr" class="error-msg"></div>
+      <label>اليوزر</label>
+      <input type="text" id="leaderUser" placeholder="يوزرك" autocomplete="username">
+      <label>الباسورد</label>
+      <input type="password" id="leaderPass" placeholder="••••••" autocomplete="current-password">
+      <button class="btn" id="loginBtn">دخول</button>
+    </div>
+  </div>
+
+  <!-- لوحة القائد -->
+  <div id="leaderSection" style="display:none">
+
+    <!-- بانر الترحيب -->
+    <div class="hero-banner">
+      <div class="hero-top">
+        <div class="avatar-circle" id="avatarEl">؟</div>
+        <div>
+          <div class="hero-greet">مرحباً بالقائد 👑</div>
+          <div class="hero-name" id="leaderNameEl"></div>
+        </div>
+      </div>
+      <div class="leader-crown">👑 قائد فريق <span id="teamNameEl"></span></div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="statMembers">—</div>
+        <div class="stat-label">عدد الأعضاء</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statPoints">—</div>
+        <div class="stat-label">نقاط الفريق</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statBookToday">—</div>
+        <div class="stat-label">📖 حضروا الكتاب النهارده</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statProjectToday">—</div>
+        <div class="stat-label">🗂️ حضروا المشروع النهارده</div>
+      </div>
+    </div>
+
+    <!-- زرار السكان -->
+    <a href="scan.html" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;margin-bottom:4px">
+      📷 اسكن أعضاء فريقك
+    </a>
+
+    <!-- أعضاء الفريق -->
+    <div class="section-label">أعضاء الفريق</div>
+    <div class="card">
+      <div id="membersList">
+        <div class="empty-state">بنحمّل...</div>
+      </div>
+    </div>
+
+    <!-- التوقعات -->
+    <div class="section-label">توقعات الفريق ⚽</div>
+    <div class="card" id="predictCard">
+      <div id="predictList">
+        <div class="empty-state">بنحمّل التوقعات...</div>
+      </div>
+    </div>
+
+    <!-- لوحة الفرق (نقاط كل الفرق) -->
+    <div class="section-label">ترتيب الفرق 🏆</div>
+    <div class="card">
+      <div id="teamRankList">
+        <div class="empty-state">بنحمّل...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script>
+var leaderId   = sessionStorage.getItem("leader_id")   || "";
+var leaderTeam = sessionStorage.getItem("leader_team") || "";
+var leaderName = sessionStorage.getItem("leader_name") || "";
+
+// ============================================================
+// دخول
+// ============================================================
+document.getElementById("loginBtn").addEventListener("click", doLogin);
+document.getElementById("leaderPass").addEventListener("keydown", function(e){
+  if(e.key==="Enter") doLogin();
+});
+document.getElementById("logoutBtn").addEventListener("click", function(){
+  ["leader_id","leader_team","leader_name"].forEach(function(k){ sessionStorage.removeItem(k); });
+  location.reload();
+});
+
+async function doLogin(){
+  var username = document.getElementById("leaderUser").value.trim();
+  var password = document.getElementById("leaderPass").value.trim();
+  var errEl = document.getElementById("loginErr");
+  errEl.style.display="none";
+  if(!username||!password){
+    errEl.textContent="اكتب اليوزر والباسورد"; errEl.style.display="block"; return;
+  }
+  var btn=document.getElementById("loginBtn");
+  btn.disabled=true; btn.textContent="بندخّل...";
+
+  var res=await supabase.rpc("verify_login",{p_username:username,p_password:password});
+  btn.disabled=false; btn.textContent="دخول";
+  if(res.error||!res.data||!res.data.length){
+    errEl.textContent="اليوزر أو الباسورد غلط"; errEl.style.display="block"; return;
+  }
+
+  var uid=res.data[0].id;
+  var roleRes=await supabase.from("members").select("role,team_name,name").eq("id",uid).single();
+  if(roleRes.error||!roleRes.data||roleRes.data.role!=="leader"){
+    errEl.textContent="حسابك مش قائد فريق"; errEl.style.display="block"; return;
+  }
+
+  leaderId   = uid;
+  leaderTeam = roleRes.data.team_name||"—";
+  leaderName = roleRes.data.name;
+  sessionStorage.setItem("leader_id",   leaderId);
+  sessionStorage.setItem("leader_team", leaderTeam);
+  sessionStorage.setItem("leader_name", leaderName);
+  showDashboard();
+}
+
+// لو مسجّل دخول
+if(leaderId){
+  supabase.from("members").select("role,team_name,name").eq("id",leaderId).single().then(function(r){
+    if(!r.error&&r.data&&r.data.role==="leader"){
+      leaderTeam=r.data.team_name||"—"; leaderName=r.data.name;
+      showDashboard();
+    } else {
+      ["leader_id","leader_team","leader_name"].forEach(function(k){ sessionStorage.removeItem(k); });
+    }
+  });
+}
+
+function showDashboard(){
+  document.getElementById("loginSection").style.display="none";
+  document.getElementById("leaderSection").style.display="block";
+  document.getElementById("leaderNameEl").textContent=leaderName;
+  document.getElementById("teamNameEl").textContent=leaderTeam;
+  document.getElementById("avatarEl").textContent=leaderName.trim().charAt(0)||"؟";
+  loadTeamMembers();
+  loadTeamPredictions();
+  loadAllTeamsRank();
+}
+
+// ============================================================
+// أعضاء الفريق + إحصائيات الحضور
+// ============================================================
+async function loadTeamMembers(){
+  // جيب أعضاء الفريق
+  var membersRes=await supabase
+    .from("members")
+    .select("id,name,username,points")
+    .eq("team_name",leaderTeam)
+    .order("points",{ascending:false});
+
+  if(membersRes.error||!membersRes.data){ return; }
+  var members=membersRes.data;
+
+  // جيب حضور اليوم للفريق
+  var today=new Date().toISOString().split("T")[0];
+  var attendRes=await supabase
+    .from("attendance")
+    .select("member_id,scan_type")
+    .gte("scanned_at",today)
+    .in("member_id",members.map(function(m){ return m.id; }));
+
+  // بنى map للحضور
+  var attendMap={};
+  (attendRes.data||[]).forEach(function(a){
+    if(!attendMap[a.member_id]) attendMap[a.member_id]={book:false,project:false};
+    attendMap[a.member_id][a.scan_type]=true;
+  });
+
+  // إحصائيات
+  var totalPts=members.reduce(function(s,m){ return s+(m.points||0); },0);
+  var bookCount=Object.values(attendMap).filter(function(a){ return a.book; }).length;
+  var projCount=Object.values(attendMap).filter(function(a){ return a.project; }).length;
+
+  document.getElementById("statMembers").textContent=members.length;
+  document.getElementById("statPoints").textContent=totalPts;
+  document.getElementById("statBookToday").textContent=bookCount+"/"+members.length;
+  document.getElementById("statProjectToday").textContent=projCount+"/"+members.length;
+
+  // عرض القائمة
+  var box=document.getElementById("membersList");
+  if(!members.length){ box.innerHTML='<div class="empty-state">مفيش أعضاء</div>'; return; }
+  box.innerHTML=members.map(function(m){
+    var att=attendMap[m.id]||{};
+    return'<div class="member-row">'+
+      '<div class="member-avatar">'+esc(m.name.trim().charAt(0))+'</div>'+
+      '<div class="member-info">'+
+        '<div class="member-name">'+esc(m.name)+'</div>'+
+        '<div class="member-username">@'+esc(m.username)+'</div>'+
+        '<div class="attend-dots">'+
+          '<div class="attend-dot '+(att.book?"book":"")  +'" title="درس الكتاب"></div>'+
+          '<div class="attend-dot '+(att.project?"project":"")+'" title="المشروع"></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="member-pts">'+(m.points||0)+'<small style="font-size:10px;color:var(--mist-dim)"> نقطة</small></div>'+
+    '</div>';
+  }).join("");
+}
+
+// ============================================================
+// توقعات الفريق
+// ============================================================
+async function loadTeamPredictions(){
+  // جيب أعضاء الفريق الأول
+  var membersRes=await supabase
+    .from("members")
+    .select("id,name")
+    .eq("team_name",leaderTeam);
+  if(membersRes.error||!membersRes.data) return;
+
+  // جيب بيانات المباراة
+  var matchRes=await supabase.rpc("get_match_info");
+  var matchData=matchRes.data&&matchRes.data[0];
+  var team1=matchData?matchData.team1:"فريق 1";
+  var team2=matchData?matchData.team2:"فريق 2";
+
+  // جيب التوقعات
+  var ids=membersRes.data.map(function(m){ return m.id; });
+  var predRes=await supabase
+    .from("predictions")
+    .select("member_id,score1,score2")
+    .in("member_id",ids);
+
+  var predMap={};
+  (predRes.data||[]).forEach(function(p){ predMap[p.member_id]=p; });
+
+  var box=document.getElementById("predictList");
+  if(!membersRes.data.length){ box.innerHTML='<div class="empty-state">مفيش أعضاء</div>'; return; }
+
+  box.innerHTML='<div style="font-size:12px;color:var(--mist-dim);margin-bottom:10px;text-align:center">'+
+    esc(team1)+' 🆚 '+esc(team2)+'</div>'+
+  membersRes.data.map(function(m){
+    var p=predMap[m.id];
+    return'<div class="predict-row">'+
+      '<span>'+esc(m.name)+'</span>'+
+      (p
+        ? '<span class="predict-score">'+p.score1+' — '+p.score2+'</span>'
+        : '<span style="color:var(--mist-dim);font-size:12px">لسه ماتوقعش</span>')+
+    '</div>';
+  }).join("");
+}
+
+// ============================================================
+// ترتيب كل الفرق
+// ============================================================
+async function loadAllTeamsRank(){
+  var res=await supabase.rpc("get_team_points");
+  var box=document.getElementById("teamRankList");
+  if(res.error||!res.data||!res.data.length){
+    box.innerHTML='<div class="empty-state">مفيش بيانات</div>'; return;
+  }
+  var medals=["🥇","🥈","🥉"];
+  box.innerHTML=res.data.map(function(t,i){
+    var isMe=t.team_name===leaderTeam;
+    return'<div style="display:flex;align-items:center;justify-content:space-between;'+
+      'padding:10px 0;border-bottom:1px solid var(--line);'+
+      (isMe?"background:rgba(200,150,90,0.07);border-radius:6px;padding:10px 8px;":"")+
+      '">'+
+      '<span style="font-size:18px;width:28px;text-align:center">'+(medals[i]||i+1)+'</span>'+
+      '<span style="flex:1;margin-right:8px;font-size:14px;color:'+(isMe?"var(--gold)":"var(--mist)")+'">'+
+        esc(t.team_name)+(isMe?' <span style="font-size:10px">(فريقك)</span>':'')+
+      '</span>'+
+      '<span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:'+(isMe?"var(--gold)":"var(--mist)")+'">'+
+        t.total_points+
+      '</span>'+
+    '</div>';
+  }).join("");
+}
+
+function esc(s){
+  return(s||"").toString().replace(/[&<>"']/g,function(c){
+    return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+</script>
+</body>
+</html>
