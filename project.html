@@ -112,19 +112,42 @@ async function loadMyProjectGroup(){
 }
 
 async function loadmaterials(){
-  var res = await supabase.from("materials").select("*").order("created_at", { ascending: true });
   var box = document.getElementById("materialsList");
-  if(res.error || !res.data || res.data.length === 0){
+  // نستخدم get_my_materials لو الدالة موجودة (تجيب مواد مجموعته + العامة)
+  var res = await supabase.rpc("get_my_materials", { p_member_id: member.id });
+  if(res.error){
+    // fallback للمواد العامة لو الدالة مش موجودة
+    res = await supabase.from("materials").select("*").order("created_at", { ascending: true });
+  }
+  if(!res.data || res.data.length === 0){
     box.innerHTML = '<div class="empty-state">لسه مفيش مواد متاحة، تابع بعدين</div>';
     return;
   }
-  box.innerHTML = res.data.map(function(mat){
-    return '<div class="material-item"><span class="badge">' + escapeHtml(typeLabels[mat.type] || mat.type) + '</span><h3>' + escapeHtml(mat.title) + '</h3>' +
+  // نفصل المواد الخاصة بالمجموعة عن العامة
+  var grouped = res.data.filter(function(m){ return m.group_id; });
+  var general = res.data.filter(function(m){ return !m.group_id; });
+  
+  function renderMat(mat){
+    return '<div class="material-item">' +
+      (mat.group_id ? '<div style="font-size:11px;color:var(--gold);margin-bottom:4px">👥 خاص بمجموعتك</div>' : '') +
+      '<span class="badge">' + escapeHtml(typeLabels[mat.type] || mat.type) + '</span>' +
+      '<h3>' + escapeHtml(mat.title) + '</h3>' +
       (mat.description ? '<p>' + escapeHtml(mat.description) + '</p>' : '') +
       (mat.content ? '<p>' + escapeHtml(mat.content) + '</p>' : '') +
       (mat.url ? '<a class="btn outline" href="' + escapeHtml(mat.url) + '" target="_blank">فتح</a>' : '') +
       '</div>';
-  }).join("");
+  }
+
+  var html = '';
+  if(grouped.length > 0){
+    html += '<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)">📌 مواد مجموعتك</div>';
+    html += grouped.map(renderMat).join('');
+  }
+  if(general.length > 0){
+    if(grouped.length > 0) html += '<div style="font-size:12px;color:var(--mist-dim);font-weight:700;margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)">🌐 المواد العامة</div>';
+    html += general.map(renderMat).join('');
+  }
+  box.innerHTML = html;
 }
 
 async function loadmysubmissions(){
