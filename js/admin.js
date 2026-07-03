@@ -145,7 +145,7 @@ async function resetMemberPass(btn) {
     alert("حصل خطأ أثناء ريست الباسورد");
     return;
   }
-  var newPass = res.data;
+  var newPass = res.data[0].new_password;  // الدالة بترجع TABLE مش scalar
   alert("✅ الباسورد الجديد: " + newPass + "\nاحتفظ بيه وابعته للشاب");
 }
 
