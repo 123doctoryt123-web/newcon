@@ -22,30 +22,6 @@
 }
 .qr-id{ font-size:11px; color:var(--mist-dim); letter-spacing:1px; margin-bottom:20px; }
 .qr-hint{ font-size:13px; color:var(--mist-dim); line-height:1.8; }
-
-/* شاشة الرفض */
-.access-denied-box{
-  text-align:center; padding:40px 20px;
-}
-.access-denied-icon{
-  font-size:56px; margin-bottom:16px;
-}
-.access-denied-title{
-  font-family:var(--font-display); font-weight:800; font-size:20px;
-  color:var(--mist); margin-bottom:8px;
-}
-.access-denied-body{
-  font-size:14px; color:var(--mist-dim); line-height:1.8;
-}
-
-/* بادچ الـ leader */
-.leader-badge{
-  display:inline-flex; align-items:center; gap:6px;
-  background:rgba(200,150,90,0.15); border:1px solid var(--gold);
-  border-radius:99px; padding:5px 14px;
-  font-size:12px; font-weight:700; color:var(--gold);
-  margin-bottom:18px;
-}
 </style>
 </head>
 <body>
@@ -61,61 +37,24 @@
 
   <h1 class="display" style="font-size:20px;margin-bottom:6px">📲 QR بتاعي</h1>
   <p style="color:var(--mist-dim);font-size:13px;margin-bottom:20px">
-    وريه للـ Leader يسجّل حضورك
+    وريه للـ Leader يعمله سكان عشان يتسجّل حضورك
   </p>
 
-  <!-- شاشة التحميل -->
-  <div id="loadingSection">
-    <div class="card glow" style="padding:30px;text-align:center;color:var(--mist-dim);font-size:14px">
-      ⏳ بنتحقق من بياناتك...
-    </div>
-  </div>
-
-  <!-- QR (للـ leader فقط) -->
-  <div id="qrSection" style="display:none">
-    <div style="text-align:center;margin-bottom:16px">
-      <span class="leader-badge">👑 أنت قائد فريقك</span>
-    </div>
-    <div class="card glow">
-      <div class="qr-box">
-        <div class="qr-canvas-wrap">
-          <canvas id="qrCanvas"></canvas>
-        </div>
-        <div class="qr-name" id="memberNameEl"></div>
-        <div class="qr-id" id="memberIdEl"></div>
-        <div class="qr-hint">
-          اعرض الـ QR لتسجيل حضور أعضاء فريقك<br>
-          📖 درس الكتاب · 🗂️ المشروع
-        </div>
+  <div class="card glow">
+    <div class="qr-box">
+      <div class="qr-canvas-wrap">
+        <canvas id="qrCanvas"></canvas>
+      </div>
+      <div class="qr-name" id="memberNameEl"></div>
+      <div class="qr-id" id="memberIdEl"></div>
+      <div class="qr-hint">
+        اعرض الـ QR لقائد فريقك<br>
+        📖 درس الكتاب · 🗂️ المشروع
       </div>
     </div>
-    <button class="btn outline" id="saveImgBtn" style="margin-top:8px">💾 حفظ الـ QR كصورة</button>
-
-    <!-- زرار الانتقال لصفحة السكان -->
-    <div style="margin-top:14px">
-      <a href="scan.html" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none">
-        📷 اسكن أعضاء فريقك
-      </a>
-    </div>
   </div>
 
-  <!-- شاشة رفض الوصول (للأعضاء العاديين) -->
-  <div id="deniedSection" style="display:none">
-    <div class="card glow">
-      <div class="access-denied-box">
-        <div class="access-denied-icon">🔒</div>
-        <div class="access-denied-title">الصفحة دي للـ Leader بس</div>
-        <div class="access-denied-body">
-          بس القائد هو اللي يقدر يشوف الـ QR ويسجّل حضور أعضاء فريقه.<br><br>
-          لو عندك استفسار كلّم قائد فريقك.
-        </div>
-      </div>
-    </div>
-    <a href="dashboard.html" class="btn outline" style="display:block;text-align:center;margin-top:12px;text-decoration:none">
-      ← رجوع للرئيسية
-    </a>
-  </div>
-
+  <button class="btn outline" id="saveImgBtn" style="margin-top:8px">💾 حفظ الـ QR كصورة</button>
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
@@ -125,32 +64,7 @@
 var member = requireSession();
 document.getElementById("logoutBtn").addEventListener("click", logout);
 
-async function init() {
-  if (!member) return;
-
-  // جيب role العضو من الـ DB (مش من الـ session لأنه ممكن يتغيّر)
-  var res = await supabase
-    .from("members")
-    .select("role")
-    .eq("id", member.id)
-    .single();
-
-  document.getElementById("loadingSection").style.display = "none";
-
-  if (res.error || !res.data) {
-    document.getElementById("deniedSection").style.display = "block";
-    return;
-  }
-
-  var role = res.data.role;
-
-  if (role !== "leader") {
-    document.getElementById("deniedSection").style.display = "block";
-    return;
-  }
-
-  // الـ leader — اعرض الـ QR
-  document.getElementById("qrSection").style.display = "block";
+if (member) {
   document.getElementById("memberNameEl").textContent = member.name;
   document.getElementById("memberIdEl").textContent = member.id;
 
@@ -170,13 +84,11 @@ async function init() {
   document.getElementById("saveImgBtn").addEventListener("click", function () {
     var canvas = document.getElementById("qrCanvas");
     var link = document.createElement("a");
-    link.download = "qr-" + (member.username || member.id) + ".png";
+    link.download = "qr-" + member.username + ".png";
     link.href = canvas.toDataURL("image/png");
     link.click();
   });
 }
-
-init();
 </script>
 </body>
 </html>
