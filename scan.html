@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>سكان الحضور | Connect Three</title>
 <link rel="stylesheet" href="css/style.css">
-<!-- مكتبة قراءة QR -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 .scan-type-row{ display:flex; gap:10px; margin-bottom:20px; }
@@ -35,29 +34,73 @@
   padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;
 }
 .scan-log-item:last-child{ border-bottom:none; }
+
+/* بادچ الـ leader */
+.leader-info-bar{
+  display:flex; align-items:center; gap:10px;
+  background:rgba(200,150,90,0.1); border:1px solid rgba(200,150,90,0.3);
+  border-radius:var(--radius); padding:10px 14px; margin-bottom:16px;
+  font-size:13px; color:var(--mist-dim);
+}
+.leader-info-bar strong{ color:var(--gold); }
+
+/* شاشة رفض الوصول */
+.access-denied-box{ text-align:center; padding:40px 20px; }
+.access-denied-icon{ font-size:56px; margin-bottom:16px; }
+.access-denied-title{
+  font-family:var(--font-display); font-weight:800; font-size:20px;
+  color:var(--mist); margin-bottom:8px;
+}
+.access-denied-body{ font-size:14px; color:var(--mist-dim); line-height:1.8; }
 </style>
 </head>
 <body>
 
 <div class="container">
   <div class="topbar">
-    <a href="admin.html" class="brand"><span class="dot"></span> لوحة التحكم</a>
+    <a href="dashboard.html" class="brand"><span class="dot"></span> Connect Three</a>
     <span id="scanTypeLabel" style="font-size:13px;color:var(--gold);font-weight:700"></span>
   </div>
 
-  <!-- شاشة تسجيل دخول الأدمن -->
+  <!-- شاشة تسجيل الدخول -->
   <div id="loginSection">
     <div class="card glow" style="margin-top:20px">
-      <h2 style="font-size:17px;margin-bottom:14px">🔐 دخول الأدمن</h2>
+      <h2 style="font-size:17px;margin-bottom:14px">🔐 دخول قائد الفريق</h2>
+      <p style="font-size:13px;color:var(--mist-dim);margin-bottom:16px">
+        الصفحة دي خاصة بالـ Leader بس عشان يسكان أعضاء فريقه
+      </p>
       <div id="loginErr" class="error-msg"></div>
-      <label>كلمة سر الأدمن</label>
-      <input type="password" id="adminPassScan" placeholder="••••••">
+      <label>اليوزر</label>
+      <input type="text" id="leaderUsername" placeholder="اليوزر بتاعك" autocomplete="username">
+      <label>الباسورد</label>
+      <input type="password" id="leaderPassword" placeholder="••••••" autocomplete="current-password">
       <button class="btn" id="loginScanBtn">دخول</button>
     </div>
   </div>
 
-  <!-- لوحة السكان -->
+  <!-- شاشة رفض (لو دخل بـ member عادي) -->
+  <div id="deniedSection" style="display:none">
+    <div class="card glow" style="margin-top:20px">
+      <div class="access-denied-box">
+        <div class="access-denied-icon">🔒</div>
+        <div class="access-denied-title">الصفحة دي للـ Leader بس</div>
+        <div class="access-denied-body">
+          حسابك مش قائد فريق.<br>
+          الصفحة دي متاحة بس للـ Leaders عشان يسكانوا أعضاء فرقهم.
+        </div>
+      </div>
+    </div>
+    <button class="btn outline" id="logoutDeniedBtn" style="margin-top:12px">تسجيل خروج</button>
+  </div>
+
+  <!-- لوحة السكان (للـ leader فقط) -->
   <div id="scanSection" style="display:none">
+
+    <!-- بيانات الـ leader -->
+    <div class="leader-info-bar">
+      <span>👑</span>
+      <span>مرحباً <strong id="leaderNameLabel"></strong> · فريق <strong id="leaderTeamLabel"></strong></span>
+    </div>
 
     <h1 class="display" style="font-size:18px;margin-bottom:14px">📷 سكان الحضور</h1>
 
@@ -86,11 +129,11 @@
     <div class="card manual-section">
       <strong style="font-size:14px">⌨️ إدخال يدوي (لو الكاميرا مش شغالة)</strong>
       <div style="margin-top:12px;display:flex;gap:8px">
-        <input type="text" id="manualId" placeholder="الـ member ID أو اليوزر" style="margin-bottom:0;flex:1">
+        <input type="text" id="manualId" placeholder="اليوزر أو الـ ID" style="margin-bottom:0;flex:1">
         <button class="btn small" id="manualScanBtn" style="width:auto">سكان</button>
       </div>
       <p style="font-size:11px;color:var(--mist-dim);margin-top:6px">
-        تقدر تكتب اسم المستخدم (username) بالكامل أو الـ ID
+        تقدر تكتب اسم المستخدم (username) بالكامل أو الـ ID — بس من فريقك فقط
       </p>
     </div>
 
@@ -102,53 +145,138 @@
       </div>
     </div>
 
-  </div><!-- /scanSection -->
+    <button class="btn outline danger" id="logoutScanBtn" style="margin-top:8px">تسجيل خروج</button>
+
+  </div>
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script src="js/supabaseclient.js"></script>
 <script>
-var adminPass = sessionStorage.getItem("adminPass") || "";
+// ============================================================
+// الحالة
+// ============================================================
+var leaderId   = sessionStorage.getItem("leaderId")   || "";
+var leaderName = sessionStorage.getItem("leaderName") || "";
+var leaderTeam = sessionStorage.getItem("leaderTeam") || "";
+
 var currentScanType = "book";
-var html5QrCode = null;
-var scanCooldown = false;
-var sessionLog = []; // سجل السكانات في هذه الجلسة
+var html5QrCode     = null;
+var scanCooldown    = false;
+var sessionLog      = [];
 
 // ============================================================
-// دخول
+// تسجيل الدخول
 // ============================================================
-document.getElementById("loginScanBtn").addEventListener("click", async function () {
-  var pass = document.getElementById("adminPassScan").value.trim();
-  if (!pass) return;
-  var res = await supabase.rpc("admin_check", { p_password: pass });
-  if (res.error || !res.data) {
-    document.getElementById("loginErr").textContent = "كلمة السر غير صحيحة";
-    document.getElementById("loginErr").style.display = "block";
+document.getElementById("loginScanBtn").addEventListener("click", doLogin);
+document.getElementById("leaderPassword").addEventListener("keydown", function(e){
+  if(e.key === "Enter") doLogin();
+});
+
+async function doLogin() {
+  var username = document.getElementById("leaderUsername").value.trim();
+  var password = document.getElementById("leaderPassword").value.trim();
+  var errEl    = document.getElementById("loginErr");
+  errEl.style.display = "none";
+
+  if (!username || !password) {
+    errEl.textContent = "اكتب اليوزر والباسورد";
+    errEl.style.display = "block";
     return;
   }
-  adminPass = pass;
-  sessionStorage.setItem("adminPass", pass);
-  document.getElementById("loginSection").style.display = "none";
-  document.getElementById("scanSection").style.display = "block";
-  updateTypeLabel();
+
+  var btn = document.getElementById("loginScanBtn");
+  btn.disabled = true; btn.textContent = "بندخّل...";
+
+  // تحقق من بيانات الدخول
+  var res = await supabase.rpc("verify_login", { p_username: username, p_password: password });
+  btn.disabled = false; btn.textContent = "دخول";
+
+  if (res.error || !res.data || res.data.length === 0) {
+    errEl.textContent = "اليوزر أو الباسورد غلط";
+    errEl.style.display = "block";
+    return;
+  }
+
+  var userData = res.data[0];
+
+  // جيب الـ role من الـ DB
+  var roleRes = await supabase
+    .from("members")
+    .select("role, team_name")
+    .eq("id", userData.id)
+    .single();
+
+  if (roleRes.error || !roleRes.data) {
+    errEl.textContent = "حصل خطأ، حاول تاني";
+    errEl.style.display = "block";
+    return;
+  }
+
+  if (roleRes.data.role !== "leader") {
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("deniedSection").style.display = "block";
+    return;
+  }
+
+  // حفظ بيانات الـ leader في الـ sessionStorage
+  leaderId   = userData.id;
+  leaderName = userData.name;
+  leaderTeam = roleRes.data.team_name || "—";
+  sessionStorage.setItem("leaderId",   leaderId);
+  sessionStorage.setItem("leaderName", leaderName);
+  sessionStorage.setItem("leaderTeam", leaderTeam);
+
+  showScanPanel();
   loadTodayLog();
-});
-
-document.getElementById("adminPassScan").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") document.getElementById("loginScanBtn").click();
-});
-
-// لو الأدمن مسجّل دخوله بالفعل
-if (adminPass) {
-  supabase.rpc("admin_check", { p_password: adminPass }).then(function (res) {
-    if (!res.error && res.data) {
-      document.getElementById("loginSection").style.display = "none";
-      document.getElementById("scanSection").style.display = "block";
-      updateTypeLabel();
-      loadTodayLog();
-    }
-  });
 }
+
+// لو الـ leader مسجّل دخول بالفعل
+if (leaderId) {
+  // تحقق إن الـ session لسه صالحة
+  supabase
+    .from("members")
+    .select("role, team_name, name")
+    .eq("id", leaderId)
+    .single()
+    .then(function(res) {
+      if (!res.error && res.data && res.data.role === "leader") {
+        leaderName = res.data.name;
+        leaderTeam = res.data.team_name || "—";
+        showScanPanel();
+        loadTodayLog();
+      } else {
+        // مش leader أو انتهت الصلاحية — امسح وابدأ من الأول
+        clearLeaderSession();
+      }
+    });
+}
+
+function clearLeaderSession() {
+  sessionStorage.removeItem("leaderId");
+  sessionStorage.removeItem("leaderName");
+  sessionStorage.removeItem("leaderTeam");
+  leaderId = ""; leaderName = ""; leaderTeam = "";
+}
+
+function showScanPanel() {
+  document.getElementById("loginSection").style.display  = "none";
+  document.getElementById("deniedSection").style.display = "none";
+  document.getElementById("scanSection").style.display   = "block";
+  document.getElementById("leaderNameLabel").textContent = leaderName;
+  document.getElementById("leaderTeamLabel").textContent = leaderTeam;
+  updateTypeLabel();
+}
+
+document.getElementById("logoutScanBtn").addEventListener("click", function() {
+  clearLeaderSession();
+  location.reload();
+});
+
+document.getElementById("logoutDeniedBtn") && document.getElementById("logoutDeniedBtn").addEventListener("click", function() {
+  clearLeaderSession();
+  location.reload();
+});
 
 // ============================================================
 // اختيار نوع السكان
@@ -181,7 +309,7 @@ function startCamera() {
     function () {}
   ).then(function () {
     document.getElementById("startCamBtn").style.display = "none";
-    document.getElementById("stopCamBtn").style.display = "inline-flex";
+    document.getElementById("stopCamBtn").style.display  = "inline-flex";
   }).catch(function (err) {
     showResult("err", "❌ مش قادر يفتح الكاميرا:\n" + err);
     html5QrCode = null;
@@ -194,7 +322,7 @@ function stopCamera() {
     html5QrCode.clear();
     html5QrCode = null;
     document.getElementById("startCamBtn").style.display = "inline-flex";
-    document.getElementById("stopCamBtn").style.display = "none";
+    document.getElementById("stopCamBtn").style.display  = "none";
     document.getElementById("reader").innerHTML = "";
   });
 }
@@ -221,13 +349,12 @@ document.getElementById("manualId").addEventListener("keydown", function (e) {
 });
 
 // ============================================================
-// معالجة السكان
+// معالجة السكان — باستخدام leader_scan_qr
 // ============================================================
 async function processScan(rawValue) {
-  // القيمة ممكن تكون member UUID أو اسم المستخدم
   var memberId = null;
 
-  // شوف لو UUID (36 حرف بأقواس)
+  // UUID مباشر؟
   var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(rawValue)) {
     memberId = rawValue;
@@ -245,10 +372,11 @@ async function processScan(rawValue) {
     memberId = res.data.id;
   }
 
-  var res = await supabase.rpc("admin_scan_qr", {
-    p_password:  adminPass,
-    p_member_id: memberId,
-    p_scan_type: currentScanType,
+  // استدعاء دالة الـ leader (مش الأدمن)
+  var res = await supabase.rpc("leader_scan_qr", {
+    p_leader_id:  leaderId,
+    p_member_id:  memberId,
+    p_scan_type:  currentScanType,
   });
 
   if (res.error) {
@@ -262,10 +390,21 @@ async function processScan(rawValue) {
   if (d.status === "ok") {
     showResult("ok", "✅ " + d.member_name + "\n+" + d.points_added + " نقطة");
     addToLog(d.member_name, currentScanType, d.points_added);
+
   } else if (d.status === "already_scanned") {
     showResult("dup", "⚠️ " + d.member_name + "\nسكان قبل كده بالفعل النهارده");
-  } else {
+
+  } else if (d.status === "wrong_team") {
+    showResult("err", "❌ " + d.member_name + "\nمش من فريقك — مش مسموح بالسكان");
+
+  } else if (d.status === "not_leader") {
+    showResult("err", "❌ مش عندك صلاحية سكان");
+
+  } else if (d.status === "not_found") {
     showResult("err", "❌ العضو مش موجود");
+
+  } else {
+    showResult("err", "❌ " + (d.status || "خطأ غير معروف"));
   }
 }
 
@@ -289,31 +428,40 @@ function addToLog(name, type, pts) {
 }
 
 async function loadTodayLog() {
-  var res = await supabase.rpc("admin_list_attendance", { p_password: adminPass });
+  // جيب سجل اليوم — الـ leader يشوف بس اللي سكّنه هو
+  var res = await supabase
+    .from("attendance")
+    .select("member_id, scan_type, scanned_at, members(name)")
+    .eq("scanned_by", leaderId)
+    .gte("scanned_at", new Date().toISOString().split("T")[0]);
+
   if (res.error || !res.data) return;
-  var today = new Date().toDateString();
-  sessionLog = res.data
-    .filter(function (a) { return new Date(a.scanned_at).toDateString() === today; })
-    .map(function (a) {
-      var d = new Date(a.scanned_at);
-      return {
-        name: a.member_name,
-        label: a.scan_type === "book" ? "📖 الكتاب" : "🗂️ المشروع",
-        pts: null,
-        time: d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
-      };
-    });
+
+  sessionLog = res.data.map(function(a) {
+    var d = new Date(a.scanned_at);
+    return {
+      name:  a.members ? a.members.name : "؟",
+      label: a.scan_type === "book" ? "📖 الكتاب" : "🗂️ المشروع",
+      pts:   null,
+      time:  d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+    };
+  });
   renderLog();
 }
 
 function renderLog() {
   document.getElementById("logCount").textContent = sessionLog.length;
   var box = document.getElementById("scanLogList");
-  if (!sessionLog.length) { box.innerHTML = '<div class="empty-state">لسه مفيش سجل</div>'; return; }
+  if (!sessionLog.length) {
+    box.innerHTML = '<div class="empty-state">لسه مفيش سجل</div>';
+    return;
+  }
   box.innerHTML = sessionLog.map(function (item) {
     return '<div class="scan-log-item">' +
       '<div><strong>' + escapeHtml(item.name) + '</strong> — ' + item.label + '</div>' +
-      '<div style="color:var(--mist-dim)">' + item.time + (item.pts ? ' <span style="color:var(--gold)">+' + item.pts + '</span>' : '') + '</div>' +
+      '<div style="color:var(--mist-dim)">' + item.time +
+        (item.pts ? ' <span style="color:var(--gold)">+' + item.pts + '</span>' : '') +
+      '</div>' +
       '</div>';
   }).join("");
 }
