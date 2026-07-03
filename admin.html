@@ -42,6 +42,7 @@
     <div class="tabs no-print" style="flex-wrap:wrap">
       <div class="tab active" data-tab="members">الشباب</div>
       <div class="tab" data-tab="teams">الفرق</div>
+      <div class="tab" data-tab="leaders">القادة والمشاريع</div>
       <div class="tab" data-tab="materials">المواد</div>
       <div class="tab" data-tab="predictions">التوقعات</div>
       <div class="tab" data-tab="submissions">المشاركات</div>
@@ -101,6 +102,61 @@
           <tbody id="teamsTableBody"></tbody>
         </table>
       </div>
+    </div>
+
+
+    <!-- القادة ومجموعات المشاريع -->
+    <div class="tab-panel" id="panel-leaders">
+
+      <!-- تعيين قائد -->
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong>👑 تعيين قائد فريق</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:8px 0 14px">القائد بيقدر يسكان أعضاء فريقه ويشوف إحصائياتهم</p>
+        <label>اختار الشاب</label>
+        <select id="leaderMemberSelect">
+          <option value="">— اختار شاب —</option>
+        </select>
+        <label>الدور</label>
+        <select id="leaderRoleSelect">
+          <option value="leader">👑 قائد فريق</option>
+          <option value="member">عضو عادي</option>
+        </select>
+        <button class="btn" id="setLeaderBtn">حفظ الدور</button>
+        <div id="leaderMsg" style="margin-top:10px"></div>
+      </div>
+
+      <!-- جدول الأعضاء والأدوار -->
+      <div class="card" style="margin-bottom:14px">
+        <strong>كل الشباب وأدوارهم</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
+          <tbody id="leadersTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- مجموعات المشروع -->
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong>🗂️ إنشاء مجموعة مشروع (3 أشخاص)</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:8px 0 14px">كل مجموعة = 3 أشخاص من نفس الفريق، كل واحد هيشوف زميليه في صفحة مشروعه</p>
+        <label>اسم المجموعة</label>
+        <input type="text" id="groupNameInput" placeholder="مثال: مجموعة ١ — فريق مارمرقس">
+        <label>اختار الـ 3 أعضاء</label>
+        <div id="groupMembersCheckList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;min-height:40px">
+          <span style="color:var(--mist-dim);font-size:13px">بنحمّل الشباب...</span>
+        </div>
+        <p id="groupSelCount" style="font-size:12px;color:var(--mist-dim);margin:8px 0 0">تم اختيار: 0</p>
+        <button class="btn" id="createGroupBtn" style="margin-top:12px">✅ إنشاء المجموعة</button>
+        <div id="groupMsg" style="margin-top:10px"></div>
+      </div>
+
+      <!-- قائمة المجموعات الحالية -->
+      <div class="card">
+        <strong>المجموعات الحالية (<span id="groupCount">0</span>)</strong>
+        <div id="groupsList" style="margin-top:10px">
+          <div class="empty-state">لسه مفيش مجموعات</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- المواد -->
