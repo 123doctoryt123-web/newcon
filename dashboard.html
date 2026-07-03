@@ -105,6 +105,33 @@
 
 /* ---- قائمة أعضاء الفريق ---- */
 #teamRosterCard .submission-item div:first-child{ display:flex; align-items:center; gap:6px; }
+/* ---- leader badge ---- */
+.leader-badge-inline{
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(200,150,90,0.15); border:1px solid rgba(200,150,90,0.4);
+  border-radius:99px; padding:3px 10px;
+  font-size:11px; font-weight:700; color:var(--gold);
+  margin-right:6px;
+}
+.leader-name-row{
+  font-size:12px; color:var(--mist-dim); margin-top:4px;
+}
+.leader-name-row strong{ color:var(--gold); }
+/* ---- مجموعة المشروع ---- */
+.project-group-card{
+  background:rgba(192,83,58,0.08); border:1px solid rgba(192,83,58,0.25);
+  border-radius:var(--radius); padding:14px 16px; margin-bottom:18px;
+}
+.project-group-title{
+  font-size:13px; color:var(--mist-dim); margin-bottom:8px;
+}
+.project-group-members{ display:flex; flex-wrap:wrap; gap:8px; }
+.project-member-pill{
+  display:flex; align-items:center; gap:5px;
+  background:var(--ink-2); border:1px solid var(--line);
+  border-radius:99px; padding:5px 12px;
+  font-size:12px; color:var(--mist);
+}
 .notif-btn{
   display:flex; align-items:center; justify-content:center; gap:8px;
   width:100%; background: transparent;
@@ -180,8 +207,17 @@
     <div class="team-name-row">
       <span>فريقي: <span id="teamNameVal">—</span></span>
     </div>
+    <div class="leader-name-row" id="leaderNameRow" style="display:none">
+      قائد فريقي: <strong id="leaderNameVal">—</strong>
+    </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <div class="progress-hint" id="progressHint">بنحمّل بياناتك...</div>
+  </div>
+
+  <!-- كارت مجموعة المشروع (يظهر لو العضو في مجموعة) -->
+  <div id="projectGroupCard" style="display:none" class="project-group-card">
+    <div class="project-group-title">🗂️ زملاءك في مجموعة المشروع</div>
+    <div class="project-group-members" id="projectGroupMembers"></div>
   </div>
 
   <p style="color:var(--mist-dim);font-size:14px;margin-bottom:14px">اختار وين عايز تروح</p>
@@ -371,8 +407,39 @@ async function loadPredictBadge(){
   badge.className = "gate-status-badge " + (locked ? "closed" : "open");
 }
 
+// ---------- اسم الـ Leader ----------
+async function loadLeaderName() {
+  if (!member) return;
+  var res = await supabase.rpc("get_my_leader", { p_member_id: member.id });
+  if (res.error || !res.data || res.data.length === 0) return;
+  var leaderName = res.data[0].leader_name;
+  if (!leaderName) return;
+  document.getElementById("leaderNameVal").textContent = leaderName;
+  document.getElementById("leaderNameRow").style.display = "block";
+}
+
+// ---------- مجموعة المشروع ----------
+async function loadProjectGroup() {
+  if (!member) return;
+  var res = await supabase.rpc("get_my_project_group", { p_member_id: member.id });
+  if (res.error || !res.data || res.data.length === 0) return;
+  var card = document.getElementById("projectGroupCard");
+  var box  = document.getElementById("projectGroupMembers");
+  card.style.display = "block";
+  box.innerHTML = res.data.map(function(m) {
+    var isMe = m.member_id === member.id;
+    return '<div class="project-member-pill">' +
+      (isMe ? '⭐ ' : '👤 ') +
+      escapeHtmlSimple(m.member_name) +
+      (isMe ? ' <span style="color:var(--gold);font-size:10px">(أنت)</span>' : '') +
+      '</div>';
+  }).join("");
+}
+
 loadTeamInfo();
 loadPredictBadge();
+loadLeaderName();
+loadProjectGroup();
 if(member){ setupNotifButton(member.id); }
 
 // ---------- آخر إعلان من الأدمن ----------
