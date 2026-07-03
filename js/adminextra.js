@@ -340,6 +340,27 @@ async function createProjectGroup(){
   if(ids.length < 2 || ids.length > 5){
     msg.innerHTML = '<div class="error-msg" style="display:block">لازم تختار من 2 لـ 5 أعضاء</div>'; return;
   }
+
+  // ← تحقق: هل أي عضو مختار موجود بالفعل في مجموعة؟
+  var existingRes = await supabase.rpc('admin_list_project_groups', { p_password: getAdminPass() });
+  if(!existingRes.error && existingRes.data && existingRes.data.length){
+    // نجمع كل الأعضاء الموجودين في مجموعات مع اسم مجموعتهم
+    var takenMap = {};
+    existingRes.data.forEach(function(row){
+      takenMap[row.member_id] = row.group_name;
+    });
+    var conflicts = ids
+      .filter(function(id){ return takenMap[id]; })
+      .map(function(id){
+        var m = leadersMembersCache.find(function(x){ return x.id === id; });
+        return (m ? m.name : id) + ' (موجود في "' + takenMap[id] + '")';
+      });
+    if(conflicts.length){
+      msg.innerHTML = '<div class="error-msg" style="display:block">❌ الأعضاء دول متضافين بالفعل في مجموعة:<br>• ' + conflicts.join('<br>• ') + '<br><small>امسحهم من مجموعتهم الأول</small></div>';
+      return;
+    }
+  }
+
   // نجيب team_name من أول عضو مختار
   var firstMember = leadersMembersCache.find(function(m){ return m.id === ids[0]; });
   var teamName = firstMember ? (firstMember.team_name || '') : '';
