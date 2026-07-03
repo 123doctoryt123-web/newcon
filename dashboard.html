@@ -92,6 +92,26 @@
 .gate-status-badge.open{ background: rgba(74,124,111,0.2); color:#a9e6c4; border:1px solid var(--pitch); }
 .gate-status-badge.closed{ background: rgba(192,83,58,0.18); color:#ffb3a6; border:1px solid var(--coral); }
 
+/* ---- زرار القائد ---- */
+.leader-gate{
+  display:none;
+  position:relative; overflow:hidden;
+  background: linear-gradient(120deg, rgba(200,150,90,0.18), rgba(192,83,58,0.12));
+  border:1px solid var(--gold); border-radius: var(--radius);
+  padding:16px 18px; margin-bottom:12px; cursor:pointer;
+  align-items:center; gap:14px;
+}
+.leader-gate.visible{ display:flex; }
+.leader-gate-icon{
+  width:44px; height:44px; border-radius:12px; flex-shrink:0;
+  background: linear-gradient(135deg, var(--gold), #a07840);
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+}
+.leader-gate h3{ font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--gold); margin-bottom:2px; }
+.leader-gate p{ font-size:12px; color:var(--mist-dim); }
+.leader-gate .arrow{ color:var(--gold); font-size:20px; margin-right:auto; }
+
+
 /* ---- فاصل وفوتر زخرفي ---- */
 .divider-deco{
   display:flex; align-items:center; gap:10px; margin: 22px 0 16px; color:var(--mist-dim);
@@ -105,33 +125,6 @@
 
 /* ---- قائمة أعضاء الفريق ---- */
 #teamRosterCard .submission-item div:first-child{ display:flex; align-items:center; gap:6px; }
-/* ---- leader badge ---- */
-.leader-badge-inline{
-  display:inline-flex; align-items:center; gap:5px;
-  background:rgba(200,150,90,0.15); border:1px solid rgba(200,150,90,0.4);
-  border-radius:99px; padding:3px 10px;
-  font-size:11px; font-weight:700; color:var(--gold);
-  margin-right:6px;
-}
-.leader-name-row{
-  font-size:12px; color:var(--mist-dim); margin-top:4px;
-}
-.leader-name-row strong{ color:var(--gold); }
-/* ---- مجموعة المشروع ---- */
-.project-group-card{
-  background:rgba(192,83,58,0.08); border:1px solid rgba(192,83,58,0.25);
-  border-radius:var(--radius); padding:14px 16px; margin-bottom:18px;
-}
-.project-group-title{
-  font-size:13px; color:var(--mist-dim); margin-bottom:8px;
-}
-.project-group-members{ display:flex; flex-wrap:wrap; gap:8px; }
-.project-member-pill{
-  display:flex; align-items:center; gap:5px;
-  background:var(--ink-2); border:1px solid var(--line);
-  border-radius:99px; padding:5px 12px;
-  font-size:12px; color:var(--mist);
-}
 .notif-btn{
   display:flex; align-items:center; justify-content:center; gap:8px;
   width:100%; background: transparent;
@@ -207,17 +200,18 @@
     <div class="team-name-row">
       <span>فريقي: <span id="teamNameVal">—</span></span>
     </div>
-    <div class="leader-name-row" id="leaderNameRow" style="display:none">
-      قائد فريقي: <strong id="leaderNameVal">—</strong>
-    </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <div class="progress-hint" id="progressHint">بنحمّل بياناتك...</div>
   </div>
 
-  <!-- كارت مجموعة المشروع (يظهر لو العضو في مجموعة) -->
-  <div id="projectGroupCard" style="display:none" class="project-group-card">
-    <div class="project-group-title">🗂️ زملاءك في مجموعة المشروع</div>
-    <div class="project-group-members" id="projectGroupMembers"></div>
+  <!-- زرار لوحة القائد — يظهر بس للـ leaders -->
+  <div class="leader-gate" id="leaderGateBtn" onclick="location.href='leader.html'">
+    <div class="leader-gate-icon">👑</div>
+    <div>
+      <h3>لوحة القائد</h3>
+      <p>إحصائيات فريقك، التوقعات، وسكان الحضور</p>
+    </div>
+    <div class="arrow">‹</div>
   </div>
 
   <p style="color:var(--mist-dim);font-size:14px;margin-bottom:14px">اختار وين عايز تروح</p>
@@ -263,7 +257,7 @@
 
   <div class="gate" onclick="location.href='myqr.html'">
     <div class="icon">📲</div>
-    <div><h3>QR بتاعي</h3><p>وريه للأدمن يسجّل حضورك</p></div>
+    <div><h3>QR بتاعي</h3><p>وريه لقائد فريقك يسجّل حضورك</p></div>
     <div class="arrow">‹</div>
   </div>
 
@@ -292,6 +286,18 @@
 <script src="js/notifications.js"></script>
 <script>
 var member = requireSession();
+
+// لو الـ member.role = leader — أظهر زرار لوحة القائد
+async function checkAndShowLeaderBtn(){
+  if(!member) return;
+  // نجيب الـ role من قاعدة البيانات عشان نتأكد
+  var res = await supabase.from("members").select("role").eq("id", member.id).single();
+  if(!res.error && res.data && res.data.role === "leader"){
+    var btn = document.getElementById("leaderGateBtn");
+    if(btn) btn.classList.add("visible");
+  }
+}
+checkAndShowLeaderBtn();
 
 function escapeHtmlSimple(s){
   return (s || "").toString().replace(/[&<>"']/g, function(c){
@@ -407,39 +413,8 @@ async function loadPredictBadge(){
   badge.className = "gate-status-badge " + (locked ? "closed" : "open");
 }
 
-// ---------- اسم الـ Leader ----------
-async function loadLeaderName() {
-  if (!member) return;
-  var res = await supabase.rpc("get_my_leader", { p_member_id: member.id });
-  if (res.error || !res.data || res.data.length === 0) return;
-  var leaderName = res.data[0].leader_name;
-  if (!leaderName) return;
-  document.getElementById("leaderNameVal").textContent = leaderName;
-  document.getElementById("leaderNameRow").style.display = "block";
-}
-
-// ---------- مجموعة المشروع ----------
-async function loadProjectGroup() {
-  if (!member) return;
-  var res = await supabase.rpc("get_my_project_group", { p_member_id: member.id });
-  if (res.error || !res.data || res.data.length === 0) return;
-  var card = document.getElementById("projectGroupCard");
-  var box  = document.getElementById("projectGroupMembers");
-  card.style.display = "block";
-  box.innerHTML = res.data.map(function(m) {
-    var isMe = m.member_id === member.id;
-    return '<div class="project-member-pill">' +
-      (isMe ? '⭐ ' : '👤 ') +
-      escapeHtmlSimple(m.member_name) +
-      (isMe ? ' <span style="color:var(--gold);font-size:10px">(أنت)</span>' : '') +
-      '</div>';
-  }).join("");
-}
-
 loadTeamInfo();
 loadPredictBadge();
-loadLeaderName();
-loadProjectGroup();
 if(member){ setupNotifButton(member.id); }
 
 // ---------- آخر إعلان من الأدمن ----------
