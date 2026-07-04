@@ -18,8 +18,7 @@
       configureFn(channel);
       channel.subscribe(function (status, err) {
         console.log("[realtime] " + channelName + " -> " + status, err || "");
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          // حاول تاني بعد 3 ثواني
+if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {          // حاول تاني بعد 3 ثواني
           setTimeout(function () {
             try { supabase.removeChannel(channel); } catch (e) {}
             start();
