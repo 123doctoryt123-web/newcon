@@ -170,7 +170,8 @@ async function loadRetreatSlot() {
     }
 
     // اعرض الموعد
-    document.getElementById("slotDay").textContent = "📅 " + slot.day_date;
+    var dayNames = {1: "الأحد 19 يوليو", 2: "الاثنين 20 يوليو", 3: "الثلاثاء 21 يوليو"};
+    document.getElementById("slotDay").textContent = "📅 " + (dayNames[slot.day] || "يوم " + slot.day);
     document.getElementById("slotTime").textContent = slot.time_label;
     document.getElementById("slotLocation").textContent = slot.location;
 
