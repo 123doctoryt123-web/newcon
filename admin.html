@@ -58,6 +58,7 @@
       <div class="tab" data-tab="confpredict">🔮 التوقعات</div>
       <div class="tab" data-tab="secretbox">📦 الأسرار</div>
       <div class="tab" data-tab="gratitude">🧱 الامتنان</div>
+      <div class="tab" data-tab="wheel">🎡 عجلة الجوائز</div>
     </div>
 
     <!-- الشباب -->
@@ -698,6 +699,40 @@
       </div>
     </div><!-- /panel-gratitude -->
 
+    <!-- ==================== 🎡 عجلة الجوائز ==================== -->
+    <div class="tab-panel" id="panel-wheel">
+      <h2 style="margin-bottom:16px">🎡 عجلة الجوائز</h2>
+
+      <div class="card no-print" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <strong style="font-size:15px">حالة العجلة</strong>
+            <p style="font-size:12px;color:var(--mist-dim);margin-top:4px">لما تكون مقفولة الشباب مش هيقدروا يلفوا</p>
+          </div>
+          <button class="btn small" id="wheelToggleBtn" onclick="toggleWheelActive()">...</button>
+        </div>
+      </div>
+
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong style="font-size:15px">📊 إحصائيات</strong>
+        <div id="wheelStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px" class="no-print">
+          <strong>كل اللفّات (<span id="wheelCount">0</span>)</strong>
+          <div style="display:flex;gap:8px">
+            <button class="btn small outline" onclick="loadWheelSpins()">🔄 تحديث</button>
+            <button class="btn small" style="background:var(--coral);border-color:var(--coral)" onclick="resetWheelAll()">⚠️ تصفير الكل</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>الاسم</th><th>الفريق</th><th>الجايزة</th><th>الوقت</th><th class="no-print"></th></tr></thead>
+          <tbody id="wheelTableBody"></tbody>
+        </table>
+      </div>
+    </div><!-- /panel-wheel -->
+
   </div><!-- /adminPanel -->
 </div>
 
@@ -902,6 +937,7 @@ function esc(s) {
 </script>
 <script src="js/realtime.js"></script>
 <script src="js/puzzle-admin.js"></script>
+<script src="js/wheel-admin.js"></script>
 
 <script>
 // ============================================================
