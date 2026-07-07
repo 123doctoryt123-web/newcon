@@ -189,13 +189,21 @@ var PRIZE_ICONS = {
 };
 
 window.addEventListener('DOMContentLoaded', function(){
-  var raw = localStorage.getItem('member');
-  if(!raw){ location.href='index.html'; return; }
-  var member = JSON.parse(raw);
-  memberId = member.id;
-  drawLabels('wheelDisc');
-  drawLabels('wheelDiscDone');
-  loadStatus();
+  try{
+    var raw = localStorage.getItem('member');
+    if(!raw){ location.href='index.html'; return; }
+    var member = JSON.parse(raw);
+    memberId = member.id;
+    if(!memberId){ location.href='index.html'; return; }
+    drawLabels('wheelDisc');
+    drawLabels('wheelDiscDone');
+    loadStatus();
+  }catch(e){
+    document.getElementById('loadingState').innerHTML =
+      '<div style="color:var(--coral);text-align:center;padding:20px;font-size:13px">حصل خطأ: ' +
+      (e && e.message ? e.message : e) +
+      '<br><a href="index.html" style="color:var(--gold)">ارجع لصفحة الدخول</a></div>';
+  }
 });
 
 function drawLabels(discId){
