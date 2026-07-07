@@ -172,6 +172,37 @@
     </div>
   </div>
 
+  <!-- كارت الاستفتاء السريع inline — يظهر لما الأدمن يبدأ استفتاء -->
+  <div id="pollCard" style="display:none;margin-bottom:14px;border-radius:var(--radius);overflow:hidden;border:1px solid rgba(74,124,111,0.4);background:linear-gradient(135deg,rgba(74,124,111,0.13),rgba(74,124,111,0.05))">
+    <div style="padding:14px 16px 6px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:20px">🗳️</span>
+        <strong style="font-size:14px;color:var(--pitch);font-family:var(--font-display);flex:1">استفتاء سريع</strong>
+        <span id="pollLiveDot" style="width:7px;height:7px;border-radius:50%;background:var(--coral);display:inline-block;animation:pollPulse 1.4s infinite"></span>
+      </div>
+      <p id="pollCardQuestion" style="font-size:15px;font-weight:700;color:var(--mist);margin:0 0 12px;line-height:1.5;font-family:var(--font-display)"></p>
+      <div id="pollCardBody"></div>
+    </div>
+  </div>
+  <style>
+  @keyframes pollPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+  .poll-opt-dash{
+    width:100%;background:rgba(74,124,111,0.1);border:1.5px solid rgba(74,124,111,0.25);
+    border-radius:10px;padding:11px 14px;margin-bottom:8px;color:var(--mist);
+    font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;
+    text-align:right;display:flex;align-items:center;gap:10px;transition:all .15s;
+  }
+  .poll-opt-dash:hover{background:rgba(74,124,111,0.22);border-color:var(--pitch);}
+  .poll-opt-dash .ol{width:26px;height:26px;border-radius:7px;background:rgba(74,124,111,0.25);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+    color:var(--pitch);flex-shrink:0;}
+  .poll-bar-row{margin-bottom:10px;}
+  .poll-bar-top{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--mist);margin-bottom:4px;}
+  .poll-bar-bg{height:8px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;}
+  .poll-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pitch-dim),var(--pitch));transition:width .5s ease;}
+  .poll-bar-fill.mine{background:linear-gradient(90deg,#a07840,var(--gold));box-shadow:0 0 6px rgba(200,150,90,.4);}
+  </style>
+
   <!-- بانر الترحيب -->
   <div class="hero-banner">
     <div class="hero-top">
@@ -228,15 +259,6 @@
   <div class="gate" onclick="location.href='retreat.html'">
     <div class="icon">🕊️</div>
     <div><h3>خلوتي</h3><p>شوف موعد ومكان خلوتك الشخصية</p></div>
-    <div class="arrow">‹</div>
-  </div>
-
-  <div class="gate" id="pollGate" onclick="location.href='poll.html'" style="display:none">
-    <div class="icon" style="position:relative">
-      🗳️
-      <span class="gate-status-badge open" id="pollLiveBadge">مباشر 🔴</span>
-    </div>
-    <div><h3>استفتاء سريع</h3><p id="pollGateQuestion">شارك برأيك مع الكل</p></div>
     <div class="arrow">‹</div>
   </div>
 
@@ -514,22 +536,92 @@ loadLatestAnnouncement();
   }
 })();
 
-// ---------- استفتاء سريع: إظهار/إخفاء الـ Gate ----------
-(async function checkActivePoll(){
-  try {
-    var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
-    var gate = document.getElementById("pollGate");
-    if(!gate) return;
-    if(res.data && res.data.length > 0 && res.data[0].active){
-      gate.style.display = "";
-      var q = res.data[0].question || "";
-      var el = document.getElementById("pollGateQuestion");
-      if(el && q) el.textContent = q.length > 35 ? q.substring(0, 35) + "..." : q;
-    } else {
-      gate.style.display = "none";
+// ---------- استفتاء سريع inline في الداشبورد ----------
+var _pollState = { id: null, options: [], myVote: null, votes: {}, total: 0, active: false };
+
+async function loadInlinePoll(){
+  var card = document.getElementById("pollCard");
+  if(!card) return;
+  var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
+  if(!res.data || res.data.length === 0 || !res.data[0].active){
+    card.style.display = "none"; return;
+  }
+  var rows  = res.data;
+  var first = rows[0];
+  _pollState.id      = first.poll_id;
+  _pollState.options = first.options || [];
+  _pollState.active  = first.active;
+  _pollState.myVote  = (first.my_vote !== undefined && first.my_vote !== null) ? first.my_vote : null;
+  _pollState.votes   = {}; _pollState.total = 0;
+  rows.forEach(function(r){
+    if(r.option_idx !== null && r.option_idx !== undefined){
+      _pollState.votes[r.option_idx] = parseInt(r.vote_count)||0;
+      _pollState.total += _pollState.votes[r.option_idx];
     }
-  } catch(e){ }
-})();
+  });
+  document.getElementById("pollCardQuestion").textContent = first.question || "";
+  card.style.display = "block";
+  renderInlinePoll();
+}
+
+function renderInlinePoll(){
+  var body    = document.getElementById("pollCardBody");
+  var letters = ["A","B","C","D","E","F","G","H"];
+  var html    = "";
+  if(_pollState.myVote === null && _pollState.active){
+    // قبل التصويت — أزرار
+    _pollState.options.forEach(function(opt, idx){
+      html += '<button class="poll-opt-dash" onclick="dashVote('+idx+')">'
+            + '<span class="ol">'+letters[idx]+'</span>' + escHtmlDash(opt) + '</button>';
+    });
+  } else {
+    // بعد التصويت — أشرطة
+    _pollState.options.forEach(function(opt, idx){
+      var cnt = _pollState.votes[idx]||0;
+      var pct = _pollState.total>0 ? Math.round(cnt/_pollState.total*100) : 0;
+      var me  = (_pollState.myVote===idx);
+      html += '<div class="poll-bar-row">'
+            + '<div class="poll-bar-top"><span><span style="color:var(--gold);font-weight:800">'+letters[idx]+'.</span> '+escHtmlDash(opt)+(me?' ✓':'')+'</span>'
+            + '<span style="color:'+(me?'var(--gold)':'var(--pitch)')+'">'+pct+'%</span></div>'
+            + '<div class="poll-bar-bg"><div class="poll-bar-fill'+(me?' mine':'')+'" style="width:'+pct+'%"></div></div>'
+            + '</div>';
+    });
+    html += '<div style="text-align:center;font-size:11px;color:var(--mist-dim);margin-top:6px;padding-bottom:8px">'+_pollState.total+' صوت</div>';
+  }
+  body.innerHTML = html;
+}
+
+async function dashVote(idx){
+  if(_pollState.myVote!==null || !_pollState.id || !_pollState.active) return;
+  // عرض فوري
+  _pollState.myVote = idx;
+  _pollState.votes[idx] = (_pollState.votes[idx]||0)+1;
+  _pollState.total++;
+  renderInlinePoll();
+  // إرسال للسيرفر
+  await supabase.rpc("cast_poll_vote", { p_member_id: member.id, p_poll_id: _pollState.id, p_option: idx });
+}
+
+async function refreshInlinePollVotes(){
+  if(!_pollState.id) return;
+  var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
+  if(!res.data || res.data.length===0){ document.getElementById("pollCard").style.display="none"; _pollState.id=null; return; }
+  var rows=res.data, first=rows[0];
+  if(!first.active){ document.getElementById("pollCard").style.display="none"; return; }
+  _pollState.votes={}; _pollState.total=0;
+  rows.forEach(function(r){ if(r.option_idx!==null&&r.option_idx!==undefined){ _pollState.votes[r.option_idx]=parseInt(r.vote_count)||0; _pollState.total+=_pollState.votes[r.option_idx]; }});
+  if(_pollState.myVote!==null) renderInlinePoll();
+}
+
+function escHtmlDash(s){ return (s||"").replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+// Realtime للاستفتاء
+supabase.channel("rt-dash-poll")
+  .on("postgres_changes",{event:"*",schema:"public",table:"poll_votes"},function(){ refreshInlinePollVotes(); })
+  .on("postgres_changes",{event:"*",schema:"public",table:"polls"},function(){ loadInlinePoll(); })
+  .subscribe();
+
+loadInlinePoll();
 </script>
 <script src="js/realtime.js"></script>
 </body>
