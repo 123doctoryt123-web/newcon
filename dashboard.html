@@ -265,6 +265,15 @@
     <div class="arrow">‹</div>
   </div>
 
+  <div class="gate" id="dailyQGate" onclick="location.href='daily-question.html'">
+    <div class="icon" style="background:rgba(74,124,111,0.12);color:var(--pitch)">
+      ❓
+      <span class="gate-status-badge" id="dailyQBadge" style="display:none"></span>
+    </div>
+    <div><h3>سؤال اليوم</h3><p>جاوب السؤال اليومي واكسب البوينتس!</p></div>
+    <div class="arrow">‹</div>
+  </div>
+
   <div class="gate" onclick="location.href='retreat.html'">
     <div class="icon">🕊️</div>
     <div><h3>خلوتي</h3><p>شوف موعد ومكان خلوتك الشخصية</p></div>
@@ -725,6 +734,26 @@ supabase.channel("rt-dash-poll")
   .subscribe();
 
 loadInlinePoll();
+
+// ── تحقق من سؤال اليوم ──
+(async function checkDailyQuestion(){
+  if(!member) return;
+  try{
+    var res = await supabase.rpc('get_active_daily_question', { p_member_id: member.id });
+    var badge = document.getElementById('dailyQBadge');
+    if(!badge) return;
+    if(!res.data || res.data.length === 0) return; // مفيش سؤال نشط
+    var q = res.data[0];
+    badge.style.display = '';
+    if(q.my_answer !== null){
+      badge.textContent = q.is_correct ? '✅ أجبت' : '😅 خلص';
+      badge.className   = 'gate-status-badge open';
+    } else {
+      badge.textContent = '❓ جديد';
+      badge.className   = 'gate-status-badge closed';
+    }
+  }catch(e){}
+})();
 </script>
 <script src="js/realtime.js"></script>
 </body>
