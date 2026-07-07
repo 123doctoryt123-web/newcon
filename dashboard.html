@@ -216,6 +216,15 @@
 
   <p style="color:var(--mist-dim);font-size:14px;margin-bottom:14px">اختار وين عايز تروح</p>
 
+  <div class="gate" id="puzzleGate" onclick="location.href='puzzle.html'" style="display:none">
+    <div class="icon">
+      🧩
+      <span class="gate-status-badge" id="puzzleBadge" style="display:none"></span>
+    </div>
+    <div><h3>اللغز</h3><p>وصّل المكان وجبت الورقة</p></div>
+    <div class="arrow">‹</div>
+  </div>
+
   <div class="gate" onclick="location.href='retreat.html'">
     <div class="icon">🕊️</div>
     <div><h3>خلوتي</h3><p>شوف موعد ومكان خلوتك الشخصية</p></div>
@@ -416,6 +425,31 @@ async function loadPredictBadge(){
 loadTeamInfo();
 loadPredictBadge();
 if(member){ setupNotifButton(member.id); }
+
+// ── تحقق من اللغز ──
+(async function checkPuzzleForMe(){
+  if(!member) return;
+  try{
+    var res = await supabase.rpc('get_my_puzzle', { p_member_id: member.id });
+    if(res.data && res.data.length > 0){
+      var gate  = document.getElementById('puzzleGate');
+      var badge = document.getElementById('puzzleBadge');
+      if(gate) gate.style.display = '';
+      // لو اتكمل → بادج "تم"، لو لسه → "جديد"
+      if(badge){
+        var p = res.data[0];
+        badge.style.display = '';
+        if(p.completed){
+          badge.textContent = '✅ تم';
+          badge.className   = 'gate-status-badge open';
+        } else {
+          badge.textContent = '🔥 جديد';
+          badge.className   = 'gate-status-badge closed';
+        }
+      }
+    }
+  }catch(e){}
+})();
 
 // ---------- آخر إعلان من الأدمن ----------
 async function loadLatestAnnouncement(){
