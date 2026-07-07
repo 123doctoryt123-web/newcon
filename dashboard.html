@@ -307,6 +307,35 @@
     <div class="arrow">‹</div>
   </div>
 
+  <div class="gate" onclick="location.href='confpredict.html'">
+    <div class="icon" style="background:rgba(200,150,90,0.12);color:var(--gold)">🔮</div>
+    <div>
+      <h3>توقع المؤتمر</h3>
+      <p>إيه أكتر حاجة هتحصل؟</p>
+    </div>
+    <span class="gate-status-badge" id="confPredictBadge" style="display:none"></span>
+    <div class="arrow">‹</div>
+  </div>
+
+  <div class="gate" onclick="location.href='secretbox.html'">
+    <div class="icon" style="background:rgba(74,124,111,0.12);color:var(--pitch)">📦</div>
+    <div>
+      <h3>صندوق الأسرار</h3>
+      <p>ابعت سرك مجهول، وشوف اللي اتنشر</p>
+    </div>
+    <span class="gate-status-badge" id="secretsBadge" style="display:none"></span>
+    <div class="arrow">‹</div>
+  </div>
+
+  <div class="gate" onclick="location.href='gratitude.html'">
+    <div class="icon" style="background:rgba(192,83,58,0.12);color:var(--coral)">🧱</div>
+    <div>
+      <h3>جدار الامتنان</h3>
+      <p>شكّر شخص خلّى يومك أحلى</p>
+    </div>
+    <div class="arrow">‹</div>
+  </div>
+
   <div class="card" id="teamRosterCard" style="display:none;margin-top:8px">
     <strong style="font-size:14px">👥 أعضاء فريقي</strong>
     <div id="teamRosterList" style="margin-top:10px"></div>
@@ -456,6 +485,46 @@ async function loadPredictBadge(){
 loadTeamInfo();
 loadPredictBadge();
 if(member){ setupNotifButton(member.id); }
+
+// ── بادج توقع المؤتمر ──
+(async function checkConfPredict(){
+  if(!member) return;
+  try{
+    var res = await supabase.rpc("get_conf_predict_info", { p_member_id: member.id });
+    if(res.data && res.data.length > 0){
+      var d = res.data[0];
+      var badge = document.getElementById("confPredictBadge");
+      if(badge){
+        badge.style.display = "inline-block";
+        if(d.my_prediction){
+          badge.textContent = "✅ تم";
+          badge.className = "gate-status-badge open";
+        } else if(d.is_open){
+          badge.textContent = "⏳ مفتوح";
+          badge.className = "gate-status-badge open";
+        } else {
+          badge.textContent = "🔒 مقفول";
+          badge.className = "gate-status-badge closed";
+        }
+      }
+    }
+  }catch(e){}
+})();
+
+// ── بادج صندوق الأسرار (لو فيه أسرار منشورة) ──
+(async function checkSecrets(){
+  try{
+    var res = await supabase.rpc("get_published_secrets");
+    if(res.data && res.data.length > 0){
+      var badge = document.getElementById("secretsBadge");
+      if(badge){
+        badge.style.display = "inline-block";
+        badge.textContent = res.data.length + " سر 🤫";
+        badge.className = "gate-status-badge open";
+      }
+    }
+  }catch(e){}
+})();
 
 // ── تحقق من اللغز ──
 (async function checkPuzzleForMe(){
