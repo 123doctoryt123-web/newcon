@@ -177,13 +177,21 @@ var memberId = null;
 
 // ترتيب الجوائز على العجلة لازم يطابق ترتيبها في spin_wheel بالسيرفر
 var PRIZE_ORDER = ['free_tea','surprise','points5','points10','better_luck'];
-var PRIZE_LABELS_POS = [
-  { text:'☕ شاي مجاني',            deg:36  },
-  { text:'🎁 مفاجأة',               deg:108 },
-  { text:'✨ 5 بوينتس',             deg:180 },
-  { text:'🌟 10 بوينتس',            deg:252 },
-  { text:'🍀 حظ أوفر المرة الجاية', deg:324 }
-];
+var PRIZE_TEXT = {
+  free_tea:    '☕ شاي مجاني',
+  surprise:    '🎁 مفاجأة',
+  points5:     '✨ 5 بوينتس',
+  points10:    '🌟 10 بوينتس',
+  better_luck: '🍀 حظ أوفر المرة الجاية'
+};
+// بنبني مواقع التسميات برمجياً من نفس ترتيب PRIZE_ORDER عشان تفضل مطابقة لشرائح
+// الـ conic-gradient بالظبط. ملحوظة مهمة: الـ conic-gradient بيبدأ عدّ زاويته من فوق (0deg = 12 الساعة)
+// لكن transform:rotate() على عنصر أفقي افتراضي بيبدأ عدّه من اليمين (3 الساعة) = 90deg بمقياس الجريدينت.
+// فبنطرح 90 من مركز كل شريحة عشان نحوّل من نظام الجريدينت لنظام الـ rotate.
+var PRIZE_LABELS_POS = PRIZE_ORDER.map(function(key, i){
+  var segCenter = i * 72 + 36;
+  return { text: PRIZE_TEXT[key], deg: segCenter - 90 };
+});
 var PRIZE_ICONS = {
   free_tea:'☕', surprise:'🎁', points5:'✨', points10:'🌟', better_luck:'🍀'
 };
