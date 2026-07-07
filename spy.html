@@ -225,7 +225,7 @@ async function loadResults(){
   box.innerHTML = rows.map(function(r, i){
     var pct = maxVotes > 0 ? Math.round(Number(r.vote_count) / maxVotes * 100) : 0;
     var cls = "result-row" + (i === 0 && r.vote_count > 0 ? " top" : "") + (r.is_spy ? " is-spy-reveal" : "");
-    var spyTag = r.is_spy ? ' <span style="color:var(--coral);font-size:11px">🕵️ جاسوس</span>' : "";
+    var spyTag = r.is_spy ? ' <span style="color:var(--coral);font-size:11px">🕵️ جاسوس!</span>' : "";
     var votedTag = r.has_voted ? ' <span style="font-size:11px;color:var(--mist-dim)">✓</span>' : "";
     return '<div class="' + cls + '">' +
       '<div style="flex:1"><div>' + escHtml(r.member_name) + spyTag + votedTag + '</div>' +
