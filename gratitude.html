@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جدار الامتنان | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.gratitude-hero{
+  text-align:center; padding:26px 16px 4px;
+}
+.gratitude-hero .emoji{
+  font-size:52px; display:block; margin-bottom:10px;
+}
+.gratitude-hero h1{
+  font-family:var(--font-display); font-size:21px; color:var(--mist);
+  margin-bottom:6px;
+}
+.gratitude-hero p{ font-size:13px; color:var(--mist-dim); line-height:1.6; }
+
+.char-count{ font-size:11px; color:var(--mist-dim); text-align:left; margin-top:-10px; margin-bottom:14px; }
+
+.wall-feed{ margin-top:22px; }
+.wall-feed h2{
+  font-family:var(--font-display); font-size:15px; color:var(--mist-dim);
+  margin-bottom:14px;
+}
+.wall-item{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  padding:16px 18px; margin-bottom:12px;
+  position:relative; overflow:hidden;
+}
+.wall-item::before{
+  content:""; position:absolute; top:0; right:0;
+  width:4px; height:100%;
+  background: linear-gradient(to bottom, var(--gold), var(--coral));
+}
+.wall-name{
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  color:var(--gold); margin-bottom:6px;
+}
+.wall-msg{
+  font-size:15px; color:var(--mist); line-height:1.7;
+}
+.wall-time{ font-size:11px; color:var(--mist-dim); margin-top:8px; }
+
+.empty-state{
+  text-align:center; padding:30px 20px;
+  color:var(--mist-dim); font-size:14px; line-height:1.8;
+}
+
+.fullscreen-btn{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background: rgba(200,150,90,0.1); border:1px solid var(--line);
+  color:var(--gold); font-family:var(--font-display); font-weight:700;
+  font-size:13px; padding:10px 18px; border-radius:99px;
+  cursor:pointer; text-decoration:none; margin-bottom:18px; width:100%;
+}
+
+/* ===== Fullscreen Wall ===== */
+.fs-overlay{
+  display:none; position:fixed; inset:0;
+  background:#060f18; z-index:9999;
+  overflow:hidden;
+}
+.fs-overlay.active{ display:flex; flex-direction:column; }
+.fs-header{
+  text-align:center; padding:30px 20px 10px; flex-shrink:0;
+}
+.fs-title{
+  font-family:var(--font-display); font-weight:800; font-size:clamp(20px,4vw,36px);
+  color:var(--gold); margin-bottom:4px;
+}
+.fs-subtitle{ font-size:14px; color:rgba(200,160,100,0.6); }
+.fs-ticker{
+  flex:1; overflow:hidden; position:relative;
+}
+.fs-ticker-inner{
+  display:flex; flex-direction:column; gap:0;
+  animation: scrollUp 30s linear infinite;
+  padding:20px 0;
+}
+.fs-ticker-inner:hover{ animation-play-state:paused; }
+@keyframes scrollUp{
+  0%{ transform:translateY(0); }
+  100%{ transform:translateY(-50%); }
+}
+.fs-card{
+  margin: 8px clamp(16px, 5vw, 80px);
+  background: linear-gradient(135deg, rgba(200,150,90,0.12), rgba(192,83,58,0.08));
+  border:1px solid rgba(200,150,90,0.2); border-radius:16px;
+  padding: clamp(14px,2vw,24px) clamp(16px,3vw,32px);
+  flex-shrink:0;
+}
+.fs-card-name{
+  font-family:var(--font-display); font-weight:800;
+  font-size:clamp(13px,2vw,18px); color:var(--gold);
+  margin-bottom:8px;
+}
+.fs-card-msg{
+  font-size:clamp(15px,2.5vw,22px); color:#e8e0d0;
+  line-height:1.6; font-family:var(--font-display);
+}
+.fs-close{
+  position:fixed; top:16px; left:16px;
+  background:rgba(200,150,90,0.15); border:1px solid var(--line);
+  color:var(--mist-dim); font-size:20px; cursor:pointer;
+  padding:8px 14px; border-radius:99px; z-index:10000;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand">
+      <img src="logo.png" style="width:28px;height:28px;object-fit:contain"> Connect Three
+    </a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <div class="gratitude-hero">
+    <span class="emoji">🧱</span>
+    <h1>جدار الامتنان</h1>
+    <p>قول شكراً لشخص خلّى المؤتمر ده أحلى</p>
+  </div>
+
+  <!-- زرار العرض الكبير (ظاهر للكل) -->
+  <button class="fullscreen-btn" onclick="openFullscreen()">
+    🖥️ عرض الجدار على شاشة كبيرة
+  </button>
+
+  <!-- Form الكتابة -->
+  <div class="card">
+    <label>رسالتك:</label>
+    <textarea id="gratMsg" placeholder='مثال: "شكراً يا مينا على مساعدتك طول المؤتمر 💙"'
+      maxlength="200" rows="4"
+      oninput="document.getElementById('gChar').textContent=this.value.length"></textarea>
+    <div class="char-count"><span id="gChar">0</span> / 200</div>
+    <button class="btn" id="sendGratBtn" onclick="sendGratitude()">🧱 حط في الجدار</button>
+    <div id="gratFormMsg" style="margin-top:10px;text-align:center;font-size:13px"></div>
+  </div>
+
+  <!-- الرسائل -->
+  <div class="wall-feed">
+    <h2>💛 رسائل من القلب (<span id="wallCount">0</span>)</h2>
+    <div id="wallList">
+      <div class="empty-state">جاري التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen Wall -->
+<div class="fs-overlay" id="fsOverlay">
+  <button class="fs-close" onclick="closeFullscreen()">✕ إغلاق</button>
+  <div class="fs-header">
+    <div class="fs-title">🧱 جدار الامتنان</div>
+    <div class="fs-subtitle">Connect Three · رسائل شكر من القلب</div>
+  </div>
+  <div class="fs-ticker">
+    <div class="fs-ticker-inner" id="fsTicker"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+var _messages = [];
+
+function esc(s){ return (s||"").replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+async function sendGratitude(){
+  var txt = (document.getElementById("gratMsg").value||"").trim();
+  var msg = document.getElementById("gratFormMsg");
+  if(txt.length < 5){
+    msg.textContent = "⚠️ اكتب رسالة أطول شوية";
+    msg.style.color = "var(--coral)"; return;
+  }
+  var btn = document.getElementById("sendGratBtn");
+  btn.disabled = true; btn.textContent = "بنحفظ...";
+
+  var res = await supabase.rpc("submit_gratitude", { p_member_id: member.id, p_message: txt });
+  btn.disabled = false; btn.textContent = "🧱 حط في الجدار";
+
+  if(res.error){
+    msg.textContent = "❌ مش قادر يحفظ، حاول تاني";
+    msg.style.color = "var(--coral)"; return;
+  }
+  msg.textContent = "✅ اتضافت للجدار!";
+  msg.style.color = "var(--pitch)";
+  document.getElementById("gratMsg").value = "";
+  document.getElementById("gChar").textContent = "0";
+  setTimeout(function(){ msg.textContent = ""; }, 3000);
+  loadWall();
+}
+
+async function loadWall(){
+  var res = await supabase.rpc("get_gratitude_messages");
+  if(res.error){ return; }
+  _messages = res.data || [];
+  document.getElementById("wallCount").textContent = _messages.length;
+
+  if(_messages.length === 0){
+    document.getElementById("wallList").innerHTML =
+      '<div class="empty-state">لسه محدش كتب 💙<br>كن أول واحد تشكر حد!</div>';
+    return;
+  }
+
+  document.getElementById("wallList").innerHTML = _messages.map(function(m){
+    var d = new Date(m.created_at);
+    var t = d.toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+    return '<div class="wall-item">'
+         + '<div class="wall-name">✍️ ' + esc(m.member_name) + '</div>'
+         + '<div class="wall-msg">' + esc(m.message) + '</div>'
+         + '<div class="wall-time">' + t + '</div>'
+         + '</div>';
+  }).join("");
+}
+
+function openFullscreen(){
+  var msgs = _messages.slice();
+  if(msgs.length === 0){
+    alert("لسه فيش رسائل في الجدار!");
+    return;
+  }
+  // كرّر الرسائل مرتين عشان الـ scroll يبان smooth
+  var doubled = msgs.concat(msgs);
+  document.getElementById("fsTicker").innerHTML = doubled.map(function(m){
+    return '<div class="fs-card">'
+         + '<div class="fs-card-name">✍️ ' + esc(m.member_name) + '</div>'
+         + '<div class="fs-card-msg">' + esc(m.message) + '</div>'
+         + '</div>';
+  }).join("");
+  document.getElementById("fsOverlay").classList.add("active");
+}
+
+function closeFullscreen(){
+  document.getElementById("fsOverlay").classList.remove("active");
+}
+
+// Realtime
+supabase.channel("rt-gratitude")
+  .on("postgres_changes",{event:"INSERT",schema:"public",table:"gratitude_wall"}, loadWall)
+  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"gratitude_wall"}, loadWall)
+  .subscribe();
+
+loadWall();
+</script>
+</body>
+</html>

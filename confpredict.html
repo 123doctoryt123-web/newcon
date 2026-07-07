@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>توقع المؤتمر | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.predict-hero{
+  text-align:center; padding:30px 20px 10px;
+}
+.predict-emoji{
+  font-size:56px; display:block; margin-bottom:12px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-8px); }
+}
+.predict-hero h1{
+  font-family:var(--font-display); font-size:22px; color:var(--gold);
+  margin-bottom:8px;
+}
+.predict-question{
+  font-size:16px; color:var(--mist); line-height:1.6;
+  background: rgba(200,150,90,0.08);
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:14px 16px;
+  margin-bottom:20px; font-weight:600;
+  font-family:var(--font-display);
+}
+.char-count{
+  font-size:11px; color:var(--mist-dim); text-align:left; margin-top:-10px; margin-bottom:14px;
+}
+.done-card{
+  text-align:center; padding:20px;
+}
+.done-card .big-icon{ font-size:52px; margin-bottom:12px; display:block; }
+.done-card h2{ color:var(--gold); font-family:var(--font-display); margin-bottom:8px; }
+.done-card p{ color:var(--mist-dim); font-size:14px; line-height:1.6; }
+.my-prediction-preview{
+  background: rgba(200,150,90,0.1);
+  border:1px solid rgba(200,150,90,0.25);
+  border-radius:var(--radius-sm);
+  padding:14px 16px; margin:14px 0;
+  font-size:15px; color:var(--mist); line-height:1.6;
+  font-style:italic;
+}
+.winner-banner{
+  background: linear-gradient(135deg, rgba(200,150,90,0.2), rgba(192,83,58,0.15));
+  border:2px solid var(--gold);
+  border-radius:var(--radius);
+  padding:18px; text-align:center; margin-bottom:16px;
+}
+.winner-banner .trophy{ font-size:40px; display:block; margin-bottom:8px; }
+.winner-banner h3{ color:var(--gold); font-family:var(--font-display); margin-bottom:4px; }
+.winner-banner p{ color:var(--mist-dim); font-size:13px; }
+.closed-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(192,83,58,0.15); border:1px solid var(--coral);
+  color:#ffb3a6; font-size:12px; font-weight:700;
+  padding:5px 12px; border-radius:99px; margin-bottom:16px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand">
+      <img src="logo.png" style="width:28px;height:28px;object-fit:contain"> Connect Three
+    </a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <div class="predict-hero">
+    <span class="predict-emoji">🔮</span>
+    <h1>توقع نهاية المؤتمر</h1>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingState" class="card" style="text-align:center;color:var(--mist-dim);padding:30px">
+    جاري التحميل...
+  </div>
+
+  <!-- مقفول -->
+  <div id="closedState" style="display:none">
+    <div style="text-align:center;margin-bottom:16px">
+      <span class="closed-badge">🔒 التوقعات مقفولة دلوقتي</span>
+    </div>
+  </div>
+
+  <!-- الفائز -->
+  <div id="winnerBanner" style="display:none" class="winner-banner">
+    <span class="trophy">🏆</span>
+    <h3 id="winnerName">اسم الفائز</h3>
+    <p>توقّعه كان الأقرب للحقيقة!</p>
+  </div>
+
+  <!-- Form للكتابة -->
+  <div id="formState" style="display:none">
+    <div class="card">
+      <div class="predict-question" id="questionText"></div>
+      <label>توقعك:</label>
+      <textarea id="predictionInput" placeholder="اكتب توقعك هنا..." maxlength="300" rows="4"
+        oninput="updateChar()"></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 300</div>
+      <button class="btn" id="submitBtn" onclick="submitPrediction()">🔮 احفظ توقعي</button>
+      <div id="formMsg" style="margin-top:10px;text-align:center;font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- بعد الإرسال -->
+  <div id="doneState" style="display:none" class="card done-card">
+    <span class="big-icon">✅</span>
+    <h2>توقعك اتحفظ!</h2>
+    <div class="my-prediction-preview" id="myPredictionText"></div>
+    <p>في نهاية المؤتمر، الأدمن هيختار أقرب توقع للحقيقة 🎯</p>
+    <button class="btn" style="margin-top:16px;background:rgba(200,150,90,0.1);border:1px solid var(--line);color:var(--gold)" 
+      onclick="editMode()">✏️ عدّل توقعي</button>
+  </div>
+
+  <div class="divider-deco" style="margin-top:30px"><span>WAY · TRUTH · LIFE</span></div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+var isOpen = true;
+var myPrediction = null;
+
+function updateChar(){
+  var v = document.getElementById("predictionInput").value;
+  document.getElementById("charCount").textContent = v.length;
+}
+
+function editMode(){
+  document.getElementById("doneState").style.display = "none";
+  document.getElementById("formState").style.display = "block";
+  document.getElementById("predictionInput").value = myPrediction || "";
+  updateChar();
+}
+
+function esc(s){ return (s||"").replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+async function init(){
+  if(!member) return;
+  var res = await supabase.rpc("get_conf_predict_info", { p_member_id: member.id });
+  document.getElementById("loadingState").style.display = "none";
+
+  if(res.error || !res.data || !res.data.length){
+    document.getElementById("formState").style.display = "block";
+    document.getElementById("questionText").textContent = "إيه أكتر حاجة هتحصل في المؤتمر؟";
+    return;
+  }
+
+  var d = res.data[0];
+  isOpen     = d.is_open;
+  myPrediction = d.my_prediction;
+
+  document.getElementById("questionText").textContent = d.question || "إيه أكتر حاجة هتحصل في المؤتمر؟";
+
+  if(!isOpen) document.getElementById("closedState").style.display = "block";
+
+  if(d.winner_id){
+    // جيب اسم الفائز
+    var wr = await supabase.from("members").select("name").eq("id", d.winner_id).single();
+    if(!wr.error){
+      document.getElementById("winnerBanner").style.display = "block";
+      document.getElementById("winnerName").textContent = wr.data.name;
+    }
+  }
+
+  if(myPrediction){
+    document.getElementById("doneState").style.display = "block";
+    document.getElementById("myPredictionText").textContent = '"' + myPrediction + '"';
+    if(!isOpen){
+      // مقفولة → إخفاء زرار التعديل
+      var editBtn = document.querySelector("#doneState button");
+      if(editBtn) editBtn.style.display="none";
+    }
+  } else {
+    if(isOpen){
+      document.getElementById("formState").style.display = "block";
+    }
+  }
+}
+
+async function submitPrediction(){
+  var txt = (document.getElementById("predictionInput").value||"").trim();
+  var msg = document.getElementById("formMsg");
+  if(txt.length < 5){
+    msg.textContent = "⚠️ اكتب أكتر من كده شوية!";
+    msg.style.color = "var(--coral)";
+    return;
+  }
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true; btn.textContent = "بنحفظ...";
+
+  var res = await supabase.rpc("submit_conf_prediction", {
+    p_member_id: member.id, p_prediction: txt
+  });
+
+  btn.disabled = false; btn.textContent = "🔮 احفظ توقعي";
+
+  if(res.error){
+    msg.textContent = "❌ مش قادر يحفظ، حاول تاني";
+    msg.style.color = "var(--coral)";
+    return;
+  }
+  myPrediction = txt;
+  document.getElementById("formState").style.display = "none";
+  document.getElementById("doneState").style.display = "block";
+  document.getElementById("myPredictionText").textContent = '"' + txt + '"';
+}
+
+init();
+</script>
+</body>
+</html>
