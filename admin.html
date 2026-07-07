@@ -54,6 +54,7 @@
       <div class="tab" data-tab="retreat">الخلوة</div>
       <div class="tab" data-tab="settings">الإعدادات</div>
       <div class="tab" data-tab="puzzle">🧩 اللغز</div>
+      <div class="tab" data-tab="poll">🗳️ الاستفتاء</div>
     </div>
 
     <!-- الشباب -->
@@ -565,6 +566,42 @@
       </div>
 
     </div><!-- /panel-puzzle -->
+
+    <!-- ==================== استفتاء سريع ==================== -->
+    <div class="tab-panel" id="panel-poll">
+      <h2 style="margin-bottom:16px">🗳️ استفتاء سريع</h2>
+
+      <!-- إنشاء استفتاء جديد -->
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="margin-bottom:14px;font-size:15px">استفتاء جديد</h3>
+        <label style="font-size:13px;color:var(--mist-dim);display:block;margin-bottom:6px">السؤال</label>
+        <input id="pollQuestion" type="text" placeholder="اكتب السؤال هنا..." style="width:100%;margin-bottom:12px">
+
+        <label style="font-size:13px;color:var(--mist-dim);display:block;margin-bottom:8px">الخيارات (2 على الأقل)</label>
+        <div id="pollOptionsContainer">
+          <input class="poll-opt-input" type="text" placeholder="خيار A" style="width:100%;margin-bottom:8px">
+          <input class="poll-opt-input" type="text" placeholder="خيار B" style="width:100%;margin-bottom:8px">
+        </div>
+        <button onclick="addPollOptionField()" class="btn" style="background:rgba(200,150,90,0.1);border:1px solid var(--line);color:var(--gold);margin-bottom:14px;font-size:13px">+ أضف خيار</button>
+
+        <div style="display:flex;gap:10px">
+          <button id="createPollBtn" onclick="adminCreatePoll()" class="btn" style="flex:1">🚀 ابدأ الاستفتاء</button>
+          <button id="stopPollBtn"   onclick="adminStopPoll()"   class="btn" style="flex:1;background:rgba(192,83,58,0.15);border-color:var(--coral);color:#ffb3a6">⛔ أوقف الحالي</button>
+        </div>
+        <div id="pollAdminMsg" style="margin-top:10px"></div>
+      </div>
+
+      <!-- النتائج الحالية -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:15px">📊 النتائج الحالية</h3>
+          <button onclick="loadPollResults()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:13px">🔄 تحديث</button>
+        </div>
+        <div id="pollResultsBox">
+          <p style="color:var(--mist-dim);font-size:13px">اضغط تحديث لتحميل النتائج</p>
+        </div>
+      </div>
+    </div><!-- /panel-poll -->
 
   </div><!-- /adminPanel -->
 </div>
