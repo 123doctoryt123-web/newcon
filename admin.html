@@ -508,32 +508,23 @@
         <div id="puzCreateMsg" style="margin-top:10px;font-size:13px"></div>
       </div>
 
-      <!-- ② إضافة المشتركين -->
+      <!-- ② إضافة المشتركين (الـ5) -->
       <div class="card" id="puzParticipantsCard" style="display:none">
-        <strong style="font-size:15px">👥 إضافة المشتركين</strong>
+        <strong style="font-size:15px">👥 إضافة المشتركين (الـ5)</strong>
         <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">
-          اختار الشباب دفعة واحدة وضغط زر واحد بس
+          كل واحد ممكن يبقى له صورة مكان مختلفة أو نفس الصورة
         </p>
 
-        <input type="text" id="puzMemberSearch" placeholder="🔍 ابحث باسم الشخص…"
-          oninput="filterPuzMembers()"
-          style="margin-bottom:10px">
+        <label>اختار الشخص</label>
+        <select id="puzMemberSelect">
+          <option value="">— اختار شاب —</option>
+        </select>
 
-        <div id="puzCheckList"
-          style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px;display:flex;flex-direction:column;gap:6px">
-          <p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">
-            ⏳ جاري تحميل القائمة…
-          </p>
-        </div>
+        <label style="margin-top:10px">رابط صورة مكانه (تترك فاضية تاخد الصورة الافتراضية)</label>
+        <input type="url" id="puzParticipantImg" placeholder="https://... (اختياري)">
 
-        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-          <button class="btn small outline" onclick="selectAllPuzMembers()">تحديد الكل</button>
-          <button class="btn small outline" onclick="deselectAllPuzMembers()">إلغاء الكل</button>
-          <span id="puzSelectedCount" style="font-size:12px;color:var(--mist-dim);margin-right:auto">0 محدود</span>
-        </div>
-
-        <button class="btn" style="margin-top:12px;width:100%" onclick="addParticipantsBulk()">
-          ➕ أضف المحددين للغز
+        <button class="btn outline" style="margin-top:10px" onclick="addParticipant()">
+          ➕ أضفه للغز
         </button>
         <div id="puzAddMsg" style="margin-top:8px;font-size:13px"></div>
 
@@ -786,7 +777,8 @@ var _puzzleMembers   = [];  // قائمة كل الشباب
     document.querySelectorAll('.tab').forEach(function(tab) {
       tab.addEventListener('click', function() {
         if (this.dataset.tab === 'puzzle') {
-          setTimeout(function(){ loadActivePuzzle(); }, 100);
+          loadPuzzleMembersSelect();
+          loadActivePuzzle();
         }
       });
     });
@@ -798,52 +790,18 @@ var _puzzleMembers   = [];  // قائمة كل الشباب
   }
 })();
 
-// ── جلب كل الشباب وبناء الـ checkboxes ──
+// ── جلب كل الشباب لقائمة الاختيار ──
 async function loadPuzzleMembersSelect() {
   var pass = sessionStorage.getItem('adminPass') || window._adminPass;
   if (!pass || _puzzleMembers.length) return;
   var res = await supabase.rpc('admin_list_members', { p_password: pass });
   if (res.error || !res.data) return;
   _puzzleMembers = res.data;
-  renderPuzCheckList(_puzzleMembers);
-}
-
-function renderPuzCheckList(members) {
-  var list = document.getElementById('puzCheckList');
-  if (!list) return;
-  if (!members.length) {
-    list.innerHTML = '<p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">مفيش شباب</p>';
-    return;
-  }
-  list.innerHTML = members.map(function(m) {
-    return '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 4px;border-radius:6px" onmouseover="this.style.background='var(--ink-3)'" onmouseout="this.style.background=''">' +
-      '<input type="checkbox" value="' + m.id + '" class="puz-chk" onchange="updatePuzCount()" style="width:16px;height:16px;accent-color:var(--pitch);flex-shrink:0">' +
-      '<span style="font-size:13px;color:var(--mist)">' + esc(m.name) + '</span>' +
-      '</label>';
-  }).join('');
-  updatePuzCount();
-}
-
-function filterPuzMembers() {
-  var q = document.getElementById('puzMemberSearch').value.trim().toLowerCase();
-  var filtered = q ? _puzzleMembers.filter(function(m){ return m.name.toLowerCase().includes(q); }) : _puzzleMembers;
-  renderPuzCheckList(filtered);
-}
-
-function updatePuzCount() {
-  var checked = document.querySelectorAll('.puz-chk:checked').length;
-  var el = document.getElementById('puzSelectedCount');
-  if (el) el.textContent = checked + ' محدود';
-}
-
-function selectAllPuzMembers() {
-  document.querySelectorAll('.puz-chk').forEach(function(c){ c.checked = true; });
-  updatePuzCount();
-}
-
-function deselectAllPuzMembers() {
-  document.querySelectorAll('.puz-chk').forEach(function(c){ c.checked = false; });
-  updatePuzCount();
+  var sel = document.getElementById('puzMemberSelect');
+  sel.innerHTML = '<option value="">— اختار شاب —</option>' +
+    res.data.map(function(m) {
+      return '<option value="' + m.id + '">' + esc(m.name) + '</option>';
+    }).join('');
 }
 
 // ── جلب اللغز النشط (لو موجود) ──
@@ -860,7 +818,6 @@ async function loadActivePuzzle() {
     _currentPuzzleId = res.data.id;
     document.getElementById('puzParticipantsCard').style.display = '';
     document.getElementById('puzStatusCard').style.display = '';
-    await loadPuzzleMembersSelect();
     loadPuzzleStatus();
     loadCurrentParticipants();
   }
@@ -893,8 +850,6 @@ async function createPuzzle() {
     msg.innerHTML = '✅ اتعمل اللغز! <strong style="color:var(--gold)">ID: ' + res.data + '</strong>';
     document.getElementById('puzParticipantsCard').style.display = '';
     document.getElementById('puzStatusCard').style.display = '';
-    _puzzleMembers = []; // reset عشان يعيد التحميل
-    await loadPuzzleMembersSelect();
     loadCurrentParticipants();
   } catch(e) {
     msg.textContent = '❌ ' + (e.message || 'حصل خطأ');
@@ -902,37 +857,31 @@ async function createPuzzle() {
   btn.disabled = false; btn.textContent = '🚀 ابدأ اللغز';
 }
 
-// ── إضافة مشتركين (bulk) ──
-async function addParticipantsBulk() {
-  var pass    = sessionStorage.getItem('adminPass') || window._adminPass;
-  var msg     = document.getElementById('puzAddMsg');
-  var checked = Array.from(document.querySelectorAll('.puz-chk:checked')).map(function(c){ return c.value; });
-  if (!_currentPuzzleId)  { msg.textContent = '❌ ابدأ لغز الأول'; return; }
-  if (!checked.length)    { msg.textContent = '❌ اختار شخص واحد على الأقل'; return; }
-  msg.textContent = '⏳ جاري الإضافة…';
-  var errors = 0;
-  for (var i = 0; i < checked.length; i++) {
+// ── إضافة مشترك ──
+async function addParticipant() {
+  var pass     = sessionStorage.getItem('adminPass') || window._adminPass;
+  var memberId = document.getElementById('puzMemberSelect').value;
+  var imgUrl   = document.getElementById('puzParticipantImg').value.trim() || null;
+  var msg      = document.getElementById('puzAddMsg');
+  if (!_currentPuzzleId) { msg.textContent = '❌ ابدأ لغز الأول'; return; }
+  if (!memberId)         { msg.textContent = '❌ اختار شاب الأول'; return; }
+  msg.textContent = '⏳…';
+  try {
     var res = await supabase.rpc('admin_add_puzzle_participant', {
       p_password:  pass,
       p_puzzle_id: _currentPuzzleId,
-      p_member_id: checked[i],
-      p_image_url: null
+      p_member_id: memberId,
+      p_image_url: imgUrl
     });
-    if (res.error) errors++;
+    if (res.error) throw res.error;
+    msg.textContent = '✅ اتضاف';
+    document.getElementById('puzMemberSelect').value = '';
+    document.getElementById('puzParticipantImg').value = '';
+    loadCurrentParticipants();
+    loadPuzzleStatus();
+  } catch(e) {
+    msg.textContent = '❌ ' + (e.message || 'حصل خطأ');
   }
-  if (errors === 0) {
-    msg.innerHTML = '✅ اتضافوا كلهم (' + checked.length + ' شخص)';
-  } else {
-    msg.innerHTML = '⚠️ اتضاف ' + (checked.length - errors) + ' وفيه ' + errors + ' خطأ';
-  }
-  deselectAllPuzMembers();
-  loadCurrentParticipants();
-  loadPuzzleStatus();
-}
-
-// ── إضافة مشترك (legacy - kept for compatibility) ──
-async function addParticipant() {
-  await addParticipantsBulk();
 }
 
 // ── عرض المشتركين الحاليين ──
