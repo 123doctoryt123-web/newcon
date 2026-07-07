@@ -59,6 +59,7 @@
       <div class="tab" data-tab="secretbox">📦 الأسرار</div>
       <div class="tab" data-tab="gratitude">🧱 الامتنان</div>
       <div class="tab" data-tab="wheel">🎡 عجلة الجوائز</div>
+      <div class="tab" data-tab="dailyq">❓ سؤال اليوم</div>
     </div>
 
     <!-- الشباب -->
@@ -733,6 +734,84 @@
       </div>
     </div><!-- /panel-wheel -->
 
+    <!-- ❓ سؤال اليوم -->
+    <div class="tab-panel" id="panel-dailyq">
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="font-family:var(--font-display);font-size:15px;color:var(--gold);margin-bottom:16px">❓ إنشاء سؤال اليوم</h3>
+
+        <label style="font-size:13px;color:var(--mist-dim);display:block;margin-bottom:6px">السؤال</label>
+        <input id="dqQuestion" type="text" placeholder="اكتب السؤال هنا..." style="width:100%;margin-bottom:12px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">أ — الخيار الأول</label>
+            <input id="dqOptA" type="text" placeholder="الخيار أ" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">ب — الخيار الثاني</label>
+            <input id="dqOptB" type="text" placeholder="الخيار ب" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">ج — الخيار الثالث</label>
+            <input id="dqOptC" type="text" placeholder="الخيار ج" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">د — الخيار الرابع</label>
+            <input id="dqOptD" type="text" placeholder="الخيار د" style="width:100%">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">الإجابة الصح</label>
+            <select id="dqCorrect" style="width:100%;padding:10px 12px;background:var(--ink-3);border:1px solid var(--line);border-radius:10px;color:var(--mist);font-size:13px">
+              <option value="a">أ — الخيار الأول</option>
+              <option value="b">ب — الخيار الثاني</option>
+              <option value="c">ج — الخيار الثالث</option>
+              <option value="d">د — الخيار الرابع</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:120px">
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">البوينتس</label>
+            <input id="dqPoints" type="number" value="10" min="1" max="100" style="width:100%">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn" id="dqPublishBtn" onclick="publishDailyQuestion()" style="flex:2;background:linear-gradient(135deg,var(--pitch),var(--pitch-dim));border-color:var(--pitch)">
+            ✅ نشر السؤال
+          </button>
+          <button class="btn small" id="dqStopBtn" onclick="stopDailyQuestion()" style="flex:1;background:rgba(192,83,58,0.15);border-color:var(--coral);color:var(--coral)">
+            🛑 إيقاف
+          </button>
+        </div>
+        <div id="dqMsg" style="margin-top:10px;font-size:13px;text-align:center"></div>
+      </div>
+
+      <!-- إجابات الشباب -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="font-family:var(--font-display);font-size:14px;color:var(--mist);margin:0">
+            إجابات الشباب <span id="dqAnswerCount" style="color:var(--gold)"></span>
+          </h3>
+          <button class="btn small" onclick="loadDQAnswers()" style="font-size:12px">تحديث</button>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr>
+              <th style="text-align:right;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">الاسم</th>
+              <th style="text-align:right;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">الفريق</th>
+              <th style="text-align:right;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">الإجابة</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">النتيجة</th>
+            </tr>
+          </thead>
+          <tbody id="dqAnswersBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:20px">اضغط تحديث لتحميل الإجابات</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /panel-dailyq -->
+
   </div><!-- /adminPanel -->
 </div>
 
@@ -1147,6 +1226,115 @@ async function deleteGratitude(id){
   var res = await supabase.rpc("admin_delete_gratitude",{ p_password:pass, p_msg_id:id });
   if(res.error){ alert("خطأ: "+res.error.message); return; }
   loadGratitude();
+}
+
+// ============================================================
+// ❓ سؤال اليوم — Admin
+// ============================================================
+(function watchDailyQTab(){
+  var panel = document.getElementById('panel-dailyq');
+  if(!panel) return;
+  var loaded = false;
+  var observer = new MutationObserver(function(){
+    if(panel.classList.contains('active') && !loaded){
+      loaded = true;
+      loadDQAnswers();
+    }
+    if(!panel.classList.contains('active')) loaded = false;
+  });
+  observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+})();
+
+async function publishDailyQuestion(){
+  var pass = sessionStorage.getItem('adminPass') || window._adminPass;
+  if(!pass) return;
+
+  var q  = (document.getElementById('dqQuestion').value || '').trim();
+  var a  = (document.getElementById('dqOptA').value     || '').trim();
+  var b  = (document.getElementById('dqOptB').value     || '').trim();
+  var c  = (document.getElementById('dqOptC').value     || '').trim();
+  var d  = (document.getElementById('dqOptD').value     || '').trim();
+  var correct = document.getElementById('dqCorrect').value;
+  var pts     = parseInt(document.getElementById('dqPoints').value) || 10;
+  var msg     = document.getElementById('dqMsg');
+
+  if(!q || !a || !b || !c || !d){
+    msg.innerHTML = '<span style="color:var(--coral)">⚠️ اكتب السؤال وكل الخيارات الأربعة</span>';
+    return;
+  }
+
+  var btn = document.getElementById('dqPublishBtn');
+  btn.disabled = true; btn.textContent = '⏳ بننشر...';
+
+  var res = await supabase.rpc('admin_create_daily_question', {
+    p_password:    pass,
+    p_question:    q,
+    p_option_a:    a,
+    p_option_b:    b,
+    p_option_c:    c,
+    p_option_d:    d,
+    p_correct_opt: correct,
+    p_points:      pts
+  });
+
+  btn.disabled = false; btn.textContent = '✅ نشر السؤال';
+
+  if(res.error){
+    msg.innerHTML = '<span style="color:var(--coral)">❌ ' + res.error.message + '</span>';
+    return;
+  }
+  msg.innerHTML = '<span style="color:var(--pitch)">✅ السؤال اتنشر! الشباب هيشوفوه دلوقتي</span>';
+  setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+  loadDQAnswers();
+}
+
+async function stopDailyQuestion(){
+  var pass = sessionStorage.getItem('adminPass') || window._adminPass;
+  if(!pass) return;
+  var msg = document.getElementById('dqMsg');
+  var res = await supabase.rpc('admin_stop_daily_question', { p_password: pass });
+  if(res.error){
+    msg.innerHTML = '<span style="color:var(--coral)">❌ ' + res.error.message + '</span>';
+    return;
+  }
+  msg.innerHTML = '<span style="color:var(--mist-dim)">🛑 السؤال اتوقف</span>';
+  setTimeout(function(){ msg.innerHTML = ''; }, 2500);
+}
+
+async function loadDQAnswers(){
+  var pass = sessionStorage.getItem('adminPass') || window._adminPass;
+  if(!pass) return;
+  var body    = document.getElementById('dqAnswersBody');
+  var countEl = document.getElementById('dqAnswerCount');
+  body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:16px">⏳ بنحمّل...</td></tr>';
+
+  var res = await supabase.rpc('admin_get_daily_question_answers', { p_password: pass });
+  if(res.error || !res.data){
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--coral)">حصل خطأ أو مفيش سؤال نشط دلوقتي</td></tr>';
+    if(countEl) countEl.textContent = '';
+    return;
+  }
+
+  var rows = res.data;
+  if(countEl) countEl.textContent = '(' + rows.length + ')';
+
+  if(rows.length === 0){
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:16px">لسه مفيش إجابات</td></tr>';
+    return;
+  }
+
+  var letters = { a:'أ', b:'ب', c:'ج', d:'د' };
+  body.innerHTML = rows.map(function(r){
+    var badge = r.is_correct
+      ? '<span style="background:rgba(74,124,111,0.2);color:#a9e6c4;border:1px solid var(--pitch);border-radius:99px;padding:2px 10px;font-size:11px">✅ صح</span>'
+      : '<span style="background:rgba(192,83,58,0.15);color:#ffb3a6;border:1px solid var(--coral);border-radius:99px;padding:2px 10px;font-size:11px">❌ غلط</span>';
+    return '<tr>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line)">' + escapeHtml(r.member_name) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line);color:var(--mist-dim)">' + escapeHtml(r.team_name || '—') + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line);color:var(--gold);font-weight:700">' + (letters[r.chosen_opt] || r.chosen_opt) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line);text-align:center">' + badge + '</td>'
+      + '</tr>';
+  }).join('');
 }
 </script>
 </body>
