@@ -432,3 +432,126 @@ async function loadProjectGroups(){
     });
   });
 }
+
+// ============================================================
+// 🗳️ استفتاء سريع — Admin Functions
+// ============================================================
+
+function addPollOptionField(){
+  var container = document.getElementById("pollOptionsContainer");
+  if(!container) return;
+  var count = container.querySelectorAll(".poll-opt-input").length;
+  var letters = ["A","B","C","D","E","F","G","H"];
+  var inp = document.createElement("input");
+  inp.className = "poll-opt-input";
+  inp.type = "text";
+  inp.placeholder = "خيار " + (letters[count] || count+1);
+  inp.style.cssText = "width:100%;margin-bottom:8px";
+  container.appendChild(inp);
+}
+
+async function adminCreatePoll(){
+  var q = (document.getElementById("pollQuestion").value || "").trim();
+  var inputs = document.querySelectorAll(".poll-opt-input");
+  var opts = [];
+  inputs.forEach(function(inp){
+    var v = inp.value.trim();
+    if(v) opts.push(v);
+  });
+
+  var msg = document.getElementById("pollAdminMsg");
+  if(!q){ showMsg(msg, "⚠️ اكتب السؤال الأول", "error"); return; }
+  if(opts.length < 2){ showMsg(msg, "⚠️ لازم خيارين على الأقل", "error"); return; }
+
+  var btn = document.getElementById("createPollBtn");
+  btn.disabled = true; btn.textContent = "جاري الإنشاء...";
+
+  var res = await supabase.rpc("admin_create_poll", {
+    p_password: getAdminPass(),
+    p_question: q,
+    p_options:  opts
+  });
+
+  btn.disabled = false; btn.textContent = "🚀 ابدأ الاستفتاء";
+
+  if(res.error){ showMsg(msg, "❌ " + res.error.message, "error"); return; }
+  showMsg(msg, "✅ الاستفتاء بدأ! الشباب يقدروا يصوتوا دلوقتي", "success");
+
+  // مسح الفورم
+  document.getElementById("pollQuestion").value = "";
+  document.querySelectorAll(".poll-opt-input").forEach(function(inp){ inp.value = ""; });
+
+  loadPollResults();
+}
+
+async function adminStopPoll(){
+  var msg = document.getElementById("pollAdminMsg");
+  if(!confirm("هتوقف الاستفتاء الحالي؟")) return;
+  var res = await supabase.rpc("admin_stop_poll", { p_password: getAdminPass() });
+  if(res.error){ showMsg(msg, "❌ " + res.error.message, "error"); return; }
+  showMsg(msg, "⛔ الاستفتاء اتوقف", "success");
+  loadPollResults();
+}
+
+async function loadPollResults(){
+  var box = document.getElementById("pollResultsBox");
+  if(!box) return;
+  box.innerHTML = '<p style="color:var(--mist-dim);font-size:13px">بيتحمل...</p>';
+
+  var res = await supabase.rpc("admin_get_poll_results", { p_password: getAdminPass() });
+  if(res.error){ box.innerHTML = '<p style="color:#ffb3a6">❌ ' + escHtml(res.error.message) + '</p>'; return; }
+  if(!res.data || res.data.length === 0){
+    box.innerHTML = '<p style="color:var(--mist-dim);font-size:13px">مفيش استفتاء نشط حالياً</p>';
+    return;
+  }
+
+  var rows    = res.data;
+  var first   = rows[0];
+  var options = first.options || [];
+  var active  = first.active;
+  var letters = ["A","B","C","D","E","F","G","H"];
+
+  // احسب المجموع
+  var votesMap = {}, total = 0;
+  rows.forEach(function(r){
+    if(r.option_idx !== null && r.option_idx !== undefined){
+      votesMap[r.option_idx] = parseInt(r.vote_count) || 0;
+      total += votesMap[r.option_idx];
+    }
+  });
+
+  var html = '';
+  html += '<div style="padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:14px">';
+  html += '<div style="font-size:16px;font-weight:800;color:var(--mist);margin-bottom:4px">' + escHtml(first.question) + '</div>';
+  html += '<div style="font-size:12px;color:' + (active ? 'var(--pitch)' : 'var(--coral)') + '">' + (active ? '🟢 نشط' : '🔴 منتهي') + ' · إجمالي الأصوات: <strong>' + total + '</strong></div>';
+  html += '</div>';
+
+  options.forEach(function(opt, idx){
+    var count = votesMap[idx] || 0;
+    var pct   = total > 0 ? Math.round(count / total * 100) : 0;
+    html += '<div style="margin-bottom:14px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">';
+    html += '<span><strong style="color:var(--gold)">' + (letters[idx]||idx+1) + '.</strong> ' + escHtml(opt) + '</span>';
+    html += '<span style="color:var(--gold);font-weight:800">' + count + ' صوت (' + pct + '%)</span>';
+    html += '</div>';
+    html += '<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden">';
+    html += '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:99px;transition:width .4s"></div>';
+    html += '</div></div>';
+  });
+
+  box.innerHTML = html;
+}
+
+function showMsg(el, text, type){
+  if(!el) return;
+  el.style.display = "block";
+  el.textContent = text;
+  el.style.background = type === "error" ? "rgba(192,83,58,0.12)" : "rgba(74,124,111,0.12)";
+  el.style.borderColor = type === "error" ? "var(--coral)" : "var(--pitch)";
+  el.style.color       = type === "error" ? "#ffb3a6" : "#a9e6c4";
+  el.style.padding = "10px 14px";
+  el.style.borderRadius = "10px";
+  el.style.border = "1px solid";
+  el.style.fontSize = "13px";
+  setTimeout(function(){ el.style.display = "none"; }, 4000);
+}
