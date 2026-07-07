@@ -256,6 +256,15 @@
     <div class="arrow">‹</div>
   </div>
 
+  <div class="gate" id="wheelGate" onclick="location.href='wheel.html'">
+    <div class="icon" style="background:rgba(200,150,90,0.12);color:var(--gold)">
+      🎡
+      <span class="gate-status-badge" id="wheelBadge" style="display:none"></span>
+    </div>
+    <div><h3>عجلة الجوائز</h3><p>لف العجلة وجرب حظك، مرة واحدة بس</p></div>
+    <div class="arrow">‹</div>
+  </div>
+
   <div class="gate" onclick="location.href='retreat.html'">
     <div class="icon">🕊️</div>
     <div><h3>خلوتي</h3><p>شوف موعد ومكان خلوتك الشخصية</p></div>
@@ -521,6 +530,31 @@ if(member){ setupNotifButton(member.id); }
         badge.style.display = "inline-block";
         badge.textContent = res.data.length + " سر 🤫";
         badge.className = "gate-status-badge open";
+      }
+    }
+  }catch(e){}
+})();
+
+// ── تحقق من عجلة الجوائز ──
+(async function checkWheelForMe(){
+  if(!member) return;
+  try{
+    var res = await supabase.rpc('get_my_wheel', { p_member_id: member.id });
+    if(res.data && res.data.length > 0){
+      var s = res.data[0];
+      var badge = document.getElementById('wheelBadge');
+      if(badge){
+        badge.style.display = '';
+        if(s.spun){
+          badge.textContent = '✅ لفيت';
+          badge.className   = 'gate-status-badge open';
+        } else if(s.active){
+          badge.textContent = '🎡 جديد';
+          badge.className   = 'gate-status-badge closed';
+        } else {
+          badge.textContent = '🔒 مقفولة';
+          badge.className   = 'gate-status-badge closed';
+        }
       }
     }
   }catch(e){}
