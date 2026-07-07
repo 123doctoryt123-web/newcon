@@ -282,7 +282,7 @@ let countdownInterval = null;
 
 // ── تحميل الصفحة ──
 window.addEventListener('DOMContentLoaded', async () => {
-  const raw = localStorage.getItem('con3_member');
+  const raw = localStorage.getItem('member');
   if (!raw) { location.href = 'index.html'; return; }
   const member = JSON.parse(raw);
   memberId = member.id;
