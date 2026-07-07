@@ -231,6 +231,15 @@
     <div class="arrow">‹</div>
   </div>
 
+  <div class="gate" id="pollGate" onclick="location.href='poll.html'" style="display:none">
+    <div class="icon" style="position:relative">
+      🗳️
+      <span class="gate-status-badge open" id="pollLiveBadge">مباشر 🔴</span>
+    </div>
+    <div><h3>استفتاء سريع</h3><p id="pollGateQuestion">شارك برأيك مع الكل</p></div>
+    <div class="arrow">‹</div>
+  </div>
+
   <div class="gate" onclick="location.href='program.html'">
     <div class="icon">📅</div>
     <div><h3>برنامج المؤتمر</h3><p>شوف برنامج الـ 3 أيام</p></div>
@@ -503,6 +512,23 @@ loadLatestAnnouncement();
   if (Notification.permission === "denied" || Notification.permission === "default") {
     banner.style.display = "block";
   }
+})();
+
+// ---------- استفتاء سريع: إظهار/إخفاء الـ Gate ----------
+(async function checkActivePoll(){
+  try {
+    var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
+    var gate = document.getElementById("pollGate");
+    if(!gate) return;
+    if(res.data && res.data.length > 0 && res.data[0].active){
+      gate.style.display = "";
+      var q = res.data[0].question || "";
+      var el = document.getElementById("pollGateQuestion");
+      if(el && q) el.textContent = q.length > 35 ? q.substring(0, 35) + "..." : q;
+    } else {
+      gate.style.display = "none";
+    }
+  } catch(e){ }
 })();
 </script>
 <script src="js/realtime.js"></script>
