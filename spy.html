@@ -184,7 +184,7 @@ function selectVote(btn){
   document.getElementById("voteConfirm").style.display = "block";
 
   var confirmBtn = document.getElementById("confirmVoteBtn");
-  if(confirmBtn) confirmBtn.addEventListener("click", submitVote);
+  // ✅ بعد — بيحل مشكلة التكرار if(confirmBtn) confirmBtn.onclick = submitVote;
 }
 
 // ===== إرسال التصويت =====
