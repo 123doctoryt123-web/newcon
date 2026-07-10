@@ -59,43 +59,47 @@ async function loadTeamsAdmin(){
   var res=await supabase.rpc("admin_list_members_teams",{p_password:getAdminPass()});
   if(res.error) return;
   teamsMembersCache=res.data||[];
+  // keep hidden select in sync (used by spy game)
   var select=document.getElementById("teamMemberSelect");
-  select.innerHTML=teamsMembersCache.map(function(m){
-    return'<option value="'+m.id+'">'+escHtml(m.name)+'</option>';
-  }).join("")||'<option value="">لسه مفيش شباب</option>';
-  fillTeamInputsFromSelection();
+  if(select){
+    select.innerHTML=teamsMembersCache.map(function(m){
+      return'<option value="'+m.id+'">'+escHtml(m.name)+'</option>';
+    }).join("")||'<option value="">لسه مفيش شباب</option>';
+  }
   renderTeamsTable();
   renderSpyMembers();
 }
 
 function fillTeamInputsFromSelection(){
+  // kept for backward compat — no-op when inputs are hidden
   var id=document.getElementById("teamMemberSelect").value;
   var m=teamsMembersCache.find(function(x){ return x.id===id; });
-  document.getElementById("teamNameInput").value=m?(m.team_name||""):"";
-  document.getElementById("teamPointsInput").value=m?(m.points||0):0;
+  var tn=document.getElementById("teamNameInput");
+  var tp=document.getElementById("teamPointsInput");
+  if(tn) tn.value=m?(m.team_name||""):"";
+  if(tp) tp.value=m?(m.points||0):0;
 }
 
 function renderTeamsTable(){
   var tbody=document.getElementById("teamsTableBody");
+  if(!tbody) return;
+  var roleLabel={
+    leader:'<span class="badge-leader">👑 قائد</span>',
+    member:'<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
+  };
   tbody.innerHTML=teamsMembersCache.map(function(m){
-    return'<tr><td>'+escHtml(m.name)+'</td><td>'+escHtml(m.team_name||"—")+'</td><td>'+(m.points||0)+'</td></tr>';
-  }).join("")||'<tr><td colspan="3">لسه مفيش شباب</td></tr>';
+    return'<tr class="member-row-clickable" data-id="'+m.id+'" onclick="openMemberModal(\''+m.id+'\')">'+
+      '<td>'+escHtml(m.name)+'</td>'+
+      '<td>'+escHtml(m.team_name||"—")+'</td>'+
+      '<td>'+(roleLabel[m.role]||roleLabel.member)+'</td>'+
+      '<td>'+(m.points||0)+'</td>'+
+      '</tr>';
+  }).join("")||'<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب</td></tr>';
 }
 
 async function saveMemberTeam(){
-  var id=document.getElementById("teamMemberSelect").value;
-  if(!id) return;
-  var team=document.getElementById("teamNameInput").value.trim();
-  var points=parseInt(document.getElementById("teamPointsInput").value)||0;
-  var msg=document.getElementById("teamStatsMsg");
-  var btn=document.getElementById("saveTeamStatsBtn");
-  btn.disabled=true; btn.textContent="بنحفظ...";
-  var res=await supabase.rpc("admin_set_member_team",{p_password:getAdminPass(),p_member_id:id,p_team_name:team,p_points:points});
-  btn.disabled=false; btn.textContent="حفظ التعديلات";
-  if(res.error){ msg.innerHTML='<div class="error-msg" style="display:block">حصل خطأ، حاول تاني</div>'; return; }
-  msg.innerHTML='<div class="success-msg" style="display:block">تم الحفظ ✅</div>';
-  setTimeout(function(){ msg.innerHTML=""; },2500);
-  loadTeamsAdmin();
+  // kept for backward compat (hidden button) — delegates to modal save
+  openMemberModal(document.getElementById("teamMemberSelect").value);
 }
 
 // ============================================================
@@ -268,40 +272,43 @@ async function loadLeadersAdmin(){
   var tbody = document.getElementById("leadersTableBody");
   if(tbody){
     var roleLabel = {
-      leader: '<span style="color:var(--gold);font-weight:700">👑 قائد</span>',
-      member: '<span style="color:var(--mist-dim)">عضو</span>'
+      leader: '<span class="badge-leader">👑 قائد</span>',
+      member: '<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
     };
     tbody.innerHTML = leadersMembersCache.map(function(m){
-      return '<tr>' +
+      return '<tr class="member-row-clickable" data-id="'+m.id+'" onclick="openMemberModal(\''+m.id+'\')">'+
         '<td>' + escHtml(m.name) + '</td>' +
         '<td>' + escHtml(m.team_name||'—') + '</td>' +
-        '<td>' + (roleLabel[m.role] || '<span style="color:var(--mist-dim)">عضو</span>') + '</td>' +
+        '<td>' + (roleLabel[m.role] || roleLabel.member) + '</td>' +
         '<td>' + (m.points||0) + '</td>' +
         '</tr>';
-    }).join('');
+    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب مضافين</td></tr>';
   }
 
   // ملأ اختيار أعضاء المجموعة
   renderGroupMembersCheckList();
 }
 
-async function setMemberRole(){
-  var memberId = document.getElementById('leaderMemberSelect').value;
-  var role     = document.getElementById('leaderRoleSelect').value;
-  var msg      = document.getElementById('leaderMsg');
-  if(!memberId){ msg.innerHTML = '<div class="error-msg" style="display:block">اختار شاب الأول</div>'; return; }
-  var btn = document.getElementById('setLeaderBtn');
-  btn.disabled = true; btn.textContent = 'بنحفظ...';
-  var res = await supabase.rpc('admin_set_member_role', {p_password: getAdminPass(), p_member_id: memberId, p_role: role});
-  btn.disabled = false; btn.textContent = 'حفظ الدور';
-  if(res.error){
-    msg.innerHTML = '<div class="error-msg" style="display:block">❌ حصل خطأ: ' + escHtml(res.error.message) + '</div>';
-    return;
+async function setMemberRole(memberId, role){
+  // can be called from modal (memberId, role passed directly)
+  // or from hidden select (no args) — kept for compat
+  if(!memberId){
+    memberId = document.getElementById('leaderMemberSelect').value;
+    role     = document.getElementById('leaderRoleSelect').value;
   }
+  if(!memberId) return false;
+
+  var m = leadersMembersCache.find(function(x){ return x.id===memberId; });
+  var name = m ? m.name : 'هذا الشاب';
   var label = role === 'leader' ? '👑 قائد فريق' : 'عضو عادي';
-  msg.innerHTML = '<div class="success-msg" style="display:block">✅ تم تعيينه كـ ' + label + '</div>';
-  setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+
+  if(!confirm('هتعيّن "' + name + '" كـ ' + label + '؟')){ return false; }
+
+  var res = await supabase.rpc('admin_set_member_role', {p_password: getAdminPass(), p_member_id: memberId, p_role: role});
+  if(res.error){ return res.error; }
+
   loadLeadersAdmin();
+  return true;
 }
 
 // ============================================================
@@ -555,3 +562,111 @@ function showMsg(el, text, type){
   el.style.fontSize = "13px";
   setTimeout(function(){ el.style.display = "none"; }, 4000);
 }
+
+// ============================================================
+// Member Edit Modal
+// ============================================================
+var _modalMemberId = null;
+
+function openMemberModal(memberId){
+  // ابحث في كلا الـ cache
+  var m = teamsMembersCache.find(function(x){ return x.id===memberId; })
+       || leadersMembersCache.find(function(x){ return x.id===memberId; });
+  if(!m) return;
+
+  _modalMemberId = memberId;
+
+  document.getElementById('modalMemberName').textContent = m.name;
+  document.getElementById('modalTeamName').value  = m.team_name || '';
+  document.getElementById('modalPoints').value    = m.points    || 0;
+  document.getElementById('modalRole').value      = m.role      || 'member';
+  document.getElementById('modalMsg').innerHTML   = '';
+
+  document.getElementById('memberModal').classList.add('open');
+  document.getElementById('modalTeamName').focus();
+}
+
+function closeMemberModal(){
+  document.getElementById('memberModal').classList.remove('open');
+  _modalMemberId = null;
+}
+
+async function saveMemberModal(){
+  if(!_modalMemberId) return;
+
+  var team   = document.getElementById('modalTeamName').value.trim();
+  var points = parseInt(document.getElementById('modalPoints').value) || 0;
+  var role   = document.getElementById('modalRole').value;
+  var msg    = document.getElementById('modalMsg');
+  var btn    = document.getElementById('modalSaveBtn');
+
+  // تحقق من تغيير الدور
+  var cached = teamsMembersCache.find(function(x){ return x.id===_modalMemberId; })
+            || leadersMembersCache.find(function(x){ return x.id===_modalMemberId; });
+  var roleChanged  = cached && cached.role !== role;
+  var roleLabel    = role === 'leader' ? '👑 قائد فريق' : 'عضو عادي';
+
+  if(roleChanged){
+    var name = cached ? cached.name : 'هذا الشاب';
+    if(!confirm('هتعيّن "' + name + '" كـ ' + roleLabel + '؟')){ return; }
+  }
+
+  btn.disabled = true; btn.textContent = 'بنحفظ...';
+
+  // 1) حفظ الفريق والنقاط
+  var r1 = await supabase.rpc('admin_set_member_team', {
+    p_password: getAdminPass(), p_member_id: _modalMemberId,
+    p_team_name: team, p_points: points
+  });
+
+  // 2) حفظ الدور (لو اتغير أو مختلف)
+  var r2 = { error: null };
+  if(roleChanged){
+    r2 = await supabase.rpc('admin_set_member_role', {
+      p_password: getAdminPass(), p_member_id: _modalMemberId, p_role: role
+    });
+  }
+
+  btn.disabled = false; btn.textContent = '💾 حفظ';
+
+  if(r1.error || r2.error){
+    var errMsg = (r1.error||r2.error).message;
+    showModalMsg('❌ حصل خطأ: ' + errMsg, 'error');
+    return;
+  }
+
+  showModalMsg('✅ تم الحفظ' + (roleChanged ? ' — الدور: ' + roleLabel : ''), 'success');
+
+  // ريفرش الجداول
+  await loadTeamsAdmin();
+  if(typeof loadLeadersAdmin === 'function') loadLeadersAdmin();
+
+  setTimeout(closeMemberModal, 1200);
+}
+
+function showModalMsg(text, type){
+  var el = document.getElementById('modalMsg');
+  if(!el) return;
+  el.innerHTML = '<div class="'+(type==='error'?'error-msg':'success-msg')+'" style="display:block">'+escHtml(text)+'</div>';
+}
+
+// ربط الأزرار والـ overlay
+document.addEventListener('DOMContentLoaded', function(){
+  var modal      = document.getElementById('memberModal');
+  var cancelBtn  = document.getElementById('modalCancelBtn');
+  var saveBtn    = document.getElementById('modalSaveBtn');
+  if(!modal) return;
+
+  if(cancelBtn) cancelBtn.addEventListener('click', closeMemberModal);
+  if(saveBtn)   saveBtn.addEventListener('click',  saveMemberModal);
+
+  // إغلاق بالضغط على الخلفية
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeMemberModal();
+  });
+
+  // إغلاق بـ Escape
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && modal.classList.contains('open')) closeMemberModal();
+  });
+});
