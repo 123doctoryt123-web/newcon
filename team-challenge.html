@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تحدي الفريق | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ---- بانر ---- */
+.hero-banner{
+  position:relative; overflow:hidden;
+  background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
+  border:1px solid var(--line); border-radius: var(--radius);
+  padding:22px 20px; margin-bottom:18px;
+}
+.hero-banner::before{
+  content:""; position:absolute; top:-40px; left:-40px; width:160px; height:160px;
+  background: radial-gradient(circle, rgba(200,150,90,0.18), transparent 70%);
+  pointer-events:none;
+}
+.hero-top{ display:flex; align-items:center; gap:12px; position:relative; z-index:1; }
+.avatar-circle{
+  width:48px; height:48px; border-radius:50%; flex-shrink:0;
+  background: linear-gradient(135deg, var(--gold), var(--coral));
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px;
+  box-shadow: 0 0 18px rgba(200,150,90,0.35);
+}
+.hero-sub{ font-size:13px; color:var(--mist-dim); margin-top:4px; position:relative; z-index:1; }
+
+/* ---- كارت التحدي ---- */
+.challenge-card{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .15s ease;
+}
+.challenge-card.done{
+  border-color: rgba(74,124,111,0.5);
+  background: linear-gradient(160deg, #0e2019, #142b22);
+}
+.challenge-card::before{
+  content:""; position:absolute; top:-30px; left:-30px;
+  width:120px; height:120px; border-radius:50%;
+  background: radial-gradient(circle, rgba(200,150,90,0.08), transparent 70%);
+  pointer-events:none;
+}
+.challenge-header{
+  display:flex; align-items:flex-start; gap:14px; margin-bottom:12px;
+}
+.challenge-icon{
+  width:46px; height:46px; border-radius:12px; flex-shrink:0;
+  background: linear-gradient(135deg, var(--gold), #a07840);
+  display:flex; align-items:center; justify-content:center; font-size:22px;
+  box-shadow: 0 0 12px rgba(200,150,90,0.25);
+}
+.challenge-card.done .challenge-icon{
+  background: linear-gradient(135deg, var(--pitch), var(--pitch-dim));
+  box-shadow: 0 0 12px rgba(74,124,111,0.3);
+}
+.challenge-meta{ flex:1; min-width:0; }
+.challenge-title{
+  font-family: var(--font-display); font-weight:800; font-size:16px;
+  color:var(--mist); margin-bottom:4px; line-height:1.3;
+}
+.challenge-pts{
+  display:inline-flex; align-items:center; gap:4px;
+  background: rgba(200,150,90,0.15); border:1px solid rgba(200,150,90,0.3);
+  color:var(--gold); font-size:12px; font-weight:700; font-family:var(--font-display);
+  padding:3px 10px; border-radius:99px;
+}
+.challenge-card.done .challenge-pts{
+  background: rgba(74,124,111,0.15); border-color:rgba(74,124,111,0.3);
+  color:#a9e6c4;
+}
+.challenge-desc{
+  font-size:13px; color:var(--mist-dim); line-height:1.65;
+  margin: 10px 0 14px;
+}
+
+/* ---- زرار الإتمام ---- */
+.complete-btn{
+  width:100%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  color: var(--ink);
+  font-family: var(--font-display); font-weight:800; font-size:14px;
+  border:none; border-radius:99px; padding:13px 20px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  transition: filter .15s ease, transform .1s ease;
+}
+.complete-btn:hover{ filter:brightness(1.1); }
+.complete-btn:active{ transform:scale(.98); }
+.complete-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+/* ---- بادج الإتمام ---- */
+.done-badge{
+  display:flex; align-items:center; gap:8px;
+  background: rgba(74,124,111,0.15); border:1px solid var(--pitch);
+  border-radius:99px; padding:10px 16px;
+  font-size:13px; font-weight:700; color:#a9e6c4;
+  font-family: var(--font-display);
+}
+.done-time{
+  font-size:11px; color:var(--mist-dim); font-weight:400;
+  font-family: var(--font-body); margin-right:auto;
+}
+
+/* ---- حالة القائد/العضو ---- */
+.role-badge{
+  display:inline-flex; align-items:center; gap:5px;
+  background: rgba(200,150,90,0.15); border:1px solid var(--gold);
+  border-radius:99px; padding:4px 12px;
+  font-size:11px; font-weight:700; color:var(--gold);
+  margin-top:6px;
+}
+.member-badge{
+  background: rgba(28,46,69,0.6); border-color:var(--line); color:var(--mist-dim);
+}
+
+/* ---- حالة فارغة ---- */
+.no-challenges{
+  text-align:center; padding:48px 20px;
+  color:var(--mist-dim); font-size:14px; line-height:2;
+}
+.no-challenges .big-icon{ font-size:48px; margin-bottom:12px; display:block; }
+
+/* ---- مودال التأكيد ---- */
+.overlay{
+  position:fixed; inset:0; background:rgba(6,15,24,0.85);
+  display:flex; align-items:center; justify-content:center;
+  z-index:999; padding:20px;
+  opacity:0; pointer-events:none; transition:opacity .2s ease;
+}
+.overlay.show{ opacity:1; pointer-events:all; }
+.modal{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--gold); border-radius: var(--radius);
+  padding:24px; width:100%; max-width:360px; text-align:center;
+}
+.modal h3{ font-size:18px; margin-bottom:8px; }
+.modal p{ font-size:13px; color:var(--mist-dim); margin-bottom:20px; line-height:1.6; }
+.modal-btns{ display:flex; gap:10px; }
+.modal-btns .btn{ flex:1; }
+
+/* ---- توست ---- */
+.toast{
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(60px);
+  background: linear-gradient(135deg, var(--pitch), var(--pitch-dim));
+  color:#fff; font-family:var(--font-display); font-weight:700; font-size:14px;
+  padding:13px 24px; border-radius:99px; z-index:9999;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4); white-space:nowrap;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  opacity:0;
+}
+.toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
+.toast.error{ background: linear-gradient(135deg, var(--coral), #a03020); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <div class="brand">
+      <img src="logo.png" style="width:32px;height:32px;object-fit:contain;">
+      Connect Three
+    </div>
+    <a href="dashboard.html" class="logout-link">← رجوع</a>
+  </div>
+
+  <!-- بانر ترحيب -->
+  <div class="hero-banner">
+    <div class="hero-top">
+      <div class="avatar-circle">🏆</div>
+      <div>
+        <h2 style="font-family:var(--font-display);font-weight:800;font-size:20px;margin:0">تحدي الفريق</h2>
+        <div class="hero-sub" id="heroSub">أتمّوا المهام واكسبوا البوينتس لفريقكم 🔥</div>
+      </div>
+    </div>
+    <div id="leaderNote" style="display:none;margin-top:14px;position:relative;z-index:1;
+      background:rgba(200,150,90,0.12);border:1px solid rgba(200,150,90,0.3);
+      border-radius:10px;padding:10px 14px;font-size:12px;color:var(--mist-dim);line-height:1.6">
+      👑 أنت القائد — لما الفريق يكمّل مهمة، دوس زرار "الفريق كمّل المهمة" وهيتوزع البوينتس على كل الأعضاء فوراً
+    </div>
+  </div>
+
+  <!-- قائمة التحديات -->
+  <div id="challengesList">
+    <div class="no-challenges">
+      <span class="big-icon">⏳</span>
+      بنحمّل التحديات...
+    </div>
+  </div>
+</div>
+
+<!-- مودال التأكيد -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal">
+    <div style="font-size:36px;margin-bottom:12px">🏆</div>
+    <h3>الفريق كمّل المهمة؟</h3>
+    <p id="confirmText">مش هتقدر ترجع بعد كده — النقاط هتتوزع على كل أعضاء الفريق فوراً</p>
+    <div class="modal-btns">
+      <button class="btn outline" id="cancelBtn">إلغاء</button>
+      <button class="btn" id="confirmBtn">أيوه، كمّلنا! 🎯</button>
+    </div>
+  </div>
+</div>
+
+<!-- توست -->
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+var isLeader = false;
+var pendingChallengeId = null;
+
+// ── تحقق من الدور ──
+async function init(){
+  if(!member) return;
+  var res = await supabase.from("members").select("role,team_name").eq("id", member.id).single();
+  if(!res.error && res.data){
+    isLeader = res.data.role === "leader";
+    if(isLeader) document.getElementById("leaderNote").style.display = "block";
+  }
+  loadChallenges();
+}
+
+// ── تحميل التحديات ──
+async function loadChallenges(){
+  var box = document.getElementById("challengesList");
+  var res = await supabase.rpc("get_my_team_challenges", { p_leader_id: member.id });
+
+  if(res.error){
+    // لو مش قائد، نجيب التحديات العامة بس بدون زرار
+    loadMemberView();
+    return;
+  }
+
+  var challenges = res.data || [];
+  if(!challenges.length){
+    box.innerHTML = '<div class="no-challenges"><span class="big-icon">🎯</span>مفيش تحديات دلوقتي<br><span style="font-size:12px">الأدمن هينشر تحديات قريباً</span></div>';
+    return;
+  }
+
+  box.innerHTML = challenges.map(function(c){ return renderChallenge(c); }).join("");
+
+  // ربط الأزرار
+  challenges.forEach(function(c){
+    if(!c.completed){
+      var btn = document.getElementById("completeBtn_" + c.id);
+      if(btn) btn.addEventListener("click", function(){ openConfirm(c.id, c.title, c.points); });
+    }
+  });
+}
+
+// ── العرض للعضو العادي (بدون أزرار) ──
+async function loadMemberView(){
+  var box = document.getElementById("challengesList");
+  // جيب التحديات من الـ admin_list لكن بدون دور أدمن — نبنيها يدوياً
+  // للعضو العادي: نعرض التحديات النشطة بس للفريق بتاعه
+  var memRes = await supabase.from("members").select("team_name").eq("id", member.id).single();
+  if(memRes.error){ box.innerHTML = '<div class="no-challenges"><span class="big-icon">😕</span>مش قادر أحمّل التحديات</div>'; return; }
+  var myTeam = memRes.data.team_name;
+
+  var { data: challenges, error } = await supabase
+    .from("team_challenges")
+    .select("id, title, description, points, target_team, active")
+    .eq("active", true)
+    .or("target_team.is.null,target_team.eq." + myTeam)
+    .order("created_at", { ascending: false });
+
+  if(error || !challenges || !challenges.length){
+    box.innerHTML = '<div class="no-challenges"><span class="big-icon">🎯</span>مفيش تحديات دلوقتي<br><span style="font-size:12px">الأدمن هينشر تحديات قريباً</span></div>';
+    return;
+  }
+
+  // جيب الإتمامات لفريقك
+  var ids = challenges.map(function(c){ return c.id; });
+  var { data: completions } = await supabase
+    .from("team_challenge_completions")
+    .select("challenge_id, completed_at")
+    .eq("team_name", myTeam)
+    .in("challenge_id", ids);
+
+  var doneMap = {};
+  (completions || []).forEach(function(cc){
+    doneMap[cc.challenge_id] = cc.completed_at;
+  });
+
+  box.innerHTML = challenges.map(function(c){
+    var done = !!doneMap[c.id];
+    return renderChallengeSimple(c, done, doneMap[c.id]);
+  }).join("");
+}
+
+// ── رسم التحدي (للقائد) ──
+function renderChallenge(c){
+  var timeStr = c.completed_at ? formatTime(c.completed_at) : "";
+  return '<div class="challenge-card' + (c.completed ? ' done' : '') + '">' +
+    '<div class="challenge-header">' +
+      '<div class="challenge-icon">' + (c.completed ? '✅' : '🎯') + '</div>' +
+      '<div class="challenge-meta">' +
+        '<div class="challenge-title">' + esc(c.title) + '</div>' +
+        '<span class="challenge-pts">⭐ ' + c.points + ' نقطة لكل عضو</span>' +
+      '</div>' +
+    '</div>' +
+    (c.description ? '<p class="challenge-desc">' + esc(c.description) + '</p>' : '') +
+    (c.completed
+      ? '<div class="done-badge">✅ الفريق أتمّ المهمة! <span class="done-time">' + timeStr + '</span></div>'
+      : '<button class="complete-btn" id="completeBtn_' + c.id + '">🏆 الفريق كمّل المهمة</button>'
+    ) +
+  '</div>';
+}
+
+// ── رسم التحدي (للعضو) ──
+function renderChallengeSimple(c, done, completedAt){
+  var timeStr = completedAt ? formatTime(completedAt) : "";
+  return '<div class="challenge-card' + (done ? ' done' : '') + '">' +
+    '<div class="challenge-header">' +
+      '<div class="challenge-icon">' + (done ? '✅' : '🎯') + '</div>' +
+      '<div class="challenge-meta">' +
+        '<div class="challenge-title">' + esc(c.title) + '</div>' +
+        '<span class="challenge-pts">⭐ ' + c.points + ' نقطة لكل عضو</span>' +
+      '</div>' +
+    '</div>' +
+    (c.description ? '<p class="challenge-desc">' + esc(c.description) + '</p>' : '') +
+    (done
+      ? '<div class="done-badge">✅ الفريق أتمّ المهمة! <span class="done-time">' + timeStr + '</span></div>'
+      : '<div style="font-size:12px;color:var(--mist-dim);text-align:center;padding:10px 0">⏳ في انتظار قائد الفريق</div>'
+    ) +
+  '</div>';
+}
+
+// ── مودال التأكيد ──
+function openConfirm(challengeId, title, points){
+  pendingChallengeId = challengeId;
+  document.getElementById("confirmText").textContent =
+    '"' + title + '" — هيتضاف ' + points + ' نقطة لكل عضو في الفريق فوراً';
+  document.getElementById("confirmOverlay").classList.add("show");
+}
+
+document.getElementById("cancelBtn").addEventListener("click", function(){
+  document.getElementById("confirmOverlay").classList.remove("show");
+  pendingChallengeId = null;
+});
+
+document.getElementById("confirmOverlay").addEventListener("click", function(e){
+  if(e.target === this) this.classList.remove("show");
+});
+
+document.getElementById("confirmBtn").addEventListener("click", async function(){
+  if(!pendingChallengeId) return;
+  var btn = this;
+  btn.disabled = true; btn.textContent = "بنضيف النقاط...";
+
+  var res = await supabase.rpc("leader_complete_challenge", {
+    p_leader_id:    member.id,
+    p_challenge_id: pendingChallengeId
+  });
+
+  btn.disabled = false; btn.textContent = "أيوه، كمّلنا! 🎯";
+  document.getElementById("confirmOverlay").classList.remove("show");
+
+  if(res.error || !res.data || !res.data.length){
+    showToast("حصل خطأ، جرّب تاني", true);
+    return;
+  }
+
+  var result = res.data[0];
+  if(result.status === "ok"){
+    showToast("🏆 تم! +" + result.points_awarded + " نقطة لـ " + result.members_updated + " عضو");
+    // تحديث العرض
+    loadChallenges();
+  } else if(result.status === "already_done"){
+    showToast("الفريق كمّل المهمة دي قبل كده", true);
+    loadChallenges();
+  } else if(result.status === "inactive"){
+    showToast("التحدي ده مش نشط دلوقتي", true);
+  } else {
+    showToast("التحدي مش متاح لفريقك", true);
+  }
+
+  pendingChallengeId = null;
+});
+
+// ── مساعدات ──
+function showToast(msg, isError){
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast" + (isError ? " error" : "") + " show";
+  setTimeout(function(){ t.className = "toast" + (isError ? " error" : ""); }, 3500);
+}
+
+function formatTime(iso){
+  var d = new Date(iso);
+  return d.toLocaleString("ar-EG", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+}
+
+function esc(s){
+  return (s||"").toString().replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
+init();
+</script>
+<script src="js/realtime.js"></script>
+</body>
+</html>
