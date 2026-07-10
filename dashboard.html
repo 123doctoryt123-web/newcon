@@ -274,6 +274,15 @@
     <div class="arrow">‹</div>
   </div>
 
+  <div class="gate" onclick="location.href='team-challenge.html'">
+    <div class="icon" style="background:rgba(200,150,90,0.12);color:var(--gold)">
+      🏆
+      <span class="gate-status-badge" id="teamChallengeBadge" style="display:none"></span>
+    </div>
+    <div><h3>تحدي الفريق</h3><p>أتمّوا المهام واكسبوا البوينتس!</p></div>
+    <div class="arrow">‹</div>
+  </div>
+
   <div class="gate" onclick="location.href='retreat.html'">
     <div class="icon">🕊️</div>
     <div><h3>خلوتي</h3><p>شوف موعد ومكان خلوتك الشخصية</p></div>
@@ -637,6 +646,25 @@ function dismissAnnouncement(){
 }
 
 loadLatestAnnouncement();
+
+// ── تحقق من تحديات الفريق ──
+(async function checkTeamChallenges(){
+  if(!member) return;
+  try{
+    var res = await supabase.rpc('get_my_team_challenges', { p_leader_id: member.id });
+    var badge = document.getElementById('teamChallengeBadge');
+    if(!badge || !res.data || !res.data.length) return;
+    var pending = res.data.filter(function(c){ return !c.completed; }).length;
+    badge.style.display = '';
+    if(pending > 0){
+      badge.textContent = pending + ' مهمة 🔥';
+      badge.className = 'gate-status-badge closed';
+    } else {
+      badge.textContent = '✅ تم';
+      badge.className = 'gate-status-badge open';
+    }
+  }catch(e){}
+})();
 
 // إظهار بانر تنبيه لو الإشعارات متوقفة (denied أو لسه مالم يطلب الإذن)
 (function checkNotifStatus(){
