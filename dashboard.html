@@ -6,7 +6,6 @@
 <title>الرئيسية | Connect Three</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* ---- بانر الترحيب ---- */
 .hero-banner{
   position:relative; overflow:hidden;
   background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
@@ -33,7 +32,6 @@
 }
 .hero-greet-small{ font-size:12px; color:var(--mist-dim); margin-bottom:2px; }
 .hero-name{ font-family:var(--font-display); font-weight:800; font-size:18px; color:var(--mist); }
-
 .countdown-pill{
   position:relative; z-index:1; margin-top:16px;
   display:flex; align-items:center; justify-content:space-between;
@@ -41,8 +39,6 @@
   border-radius:99px; padding:9px 16px; font-size:12px; color:var(--mist-dim);
 }
 .countdown-pill b{ color:var(--gold); font-family:var(--font-display); font-size:14px; }
-
-/* ---- كارت الفريق / النقاط ---- */
 .team-rank-card{
   position:relative; overflow:hidden;
   background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
@@ -63,13 +59,11 @@
   font-family:var(--font-display); font-weight:800; font-size:24px; color:var(--gold); text-align:left;
 }
 .team-points-num small{ font-size:11px; color:var(--mist-dim); font-weight:400; display:block; }
-
 .team-name-row{
   display:flex; align-items:center; justify-content:space-between;
   font-size:13px; color:var(--mist-dim); margin-bottom:10px;
 }
 .team-name-row span{ color:var(--coral); font-weight:700; font-family:var(--font-display); }
-
 .progress-track{
   height:8px; border-radius:99px; background: rgba(6,15,24,0.5);
   overflow:hidden; border:1px solid var(--line); margin-bottom:6px;
@@ -80,8 +74,6 @@
   transition: width .4s ease; width:0%;
 }
 .progress-hint{ font-size:11px; color:var(--mist-dim); }
-
-/* ---- البوابات ---- */
 .gate{ position:relative; }
 .gate .icon{ position:relative; }
 .gate-status-badge{
@@ -91,8 +83,6 @@
 }
 .gate-status-badge.open{ background: rgba(74,124,111,0.2); color:#a9e6c4; border:1px solid var(--pitch); }
 .gate-status-badge.closed{ background: rgba(192,83,58,0.18); color:#ffb3a6; border:1px solid var(--coral); }
-
-/* ---- زرار القائد ---- */
 .leader-gate{
   display:none;
   position:relative; overflow:hidden;
@@ -110,20 +100,14 @@
 .leader-gate h3{ font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--gold); margin-bottom:2px; }
 .leader-gate p{ font-size:12px; color:var(--mist-dim); }
 .leader-gate .arrow{ color:var(--gold); font-size:20px; margin-right:auto; }
-
-
-/* ---- فاصل وفوتر زخرفي ---- */
 .divider-deco{
   display:flex; align-items:center; gap:10px; margin: 22px 0 16px; color:var(--mist-dim);
 }
 .divider-deco::before, .divider-deco::after{ content:""; flex:1; height:1px; background:var(--line); }
 .divider-deco span{ font-size:11px; letter-spacing:1px; }
-
 .foot-note{
   text-align:center; font-size:11px; color:var(--mist-dim); padding-top:4px; line-height:1.8;
 }
-
-/* ---- قائمة أعضاء الفريق ---- */
 #teamRosterCard .submission-item div:first-child{ display:flex; align-items:center; gap:6px; }
 .notif-btn{
   display:flex; align-items:center; justify-content:center; gap:8px;
@@ -145,7 +129,6 @@
     <a href="#" class="logout-link" id="logoutBtn">خروج</a>
   </div>
 
-  <!-- بانر تنبيه الإشعارات (يظهر بس لو الإشعارات متوقفة) -->
   <div class="card" id="notifWarningBanner" style="display:none;margin-bottom:14px;border-color:var(--coral);cursor:pointer" onclick="document.getElementById('notifBtn').scrollIntoView({behavior:'smooth',block:'center'})">
     <div style="display:flex;align-items:center;gap:10px">
       <div style="font-size:22px">🔔</div>
@@ -157,7 +140,6 @@
     </div>
   </div>
 
-  <!-- بانر آخر إعلان من الأدمن -->
   <div id="latestAnnouncementBanner" style="display:none;margin-bottom:14px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--gold);background:linear-gradient(135deg,rgba(200,150,90,0.13),rgba(192,83,58,0.09))">
     <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px">
       <div style="font-size:24px;flex-shrink:0;margin-top:2px">📢</div>
@@ -172,7 +154,6 @@
     </div>
   </div>
 
-  <!-- كارت الاستفتاء السريع inline — يظهر لما الأدمن يبدأ استفتاء -->
   <div id="pollCard" style="display:none;margin-bottom:14px;border-radius:var(--radius);overflow:hidden;border:1px solid rgba(74,124,111,0.4);background:linear-gradient(135deg,rgba(74,124,111,0.13),rgba(74,124,111,0.05))">
     <div style="padding:14px 16px 6px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -203,7 +184,6 @@
   .poll-bar-fill.mine{background:linear-gradient(90deg,#a07840,var(--gold));box-shadow:0 0 6px rgba(200,150,90,.4);}
   </style>
 
-  <!-- بانر الترحيب -->
   <div class="hero-banner">
     <div class="hero-top">
       <div class="avatar-circle" id="avatarCircle">؟</div>
@@ -218,7 +198,6 @@
     </div>
   </div>
 
-  <!-- كارت الفريق والنقاط -->
   <div class="team-rank-card">
     <div class="team-rank-top">
       <div class="rank-icon-box" id="rankIconBox">🌱</div>
@@ -235,7 +214,6 @@
     <div class="progress-hint" id="progressHint">بنحمّل بياناتك...</div>
   </div>
 
-  <!-- زرار لوحة القائد — يظهر بس للـ leaders -->
   <div class="leader-gate" id="leaderGateBtn" onclick="location.href='leader.html'">
     <div class="leader-gate-icon">👑</div>
     <div>
@@ -368,8 +346,6 @@
     <div id="teamRosterList" style="margin-top:10px"></div>
   </div>
 
-  
-  <!-- زرار تفعيل الإشعارات -->
   <button class="notif-btn" id="notifBtn">🔔 فعّل الإشعارات</button>
 
   <div class="divider-deco"><span>WAY · TRUTH · LIFE</span></div>
@@ -383,10 +359,8 @@
 <script>
 var member = requireSession();
 
-// لو الـ member.role = leader — أظهر زرار لوحة القائد
 async function checkAndShowLeaderBtn(){
   if(!member) return;
-  // نجيب الـ role من قاعدة البيانات عشان نتأكد
   var res = await supabase.from("members").select("role").eq("id", member.id).single();
   if(!res.error && res.data && res.data.role === "leader"){
     var btn = document.getElementById("leaderGateBtn");
@@ -401,45 +375,34 @@ function escapeHtmlSimple(s){
   });
 }
 
-// ---------- الترحيب والأفاتار ----------
 if(member){
   document.getElementById("welcomeName").textContent = member.name + " 👋";
   document.getElementById("avatarCircle").textContent = member.name.trim().charAt(0) || "؟";
-
   var hour = new Date().getHours();
   var greet = hour < 5 ? "سهرانين؟ 🌙" : hour < 12 ? "صباح الخير ☀️" : hour < 17 ? "أهلاً بيك 👋" : hour < 21 ? "مساء الخير 🌆" : "مساء النور 🌙";
   document.getElementById("greetSmall").textContent = greet;
 }
 document.getElementById("logoutBtn").addEventListener("click", logout);
 
-// ---------- العداد التنازلي للمؤتمر ----------
 function setupCountdown(){
   var now = new Date();
   var year = now.getFullYear();
-  var start = new Date(year, 6, 19); // 19 يوليو
-  var end = new Date(year, 6, 22);   // نهاية يوم 21 يوليو (نص الليل)
-
-  if(now > end){
-    start = new Date(year + 1, 6, 19);
-    end = new Date(year + 1, 6, 22);
-  }
-
+  var start = new Date(year, 6, 19);
+  var end = new Date(year, 6, 22);
+  if(now > end){ start = new Date(year + 1, 6, 19); end = new Date(year + 1, 6, 22); }
   var labelEl = document.getElementById("countdownLabel");
   var valEl = document.getElementById("countdownValue");
-
   if(now >= start && now <= end){
     labelEl.textContent = "🎉 المؤتمر شغال دلوقتي!";
     valEl.textContent = "استمتع بيه 🙌";
     return;
   }
-
   var diffDays = Math.ceil((start - now) / (1000 * 60 * 60 * 24));
   labelEl.textContent = "🗓️ باقي على المؤتمر";
   valEl.textContent = diffDays + " يوم";
 }
 setupCountdown();
 
-// ---------- الرتبة والتقدّم ----------
 function getRank(points){
   if(points >= 60) return { icon:"👑", label:"بطل", nextAt:null, nextLabel:null };
   if(points >= 30) return { icon:"⭐", label:"متميز", nextAt:60, nextLabel:"بطل" };
@@ -451,10 +414,8 @@ function renderRank(points){
   var rank = getRank(points);
   document.getElementById("rankIconBox").textContent = rank.icon;
   document.getElementById("rankName").textContent = rank.label;
-
   var fill = document.getElementById("progressFill");
   var hint = document.getElementById("progressHint");
-
   if(rank.nextAt === null){
     fill.style.width = "100%";
     hint.textContent = "وصلت لأعلى رتبة! 👏";
@@ -466,7 +427,6 @@ function renderRank(points){
   }
 }
 
-// ---------- بيانات الفريق والنقاط ----------
 async function loadTeamInfo(){
   if(!member) return;
   var res = await supabase.rpc("get_my_team_info", { p_member_id: member.id });
@@ -476,9 +436,7 @@ async function loadTeamInfo(){
     document.getElementById("teamNameVal").textContent = info.team_name || "بدون فريق";
     document.getElementById("pointsVal").textContent = points;
     renderRank(points);
-    if(info.team_name){
-      loadTeamRoster(info.team_name);
-    }
+    if(info.team_name) loadTeamRoster(info.team_name);
   } else {
     renderRank(0);
   }
@@ -488,17 +446,13 @@ async function loadTeamRoster(teamName){
   var res = await supabase.rpc("get_team_members", { p_team_name: teamName, p_member_id: member.id });
   var card = document.getElementById("teamRosterCard");
   var box = document.getElementById("teamRosterList");
-  if(res.error || !res.data || res.data.length === 0){
-    card.style.display = "none";
-    return;
-  }
+  if(res.error || !res.data || res.data.length === 0){ card.style.display = "none"; return; }
   card.style.display = "block";
   box.innerHTML = res.data.map(function(p){
     return '<div class="submission-item"><div>' + (p.is_me ? '⭐ ' : '') + escapeHtmlSimple(p.name) + '</div><div style="color:var(--gold);font-weight:700">' + (p.points || 0) + '</div></div>';
   }).join("");
 }
 
-// ---------- بادچ حالة التوقع (مفتوح / مقفول) ----------
 async function loadPredictBadge(){
   var res = await supabase.rpc("get_match_info");
   var badge = document.getElementById("predictBadge");
@@ -513,7 +467,6 @@ loadTeamInfo();
 loadPredictBadge();
 if(member){ setupNotifButton(member.id); }
 
-// ── بادج توقع المؤتمر ──
 (async function checkConfPredict(){
   if(!member) return;
   try{
@@ -523,37 +476,24 @@ if(member){ setupNotifButton(member.id); }
       var badge = document.getElementById("confPredictBadge");
       if(badge){
         badge.style.display = "inline-block";
-        if(d.my_prediction){
-          badge.textContent = "✅ تم";
-          badge.className = "gate-status-badge open";
-        } else if(d.is_open){
-          badge.textContent = "⏳ مفتوح";
-          badge.className = "gate-status-badge open";
-        } else {
-          badge.textContent = "🔒 مقفول";
-          badge.className = "gate-status-badge closed";
-        }
+        if(d.my_prediction){ badge.textContent = "✅ تم"; badge.className = "gate-status-badge open"; }
+        else if(d.is_open){ badge.textContent = "⏳ مفتوح"; badge.className = "gate-status-badge open"; }
+        else { badge.textContent = "🔒 مقفول"; badge.className = "gate-status-badge closed"; }
       }
     }
   }catch(e){}
 })();
 
-// ── بادج صندوق الأسرار (لو فيه أسرار منشورة) ──
 (async function checkSecrets(){
   try{
     var res = await supabase.rpc("get_published_secrets");
     if(res.data && res.data.length > 0){
       var badge = document.getElementById("secretsBadge");
-      if(badge){
-        badge.style.display = "inline-block";
-        badge.textContent = res.data.length + " سر 🤫";
-        badge.className = "gate-status-badge open";
-      }
+      if(badge){ badge.style.display = "inline-block"; badge.textContent = res.data.length + " سر 🤫"; badge.className = "gate-status-badge open"; }
     }
   }catch(e){}
 })();
 
-// ── تحقق من عجلة الجوائز ──
 (async function checkWheelForMe(){
   if(!member) return;
   try{
@@ -563,78 +503,49 @@ if(member){ setupNotifButton(member.id); }
       var badge = document.getElementById('wheelBadge');
       if(badge){
         badge.style.display = '';
-        if(s.spun){
-          badge.textContent = '✅ لفيت';
-          badge.className   = 'gate-status-badge open';
-        } else if(s.active){
-          badge.textContent = '🎡 جديد';
-          badge.className   = 'gate-status-badge closed';
-        } else {
-          badge.textContent = '🔒 مقفولة';
-          badge.className   = 'gate-status-badge closed';
-        }
+        if(s.spun){ badge.textContent = '✅ لفيت'; badge.className = 'gate-status-badge open'; }
+        else if(s.active){ badge.textContent = '🎡 جديد'; badge.className = 'gate-status-badge closed'; }
+        else { badge.textContent = '🔒 مقفولة'; badge.className = 'gate-status-badge closed'; }
       }
     }
   }catch(e){}
 })();
 
-// ── تحقق من اللغز ──
 (async function checkPuzzleForMe(){
   if(!member) return;
   try{
     var res = await supabase.rpc('get_my_puzzle', { p_member_id: member.id });
     if(res.data && res.data.length > 0){
-      var gate  = document.getElementById('puzzleGate');
+      var gate = document.getElementById('puzzleGate');
       var badge = document.getElementById('puzzleBadge');
       if(gate) gate.style.display = '';
-      // لو اتكمل → بادج "تم"، لو لسه → "جديد"
       if(badge){
         var p = res.data[0];
         badge.style.display = '';
-        if(p.completed){
-          badge.textContent = '✅ تم';
-          badge.className   = 'gate-status-badge open';
-        } else {
-          badge.textContent = '🔥 جديد';
-          badge.className   = 'gate-status-badge closed';
-        }
+        if(p.completed){ badge.textContent = '✅ تم'; badge.className = 'gate-status-badge open'; }
+        else { badge.textContent = '🔥 جديد'; badge.className = 'gate-status-badge closed'; }
       }
     }
   }catch(e){}
 })();
 
-// ---------- آخر إعلان من الأدمن ----------
 async function loadLatestAnnouncement(){
   var banner = document.getElementById("latestAnnouncementBanner");
   if(!banner) return;
-
   try {
     var res = await supabase.rpc("get_latest_announcement");
     if(res.error || !res.data || res.data.length === 0) return;
-
     var ann = res.data[0];
-
-    // لو المستخدم أقفله قبل كده ومحتفظين بالـ id، ما نعرضوش
     var dismissed = localStorage.getItem("dismissed_ann");
     if(dismissed && dismissed == String(ann.id)) return;
-
     document.getElementById("announcementTitle").textContent = ann.title;
     document.getElementById("announcementBody").textContent  = ann.body;
-
-    // تنسيق الوقت بالعربي
     var d = new Date(ann.created_at);
-    var timeStr = d.toLocaleString("ar-EG", {
-      day: "numeric", month: "short",
-      hour: "2-digit", minute: "2-digit"
-    });
+    var timeStr = d.toLocaleString("ar-EG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     document.getElementById("announcementTime").textContent = timeStr;
-
     banner.style.display = "block";
-    // حفظ الـ id عشان نعرف أوقفنا البانر ده قبل كده
     banner.setAttribute("data-ann-id", ann.id);
-  } catch(e) {
-    console.warn("تعذّر تحميل الإعلان:", e);
-  }
+  } catch(e) { console.warn("تعذّر تحميل الإعلان:", e); }
 }
 
 function dismissAnnouncement(){
@@ -647,13 +558,21 @@ function dismissAnnouncement(){
 
 loadLatestAnnouncement();
 
-// ── تحقق من تحديات الفريق ──
+// ── تحقق من تحديات الفريق (للقائد بس) ──
+// الـ FIX: بنتحقق من الـ role الأول قبل ما نبعت الـ RPC
+// عشان get_my_team_challenges بترجع 400 للأعضاء العاديين
 (async function checkTeamChallenges(){
   if(!member) return;
   try{
+    // خطوة 1: تأكد إن اليوزر قائد
+    var roleRes = await supabase.from("members").select("role").eq("id", member.id).single();
+    if(roleRes.error || !roleRes.data || roleRes.data.role !== "leader") return;
+
+    // خطوة 2: بعدين نجيب التحديات
     var res = await supabase.rpc('get_my_team_challenges', { p_leader_id: member.id });
     var badge = document.getElementById('teamChallengeBadge');
-    if(!badge || !res.data || !res.data.length) return;
+    if(!badge || res.error || !res.data || !res.data.length) return;
+
     var pending = res.data.filter(function(c){ return !c.completed; }).length;
     badge.style.display = '';
     if(pending > 0){
@@ -666,33 +585,38 @@ loadLatestAnnouncement();
   }catch(e){}
 })();
 
-// إظهار بانر تنبيه لو الإشعارات متوقفة (denied أو لسه مالم يطلب الإذن)
-(function checkNotifStatus(){
-  var banner = document.getElementById("notifWarningBanner");
-  if (!banner) return;
-  if (!("Notification" in window)) return; // المتصفح مش بيدعم خالص، مفيش معنى للبانر
-  if (Notification.permission === "denied" || Notification.permission === "default") {
-    banner.style.display = "block";
-  }
+(async function checkDailyQuestion(){
+  if(!member) return;
+  try{
+    var res = await supabase.rpc('get_active_daily_question', { p_member_id: member.id });
+    var badge = document.getElementById('dailyQBadge');
+    if(!badge) return;
+    if(!res.data || res.data.length === 0) return;
+    var q = res.data[0];
+    badge.style.display = '';
+    if(q.my_answer !== null){
+      badge.textContent = q.is_correct ? '✅ أجبت' : '😅 خلص';
+      badge.className = 'gate-status-badge open';
+    } else {
+      badge.textContent = '❓ جديد';
+      badge.className = 'gate-status-badge closed';
+    }
+  }catch(e){}
 })();
 
-// ---------- استفتاء سريع inline في الداشبورد ----------
 var _pollState = { id: null, options: [], myVote: null, votes: {}, total: 0, active: false };
 
 async function loadInlinePoll(){
   var card = document.getElementById("pollCard");
   if(!card) return;
   var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
-  if(!res.data || res.data.length === 0 || !res.data[0].active){
-    card.style.display = "none"; return;
-  }
-  var rows  = res.data;
-  var first = rows[0];
-  _pollState.id      = first.poll_id;
+  if(!res.data || res.data.length === 0 || !res.data[0].active){ card.style.display = "none"; return; }
+  var rows = res.data, first = rows[0];
+  _pollState.id = first.poll_id;
   _pollState.options = first.options || [];
-  _pollState.active  = first.active;
-  _pollState.myVote  = (first.my_vote !== undefined && first.my_vote !== null) ? first.my_vote : null;
-  _pollState.votes   = {}; _pollState.total = 0;
+  _pollState.active = first.active;
+  _pollState.myVote = (first.my_vote !== undefined && first.my_vote !== null) ? first.my_vote : null;
+  _pollState.votes = {}; _pollState.total = 0;
   rows.forEach(function(r){
     if(r.option_idx !== null && r.option_idx !== undefined){
       _pollState.votes[r.option_idx] = parseInt(r.vote_count)||0;
@@ -705,21 +629,19 @@ async function loadInlinePoll(){
 }
 
 function renderInlinePoll(){
-  var body    = document.getElementById("pollCardBody");
+  var body = document.getElementById("pollCardBody");
   var letters = ["A","B","C","D","E","F","G","H"];
-  var html    = "";
+  var html = "";
   if(_pollState.myVote === null && _pollState.active){
-    // قبل التصويت — أزرار
     _pollState.options.forEach(function(opt, idx){
       html += '<button class="poll-opt-dash" onclick="dashVote('+idx+')">'
             + '<span class="ol">'+letters[idx]+'</span>' + escHtmlDash(opt) + '</button>';
     });
   } else {
-    // بعد التصويت — أشرطة
     _pollState.options.forEach(function(opt, idx){
       var cnt = _pollState.votes[idx]||0;
       var pct = _pollState.total>0 ? Math.round(cnt/_pollState.total*100) : 0;
-      var me  = (_pollState.myVote===idx);
+      var me = (_pollState.myVote===idx);
       html += '<div class="poll-bar-row">'
             + '<div class="poll-bar-top"><span><span style="color:var(--gold);font-weight:800">'+letters[idx]+'.</span> '+escHtmlDash(opt)+(me?' ✓':'')+'</span>'
             + '<span style="color:'+(me?'var(--gold)':'var(--pitch)')+'">'+pct+'%</span></div>'
@@ -733,12 +655,10 @@ function renderInlinePoll(){
 
 async function dashVote(idx){
   if(_pollState.myVote!==null || !_pollState.id || !_pollState.active) return;
-  // عرض فوري
   _pollState.myVote = idx;
   _pollState.votes[idx] = (_pollState.votes[idx]||0)+1;
   _pollState.total++;
   renderInlinePoll();
-  // إرسال للسيرفر
   await supabase.rpc("cast_poll_vote", { p_member_id: member.id, p_poll_id: _pollState.id, p_option: idx });
 }
 
@@ -755,7 +675,6 @@ async function refreshInlinePollVotes(){
 
 function escHtmlDash(s){ return (s||"").replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 
-// Realtime للاستفتاء
 supabase.channel("rt-dash-poll")
   .on("postgres_changes",{event:"*",schema:"public",table:"poll_votes"},function(){ refreshInlinePollVotes(); })
   .on("postgres_changes",{event:"*",schema:"public",table:"polls"},function(){ loadInlinePoll(); })
@@ -763,24 +682,13 @@ supabase.channel("rt-dash-poll")
 
 loadInlinePoll();
 
-// ── تحقق من سؤال اليوم ──
-(async function checkDailyQuestion(){
-  if(!member) return;
-  try{
-    var res = await supabase.rpc('get_active_daily_question', { p_member_id: member.id });
-    var badge = document.getElementById('dailyQBadge');
-    if(!badge) return;
-    if(!res.data || res.data.length === 0) return; // مفيش سؤال نشط
-    var q = res.data[0];
-    badge.style.display = '';
-    if(q.my_answer !== null){
-      badge.textContent = q.is_correct ? '✅ أجبت' : '😅 خلص';
-      badge.className   = 'gate-status-badge open';
-    } else {
-      badge.textContent = '❓ جديد';
-      badge.className   = 'gate-status-badge closed';
-    }
-  }catch(e){}
+(function checkNotifStatus(){
+  var banner = document.getElementById("notifWarningBanner");
+  if (!banner) return;
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "denied" || Notification.permission === "default") {
+    banner.style.display = "block";
+  }
 })();
 </script>
 <script src="js/realtime.js"></script>
