@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>الرئيسية | Connect Three</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/badges.css">
 <style>
 .hero-banner{
   position:relative; overflow:hidden;
@@ -337,6 +338,9 @@
     <span class="gate-status-badge" id="secretsBadge" style="display:none"></span>
     <div class="arrow">‹</div>
   </div>
+
+  <!-- ── Badges Shelf ── -->
+  <div id="badgesShelfContainer"></div>
 
   <div class="gate" onclick="location.href='gratitude.html'">
     <div class="icon" style="background:rgba(192,83,58,0.12);color:var(--coral)">🧱</div>
@@ -694,6 +698,19 @@ loadInlinePoll();
   if (!("Notification" in window)) return;
   if (Notification.permission === "denied" || Notification.permission === "default") {
     banner.style.display = "block";
+  }
+})();
+</script>
+<script src="js/badges.js"></script>
+<script>
+// ── تحميل قائمة الـ badges في الداشبورد ──
+(function() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      Badges.renderShelf('badgesShelfContainer');
+    });
+  } else {
+    Badges.renderShelf('badgesShelfContainer');
   }
 })();
 </script>
