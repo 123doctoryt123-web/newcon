@@ -14,6 +14,44 @@
 }
 .reg-link-box a{ color:var(--gold); word-break:break-all; }
 
+/* ── Wizard Steps ── */
+.wizard-step{
+  margin-bottom:20px;
+}
+.wizard-step-header{
+  display:flex; align-items:flex-start; gap:12px;
+  margin-bottom:10px;
+}
+.wizard-step-num{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),var(--gold-dim));
+  color:var(--ink); font-family:var(--font-display);
+  font-weight:800; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 12px rgba(200,150,90,.25);
+}
+.wizard-step-title{
+  font-family:var(--font-display); font-weight:700;
+  font-size:15px; color:var(--mist);
+}
+.wizard-step-sub{
+  font-size:12px; color:var(--mist-dim); margin-top:2px; line-height:1.5;
+}
+.wizard-connector{
+  width:2px; height:16px;
+  background:linear-gradient(to bottom,rgba(200,150,90,.4),transparent);
+  margin:0 16px 0; 
+}
+.filter-chip{
+  padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700;
+  border:1px solid var(--line); background:var(--ink-3);
+  color:var(--mist-dim); cursor:pointer; transition:all .15s;
+}
+.filter-chip.active{
+  background:rgba(200,150,90,.15); border-color:rgba(200,150,90,.4);
+  color:var(--gold);
+}
+
 /* ── Member Edit Modal ── */
 #memberModal{
   display:none; position:fixed; inset:0; z-index:9999;
@@ -89,8 +127,7 @@
 
     <div class="tabs no-print" style="flex-wrap:wrap">
       <div class="tab active" data-tab="members">الشباب</div>
-      <div class="tab" data-tab="teams">الفرق</div>
-      <div class="tab" data-tab="leaders">القادة والمشاريع</div>
+      <div class="tab" data-tab="teams">👥 الفرق والمشاريع</div>
       <div class="tab" data-tab="materials">المواد</div>
       <div class="tab" data-tab="predictions">التوقعات</div>
       <div class="tab" data-tab="submissions">المشاركات</div>
@@ -137,76 +174,81 @@
       </div>
     </div>
 
-    <!-- الفرق -->
+    <!-- الفرق والمشاريع — wizard واحد -->
     <div class="tab-panel" id="panel-teams">
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <strong>كل الشباب وفرقهم</strong>
-          <span style="font-size:12px;color:var(--mist-dim)">اضغط على أي شاب لتعديله ✏️</span>
+
+      <!-- ══ خطوة ١: الشباب وفرقهم ══ -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">١</div>
+          <div>
+            <div class="wizard-step-title">توزيع الفرق والنقاط</div>
+            <div class="wizard-step-sub">اضغط على أي شاب لتعديل فريقه ونقاطه ودوره دفعة واحدة</div>
+          </div>
         </div>
-        <table style="margin-top:4px">
-          <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
-          <tbody id="teamsTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- hidden select kept for backward compat with adminextra.js -->
-    <select id="teamMemberSelect" style="display:none"></select>
-    <input type="text"   id="teamNameInput"   style="display:none">
-    <input type="number" id="teamPointsInput" style="display:none">
-    <button id="saveTeamStatsBtn" style="display:none"></button>
-    <div id="teamStatsMsg" style="display:none"></div>
-
-
-    <!-- القادة ومجموعات المشاريع -->
-    <div class="tab-panel" id="panel-leaders">
-
-      <!-- جدول الأعضاء والأدوار -->
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <strong>كل الشباب وأدوارهم</strong>
-          <span style="font-size:12px;color:var(--mist-dim)">اضغط على أي شاب لتعديله ✏️</span>
-        </div>
-        <table style="margin-top:4px">
-          <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
-          <tbody id="leadersTableBody"></tbody>
-        </table>
-      </div>
-
-      <!-- مجموعات المشروع -->
-      <div class="card no-print" style="margin-bottom:14px">
-        <strong>🗂️ إنشاء مجموعة مشروع (2-5 أشخاص)</strong>
-        <p style="font-size:12px;color:var(--mist-dim);margin:8px 0 14px">كل مجموعة من نفس الفريق، كل واحد هيشوف زميليه في صفحة مشروعه</p>
-        <label>اسم المجموعة</label>
-        <input type="text" id="groupNameInput" placeholder="مثال: مجموعة ١ — فريق مارمرقس">
-        <label>اختار الأعضاء (2-5)</label>
-        <div id="groupMembersCheckList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;min-height:40px">
-          <span style="color:var(--mist-dim);font-size:13px">بنحمّل الشباب...</span>
-        </div>
-        <p id="groupSelCount" style="font-size:12px;color:var(--mist-dim);margin:8px 0 0">تم اختيار: 0</p>
-        <button class="btn" id="createGroupBtn" style="margin-top:12px">✅ إنشاء المجموعة</button>
-        <div id="groupMsg" style="margin-top:10px"></div>
-      </div>
-
-      <!-- قائمة المجموعات الحالية -->
-      <div class="card">
-        <strong>المجموعات الحالية (<span id="groupCount">0</span>)</strong>
-        <div id="groupsList" style="margin-top:10px">
-          <div class="empty-state">لسه مفيش مجموعات</div>
+        <div class="card" style="margin:0">
+          <table>
+            <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
+            <tbody id="teamsTableBody"></tbody>
+          </table>
         </div>
       </div>
 
-    </div>
+      <!-- ══ خطوة ٢: مجموعات المشروع ══ -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">٢</div>
+          <div>
+            <div class="wizard-step-title">إنشاء مجموعة مشروع</div>
+            <div class="wizard-step-sub">اختار 2–5 شباب من نفس الفريق — هيشوفوا بعض في صفحة المشروع</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <label>اسم المجموعة</label>
+          <input type="text" id="groupNameInput" placeholder="مثال: مجموعة ١ — فريق مارمرقس">
+          <label style="margin-top:12px">اختار الأعضاء</label>
+          <div id="groupFilterBar" style="margin:8px 0 10px;display:flex;gap:6px;flex-wrap:wrap"></div>
+          <div id="groupMembersCheckList" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px">
+            <span style="color:var(--mist-dim);font-size:13px">بنحمّل الشباب...</span>
+          </div>
+          <p id="groupSelCount" style="font-size:12px;color:var(--mist-dim);margin:8px 0 0">تم اختيار: 0</p>
+          <button class="btn" id="createGroupBtn" style="margin-top:12px">✅ إنشاء المجموعة</button>
+          <div id="groupMsg" style="margin-top:10px"></div>
+        </div>
+      </div>
 
-    <!-- hidden selects kept for backward compat -->
+      <!-- ══ المجموعات الحالية ══ -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num" style="background:var(--ink-3);color:var(--mist-dim)">📋</div>
+          <div>
+            <div class="wizard-step-title">المجموعات الحالية (<span id="groupCount">0</span>)</div>
+            <div class="wizard-step-sub">المجموعات المُنشأة — يمكن حذفها وإعادة إنشائها</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <div id="groupsList"><div class="empty-state">لسه مفيش مجموعات</div></div>
+        </div>
+      </div>
+
+    </div><!-- /panel-teams -->
+
+    <!-- hidden compat elements -->
+    <select id="teamMemberSelect"  style="display:none"></select>
+    <input  id="teamNameInput"     style="display:none" type="text">
+    <input  id="teamPointsInput"   style="display:none" type="number">
+    <button id="saveTeamStatsBtn"  style="display:none"></button>
+    <div    id="teamStatsMsg"      style="display:none"></div>
     <select id="leaderMemberSelect" style="display:none"><option value="">— اختار شاب —</option></select>
-    <select id="leaderRoleSelect" style="display:none">
+    <select id="leaderRoleSelect"   style="display:none">
       <option value="leader">👑 قائد فريق</option>
       <option value="member">عضو عادي</option>
     </select>
-    <button id="setLeaderBtn" style="display:none"></button>
-    <div id="leaderMsg" style="display:none"></div>
+    <button id="setLeaderBtn"  style="display:none"></button>
+    <div    id="leaderMsg"     style="display:none"></div>
+    <!-- leaders table kept hidden for JS compat -->
+    <div style="display:none"><table><tbody id="leadersTableBody"></tbody></table></div>
+
 
     <!-- المواد -->
     <div class="tab-panel" id="panel-materials">
