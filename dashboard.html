@@ -703,16 +703,9 @@ loadInlinePoll();
 </script>
 <script src="js/badges.js"></script>
 <script>
-// ── تحميل قائمة الـ badges في الداشبورد ──
-(function() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      Badges.renderShelf('badgesShelfContainer');
-    });
-  } else {
-    Badges.renderShelf('badgesShelfContainer');
-  }
-})();
+setTimeout(function() {
+  if(typeof Badges !== 'undefined') Badges.renderShelf('badgesShelfContainer');
+}, 300);
 </script>
 <script src="js/realtime.js"></script>
 </body>
