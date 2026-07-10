@@ -170,7 +170,34 @@ if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {          // حاول
   }
 
   // ============================================================
-  // 8) المواد والمشاركات
+  // 8) تحدي الفريق — تحديث تلقائي
+  // ============================================================
+  if (page === "team-challenge.html") {
+    subscribeWithRetry("rt-team-challenges", function (channel) {
+      channel
+        .on("postgres_changes", { event: "*", schema: "public", table: "team_challenges" }, function () {
+          if (typeof loadChallenges === "function") loadChallenges();
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "team_challenge_completions" }, function () {
+          if (typeof loadChallenges === "function") loadChallenges();
+        });
+    });
+  }
+
+  if (page === "leader.html") {
+    subscribeWithRetry("rt-leader-challenges", function (channel) {
+      channel
+        .on("postgres_changes", { event: "*", schema: "public", table: "team_challenges" }, function () {
+          if (typeof loadTeamChallenges === "function") loadTeamChallenges();
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "team_challenge_completions" }, function () {
+          if (typeof loadTeamChallenges === "function") loadTeamChallenges();
+        });
+    });
+  }
+
+  // ============================================================
+  // 9) المواد والمشاركات
   // ============================================================
   if (page === "project.html") {
     subscribeWithRetry("rt-materials", function (channel) {
