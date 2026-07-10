@@ -27,9 +27,9 @@ document.addEventListener("DOMContentLoaded",function(){
   if(createGroupBtn) createGroupBtn.addEventListener('click', createProjectGroup);
 });
 
-// تحميل بيانات القادة لما تاب "leaders" ينفتح
-(function watchLeadersTab(){
-  var panel = document.getElementById('panel-leaders');
+// تحميل بيانات القادة لما تاب "teams" ينفتح (panel-leaders اتدمج فيه)
+(function watchTeamsTab(){
+  var panel = document.getElementById('panel-teams');
   if(!panel) return;
   var loaded = false;
   var observer = new MutationObserver(function(){
@@ -38,7 +38,6 @@ document.addEventListener("DOMContentLoaded",function(){
       loadLeadersAdmin();
       loadProjectGroups();
     }
-    // لو اتأغلق التاب نرجع نسمح بالتحديث المرة الجاية
     if(!panel.classList.contains('active')) loaded = false;
   });
   observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
@@ -59,6 +58,8 @@ async function loadTeamsAdmin(){
   var res=await supabase.rpc("admin_list_members_teams",{p_password:getAdminPass()});
   if(res.error) return;
   teamsMembersCache=res.data||[];
+  // sync leadersMembersCache so group picker is always up to date
+  leadersMembersCache=teamsMembersCache.slice();
   // keep hidden select in sync (used by spy game)
   var select=document.getElementById("teamMemberSelect");
   if(select){
@@ -67,6 +68,7 @@ async function loadTeamsAdmin(){
     }).join("")||'<option value="">لسه مفيش شباب</option>';
   }
   renderTeamsTable();
+  renderGroupFilterChips();
   renderSpyMembers();
 }
 
@@ -88,13 +90,16 @@ function renderTeamsTable(){
     member:'<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
   };
   tbody.innerHTML=teamsMembersCache.map(function(m){
-    return'<tr class="member-row-clickable" data-id="'+m.id+'" onclick="openMemberModal(\''+m.id+'\')">'+
-      '<td>'+escHtml(m.name)+'</td>'+
-      '<td>'+escHtml(m.team_name||"—")+'</td>'+
+    var teamCell = m.team_name
+      ? '<span style="font-size:11px;background:rgba(200,150,90,.1);padding:2px 8px;border-radius:99px;color:var(--gold-dim)">'+escHtml(m.team_name)+'</span>'
+      : '<span style="color:var(--coral);font-size:11px">⚠ بدون فريق</span>';
+    return'<tr class="member-row-clickable" onclick="openMemberModal(\''+m.id+'\')">'+
+      '<td style="font-weight:600">'+escHtml(m.name)+'</td>'+
+      '<td>'+teamCell+'</td>'+
       '<td>'+(roleLabel[m.role]||roleLabel.member)+'</td>'+
-      '<td>'+(m.points||0)+'</td>'+
+      '<td style="font-family:var(--font-display);font-weight:700;color:var(--gold)">'+(m.points||0)+'</td>'+
       '</tr>';
-  }).join("")||'<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب</td></tr>';
+  }).join("")||'<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:20px">لسه مفيش شباب مضافين</td></tr>';
 }
 
 async function saveMemberTeam(){
@@ -314,18 +319,55 @@ async function setMemberRole(memberId, role){
 // ============================================================
 // مجموعات المشاريع
 // ============================================================
+// الفريق المختار في الـ filter
+var _groupFilterTeam = '';
+
+function renderGroupFilterChips(){
+  var bar = document.getElementById('groupFilterBar');
+  if(!bar) return;
+  // اجمع أسماء الفرق الفريدة
+  var teams = [];
+  leadersMembersCache.forEach(function(m){
+    if(m.team_name && teams.indexOf(m.team_name) === -1) teams.push(m.team_name);
+  });
+  if(!teams.length){ bar.innerHTML=''; return; }
+  var html = '<button class="filter-chip'+(_groupFilterTeam===''?' active':'')+'" onclick="setGroupFilter(\'\')">الكل</button>';
+  teams.forEach(function(t){
+    html += '<button class="filter-chip'+(_groupFilterTeam===t?' active':'')+'" onclick="setGroupFilter(\''+escHtml(t)+'\')">'+escHtml(t)+'</button>';
+  });
+  bar.innerHTML = html;
+}
+
+function setGroupFilter(team){
+  _groupFilterTeam = team;
+  renderGroupFilterChips();
+  renderGroupMembersCheckList();
+}
+
 function renderGroupMembersCheckList(){
   var box = document.getElementById('groupMembersCheckList');
   if(!box) return;
-  if(!leadersMembersCache.length){
-    box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">لسه مفيش شباب</span>';
+  // اجمع الشباب من أي من الـ cache المتاح
+  var src = leadersMembersCache.length ? leadersMembersCache : teamsMembersCache;
+  if(!src.length){
+    box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">لسه مفيش شباب — ضيف شباب من تاب الشباب الأول</span>';
     return;
   }
-  box.innerHTML = leadersMembersCache.map(function(m){
+  // رندر الـ chips لو مش موجودة
+  renderGroupFilterChips();
+  // filter بالفريق
+  var filtered = _groupFilterTeam
+    ? src.filter(function(m){ return m.team_name === _groupFilterTeam; })
+    : src;
+  if(!filtered.length){
+    box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">مفيش شباب في الفريق دا</span>';
+    return;
+  }
+  box.innerHTML = filtered.map(function(m){
     var selected = groupSelectedIds.has(m.id);
-    return '<button class="btn small ' + (selected ? '' : 'outline') + ' grp-member-btn" data-id="' + m.id + '" style="margin:2px">' +
-      (selected ? '✅ ' : '') + escHtml(m.name) +
-      '<small style="opacity:.6;font-size:10px"> ' + escHtml(m.team_name||'') + '</small>' +
+    var roleIcon = m.role === 'leader' ? ' 👑' : '';
+    return '<button class="btn small ' + (selected ? '' : 'outline') + ' grp-member-btn" data-id="' + m.id + '" style="margin:2px;position:relative">' +
+      (selected ? '✅ ' : '') + escHtml(m.name) + roleIcon +
       '</button>';
   }).join('');
   box.querySelectorAll('.grp-member-btn').forEach(function(btn){
@@ -337,6 +379,9 @@ function renderGroupMembersCheckList(){
       renderGroupMembersCheckList();
     });
   });
+  // حدّث العداد
+  var countEl = document.getElementById('groupSelCount');
+  if(countEl) countEl.textContent = 'تم اختيار: ' + groupSelectedIds.size;
 }
 
 async function createProjectGroup(){
