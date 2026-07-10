@@ -13,6 +13,54 @@
   border-radius: var(--radius-sm); padding:14px; margin-top:14px; font-size:13px;
 }
 .reg-link-box a{ color:var(--gold); word-break:break-all; }
+
+/* ── Member Edit Modal ── */
+#memberModal{
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,0.65); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;
+}
+#memberModal.open{ display:flex; }
+#memberModalBox{
+  background:var(--ink-2,#1a1a2e); border:1px solid var(--line,rgba(255,255,255,.1));
+  border-radius:16px; padding:24px; width:100%; max-width:420px;
+  max-height:90vh; overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  animation:modalIn .2s ease;
+}
+@keyframes modalIn{
+  from{ opacity:0; transform:translateY(18px) scale(.97); }
+  to  { opacity:1; transform:translateY(0)   scale(1);    }
+}
+#memberModalBox h3{
+  margin:0 0 18px; font-size:16px; color:var(--gold,#c8965a);
+  display:flex; align-items:center; gap:8px;
+}
+#memberModalBox label{
+  display:block; font-size:12px; color:var(--mist-dim,#888);
+  margin:12px 0 4px; font-weight:600; text-transform:uppercase; letter-spacing:.5px;
+}
+#memberModalBox input,
+#memberModalBox select{
+  width:100%; box-sizing:border-box;
+}
+.modal-section-sep{
+  border:none; border-top:1px solid var(--line,rgba(255,255,255,.08));
+  margin:16px 0;
+}
+.modal-footer{
+  display:flex; gap:8px; margin-top:20px; justify-content:flex-end;
+}
+.modal-footer .btn{ min-width:90px; }
+.member-row-clickable{ cursor:pointer; transition:background .15s; }
+.member-row-clickable:hover{ background:rgba(200,150,90,0.07); }
+.badge-leader{
+  display:inline-block; font-size:10px; padding:2px 7px;
+  border-radius:20px; background:rgba(200,150,90,.15);
+  color:var(--gold,#c8965a); font-weight:700; margin-right:4px;
+}
+#memberModal .success-msg,
+#memberModal .error-msg{ margin-top:10px; }
 </style>
 </head>
 <body>
@@ -91,53 +139,36 @@
 
     <!-- الفرق -->
     <div class="tab-panel" id="panel-teams">
-      <div class="card no-print">
-        <strong>توزيع الفرق والنقاط</strong>
-        <div style="margin-top:14px">
-          <label for="teamMemberSelect">اختار الشاب</label>
-          <select id="teamMemberSelect"></select>
-          <label for="teamNameInput">اسم الفريق</label>
-          <input type="text" id="teamNameInput" placeholder="مثال: فريق مارمرقس">
-          <label for="teamPointsInput">النقاط</label>
-          <input type="number" id="teamPointsInput" value="0">
-          <button class="btn" id="saveTeamStatsBtn">حفظ التعديلات</button>
-          <div id="teamStatsMsg" style="margin-top:10px"></div>
-        </div>
-      </div>
       <div class="card">
-        <strong>كل الشباب وفرقهم</strong>
-        <table style="margin-top:10px">
-          <thead><tr><th>الاسم</th><th>الفريق</th><th>النقاط</th></tr></thead>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <strong>كل الشباب وفرقهم</strong>
+          <span style="font-size:12px;color:var(--mist-dim)">اضغط على أي شاب لتعديله ✏️</span>
+        </div>
+        <table style="margin-top:4px">
+          <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
           <tbody id="teamsTableBody"></tbody>
         </table>
       </div>
     </div>
 
+    <!-- hidden select kept for backward compat with adminextra.js -->
+    <select id="teamMemberSelect" style="display:none"></select>
+    <input type="text"   id="teamNameInput"   style="display:none">
+    <input type="number" id="teamPointsInput" style="display:none">
+    <button id="saveTeamStatsBtn" style="display:none"></button>
+    <div id="teamStatsMsg" style="display:none"></div>
+
 
     <!-- القادة ومجموعات المشاريع -->
     <div class="tab-panel" id="panel-leaders">
 
-      <!-- تعيين قائد -->
-      <div class="card no-print" style="margin-bottom:14px">
-        <strong>👑 تعيين قائد فريق</strong>
-        <p style="font-size:12px;color:var(--mist-dim);margin:8px 0 14px">القائد بيقدر يسكان أعضاء فريقه ويشوف إحصائياتهم</p>
-        <label>اختار الشاب</label>
-        <select id="leaderMemberSelect">
-          <option value="">— اختار شاب —</option>
-        </select>
-        <label>الدور</label>
-        <select id="leaderRoleSelect">
-          <option value="leader">👑 قائد فريق</option>
-          <option value="member">عضو عادي</option>
-        </select>
-        <button class="btn" id="setLeaderBtn">حفظ الدور</button>
-        <div id="leaderMsg" style="margin-top:10px"></div>
-      </div>
-
       <!-- جدول الأعضاء والأدوار -->
       <div class="card" style="margin-bottom:14px">
-        <strong>كل الشباب وأدوارهم</strong>
-        <table style="margin-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <strong>كل الشباب وأدوارهم</strong>
+          <span style="font-size:12px;color:var(--mist-dim)">اضغط على أي شاب لتعديله ✏️</span>
+        </div>
+        <table style="margin-top:4px">
           <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
           <tbody id="leadersTableBody"></tbody>
         </table>
@@ -145,11 +176,11 @@
 
       <!-- مجموعات المشروع -->
       <div class="card no-print" style="margin-bottom:14px">
-        <strong>🗂️ إنشاء مجموعة مشروع (3 أشخاص)</strong>
-        <p style="font-size:12px;color:var(--mist-dim);margin:8px 0 14px">كل مجموعة = 3 أشخاص من نفس الفريق، كل واحد هيشوف زميليه في صفحة مشروعه</p>
+        <strong>🗂️ إنشاء مجموعة مشروع (2-5 أشخاص)</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:8px 0 14px">كل مجموعة من نفس الفريق، كل واحد هيشوف زميليه في صفحة مشروعه</p>
         <label>اسم المجموعة</label>
         <input type="text" id="groupNameInput" placeholder="مثال: مجموعة ١ — فريق مارمرقس">
-        <label>اختار الـ 3 أعضاء</label>
+        <label>اختار الأعضاء (2-5)</label>
         <div id="groupMembersCheckList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;min-height:40px">
           <span style="color:var(--mist-dim);font-size:13px">بنحمّل الشباب...</span>
         </div>
@@ -167,6 +198,15 @@
       </div>
 
     </div>
+
+    <!-- hidden selects kept for backward compat -->
+    <select id="leaderMemberSelect" style="display:none"><option value="">— اختار شاب —</option></select>
+    <select id="leaderRoleSelect" style="display:none">
+      <option value="leader">👑 قائد فريق</option>
+      <option value="member">عضو عادي</option>
+    </select>
+    <button id="setLeaderBtn" style="display:none"></button>
+    <div id="leaderMsg" style="display:none"></div>
 
     <!-- المواد -->
     <div class="tab-panel" id="panel-materials">
@@ -1502,5 +1542,37 @@ window.addEventListener("DOMContentLoaded", function() {
   }
 });
 </script>
+
+<!-- ══════════════════════════════════════════════
+     Member Edit Modal
+══════════════════════════════════════════════ -->
+<div id="memberModal" role="dialog" aria-modal="true" aria-labelledby="memberModalTitle">
+  <div id="memberModalBox">
+    <h3 id="memberModalTitle">✏️ <span id="modalMemberName">تعديل بيانات الشاب</span></h3>
+
+    <!-- الفريق والنقاط -->
+    <label>اسم الفريق</label>
+    <input type="text" id="modalTeamName" placeholder="مثال: فريق مارمرقس">
+
+    <label>النقاط</label>
+    <input type="number" id="modalPoints" value="0" min="0">
+
+    <hr class="modal-section-sep">
+
+    <!-- الدور -->
+    <label>الدور</label>
+    <select id="modalRole">
+      <option value="member">عضو عادي</option>
+      <option value="leader">👑 قائد فريق</option>
+    </select>
+
+    <div id="modalMsg" style="margin-top:10px"></div>
+
+    <div class="modal-footer">
+      <button class="btn outline" id="modalCancelBtn" type="button">إلغاء</button>
+      <button class="btn" id="modalSaveBtn" type="button">💾 حفظ</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
