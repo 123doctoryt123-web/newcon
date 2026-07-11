@@ -273,9 +273,10 @@
   <div class="hero-banner">
     <div class="hero-top">
       <div class="avatar-circle" id="avatarCircle">؟</div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="hero-greet-small" id="greetSmall">أهلاً بيك 👋</div>
         <div class="hero-name" id="welcomeName"></div>
+        <div id="heroBadgeChips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px"></div>
       </div>
     </div>
     <div class="countdown-pill">
@@ -444,10 +445,6 @@
 
 
 
-  <!-- ── إنجازاتي ── -->
-  <div id="badgesShelfWrap" style="display:none;margin-bottom:18px">
-    <div id="badgesShelfContainer"></div>
-  </div>
 
   <button class="notif-btn" id="notifBtn">🔔 فعّل الإشعارات</button>
 
@@ -812,13 +809,20 @@ loadInlinePoll();
 </script>
 <script src="js/badges.js"></script>
 <script>
-setTimeout(function() {
-  if(typeof Badges !== 'undefined'){
-    Badges.renderShelf('badgesShelfContainer');
-    var wrap = document.getElementById('badgesShelfWrap');
-    if(wrap) wrap.style.display = 'block';
-  }
-}, 300);
+setTimeout(async function() {
+  if(!member || typeof supabase === 'undefined') return;
+  try{
+    var res = await supabase.rpc('get_my_badges', { p_member_id: member.id });
+    if(res.error || !res.data || !res.data.length) return;
+    var chips = document.getElementById('heroBadgeChips');
+    if(!chips) return;
+    chips.innerHTML = res.data.map(function(b){
+      return '<span title="' + (b.badge_name||'') + '" style="display:inline-flex;align-items:center;gap:4px;background:rgba(200,150,90,0.12);border:1px solid rgba(200,150,90,0.25);border-radius:99px;padding:3px 9px 3px 6px;font-size:11px;color:var(--gold);font-family:var(--font-display);font-weight:700">'
+           + '<span style="font-size:13px">' + (b.badge_emoji||'🏅') + '</span>'
+           + (b.badge_name||'') + '</span>';
+    }).join('');
+  }catch(e){}
+}, 400);
 </script>
 <script src="js/realtime.js"></script>
 </body>
