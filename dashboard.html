@@ -110,6 +110,96 @@
   text-align:center; font-size:11px; color:var(--mist-dim); padding-top:4px; line-height:1.8;
 }
 #teamRosterCard .submission-item div:first-child{ display:flex; align-items:center; gap:6px; }
+
+/* ── Team Roster Glass Card ── */
+.team-roster-glass{
+  position:relative; overflow:hidden;
+  background: rgba(21,34,53,0.55);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border:1px solid rgba(200,160,100,0.22);
+  border-radius: var(--radius);
+  padding:18px 20px;
+  margin-bottom:18px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 4px 32px rgba(0,0,0,0.35),
+    0 0 40px rgba(200,150,90,0.08);
+}
+.team-roster-glass::before{
+  content:""; position:absolute;
+  top:-60px; right:-60px;
+  width:180px; height:180px;
+  background: radial-gradient(circle, rgba(200,150,90,0.15), transparent 70%);
+  pointer-events:none;
+}
+.team-roster-glass::after{
+  content:""; position:absolute;
+  bottom:-50px; left:-40px;
+  width:150px; height:150px;
+  background: radial-gradient(circle, rgba(74,124,111,0.12), transparent 70%);
+  pointer-events:none;
+}
+.roster-glass-header{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:14px; position:relative; z-index:1;
+}
+.roster-glass-icon{
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  background: linear-gradient(135deg, rgba(200,150,90,0.25), rgba(200,150,90,0.08));
+  border:1px solid rgba(200,150,90,0.3);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+  box-shadow: 0 0 12px rgba(200,150,90,0.2);
+}
+.roster-glass-title{
+  font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--mist);
+  flex:1;
+}
+.roster-glass-count{
+  font-size:11px; color:var(--gold);
+  background: rgba(200,150,90,0.1);
+  border:1px solid rgba(200,150,90,0.2);
+  border-radius:99px; padding:3px 10px;
+  font-family:var(--font-display); font-weight:700;
+}
+.roster-glass-grid{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:8px; position:relative; z-index:1;
+}
+.roster-glass-member{
+  display:flex; align-items:center; gap:9px;
+  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:12px; padding:9px 11px;
+  transition: background .15s;
+}
+.roster-glass-member.is-me{
+  background: rgba(200,150,90,0.08);
+  border-color: rgba(200,150,90,0.25);
+  box-shadow: 0 0 12px rgba(200,150,90,0.1);
+}
+.roster-glass-avatar{
+  width:30px; height:30px; border-radius:50%; flex-shrink:0;
+  background: linear-gradient(135deg, var(--gold), var(--coral));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:800; font-size:13px; color:#fff;
+  box-shadow: 0 0 8px rgba(200,150,90,0.3);
+}
+.roster-glass-member.is-me .roster-glass-avatar{
+  background: linear-gradient(135deg, #e0a060, var(--gold));
+  box-shadow: 0 0 14px rgba(200,150,90,0.45);
+}
+.roster-glass-info{ flex:1; min-width:0; }
+.roster-glass-name{
+  font-size:12px; font-weight:700; color:var(--mist);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.roster-glass-member.is-me .roster-glass-name{ color:var(--gold); }
+.roster-glass-pts{
+  font-size:11px; color:var(--mist-dim); font-family:var(--font-display);
+}
+.roster-glass-member.is-me .roster-glass-pts{ color:var(--gold); opacity:.8; }
 .notif-btn{
   display:flex; align-items:center; justify-content:center; gap:8px;
   width:100%; background: transparent;
@@ -197,6 +287,16 @@
       <span id="countdownLabel">⏳ بنحسب الوقت...</span>
       <b id="countdownValue"></b>
     </div>
+  </div>
+
+  <!-- ── Glass Team Roster ── -->
+  <div class="team-roster-glass" id="teamRosterGlass" style="display:none">
+    <div class="roster-glass-header">
+      <div class="roster-glass-icon">👥</div>
+      <div class="roster-glass-title">أعضاء فريقي</div>
+      <div class="roster-glass-count" id="rosterGlassCount">—</div>
+    </div>
+    <div class="roster-glass-grid" id="rosterGlassGrid"></div>
   </div>
 
   <div class="team-rank-card">
@@ -351,10 +451,7 @@
     <div class="arrow">‹</div>
   </div>
 
-  <div class="card" id="teamRosterCard" style="display:none;margin-top:8px">
-    <strong style="font-size:14px">👥 أعضاء فريقي</strong>
-    <div id="teamRosterList" style="margin-top:10px"></div>
-  </div>
+
 
   <button class="notif-btn" id="notifBtn">🔔 فعّل الإشعارات</button>
 
@@ -454,13 +551,24 @@ async function loadTeamInfo(){
 
 async function loadTeamRoster(teamName){
   var res = await supabase.rpc("get_team_members", { p_team_name: teamName, p_member_id: member.id });
-  var card = document.getElementById("teamRosterCard");
-  var box = document.getElementById("teamRosterList");
-  if(res.error || !res.data || res.data.length === 0){ card.style.display = "none"; return; }
-  card.style.display = "block";
-  box.innerHTML = res.data.map(function(p){
-    return '<div class="submission-item"><div>' + (p.is_me ? '⭐ ' : '') + escapeHtmlSimple(p.name) + '</div><div style="color:var(--gold);font-weight:700">' + (p.points || 0) + '</div></div>';
-  }).join("");
+  var glass = document.getElementById("teamRosterGlass");
+  var grid  = document.getElementById("rosterGlassGrid");
+  var count = document.getElementById("rosterGlassCount");
+  if(res.error || !res.data || res.data.length === 0){ if(glass) glass.style.display = "none"; return; }
+  if(glass) glass.style.display = "block";
+  if(count) count.textContent = res.data.length + " عضو";
+  if(grid){
+    grid.innerHTML = res.data.map(function(p){
+      var initial = (p.name || "؟").trim().charAt(0);
+      var meClass = p.is_me ? " is-me" : "";
+      return '<div class="roster-glass-member' + meClass + '">'
+           + '<div class="roster-glass-avatar">' + initial + '</div>'
+           + '<div class="roster-glass-info">'
+           + '<div class="roster-glass-name">' + escapeHtmlSimple(p.name) + (p.is_me ? ' ⭐' : '') + '</div>'
+           + '<div class="roster-glass-pts">' + (p.points || 0) + ' نقطة</div>'
+           + '</div></div>';
+    }).join("");
+  }
 }
 
 async function loadPredictBadge(){
