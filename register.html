@@ -135,7 +135,7 @@ async function doRegister() {
   }
 
   // سجّل الدخول تلقائياً
-  saveSession({ id: d.id, name: d.name, username: d.username, session_token: d.session_token });
+  saveSession({ id: d.id, name: d.name, username: d.username });
   okBox.textContent = "✅ تم التسجيل! بنجهّز موعد خلوتك...";
   okBox.style.display = "block";
   setTimeout(function () { window.location.href = "retreat.html"; }, 1200);
