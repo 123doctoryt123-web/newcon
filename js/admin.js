@@ -370,9 +370,9 @@ async function sendNotification(isAlarm) {
 }
 
 // ============================================================
-// الموجودين الآن (Presence)
+// الموجودين الآن (heartbeat)
 // ============================================================
-var onlineChannel = null;
+var onlinePollTimer = null;
 var ONLINE_PAGE_NAMES = {
   "dashboard.html": "الرئيسية", "puzzle.html": "اللغز", "wheel.html": "عجلة الجوائز",
   "daily-question.html": "سؤال اليوم", "leaderboard.html": "الليدربورد", "program.html": "البرنامج",
@@ -383,29 +383,22 @@ var ONLINE_PAGE_NAMES = {
 };
 
 function initOnlinePresence() {
-  if (onlineChannel) return;
-  onlineChannel = supabase.channel("site-presence", { config: { presence: {} } });
-  onlineChannel.on("presence", { event: "sync" }, renderOnlineList);
-  onlineChannel.subscribe(function (status, err) {
-    console.log("[online-presence] حالة اتصال لوحة الأدمن:", status, err || "");
-    if (status === "SUBSCRIBED") {
-      renderOnlineList();
-    }
-    if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-      var list = document.getElementById("onlineList");
-      if (list) {
-        list.innerHTML = '<div class="empty-state">تعذّر الاتصال اللحظي (' + status + '). افتح الـ Console (F12) وشوف تفاصيل الخطأ.</div>';
-      }
-    }
-  });
+  if (onlinePollTimer) return;
+  loadOnlineNow();
+  onlinePollTimer = setInterval(loadOnlineNow, 10000);
 }
 
-function renderOnlineList() {
-  var state = onlineChannel.presenceState();
+async function loadOnlineNow() {
+  var res = await supabase.rpc("get_online_now");
   var list = document.getElementById("onlineList");
   var countEl = document.getElementById("onlineCount");
   if (!list || !countEl) return;
-  var entries = Object.keys(state).map(function (key) { return state[key][0]; });
+  if (res.error) {
+    console.warn("[online-presence] تعذّر تحميل القايمة:", res.error);
+    list.innerHTML = '<div class="empty-state">تعذّر تحميل القايمة. شغّلت ملف ONLINE_NOW.sql؟</div>';
+    return;
+  }
+  var entries = res.data || [];
   countEl.textContent = entries.length;
   if (!entries.length) {
     list.innerHTML = '<div class="empty-state">مفيش حد فاتح الموقع دلوقتي</div>';
