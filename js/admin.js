@@ -386,7 +386,18 @@ function initOnlinePresence() {
   if (onlineChannel) return;
   onlineChannel = supabase.channel("site-presence", { config: { presence: {} } });
   onlineChannel.on("presence", { event: "sync" }, renderOnlineList);
-  onlineChannel.subscribe();
+  onlineChannel.subscribe(function (status, err) {
+    console.log("[online-presence] حالة اتصال لوحة الأدمن:", status, err || "");
+    if (status === "SUBSCRIBED") {
+      renderOnlineList();
+    }
+    if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+      var list = document.getElementById("onlineList");
+      if (list) {
+        list.innerHTML = '<div class="empty-state">تعذّر الاتصال اللحظي (' + status + '). افتح الـ Console (F12) وشوف تفاصيل الخطأ.</div>';
+      }
+    }
+  });
 }
 
 function renderOnlineList() {
