@@ -118,7 +118,8 @@ function logout(){
     var channel = supabase.channel("site-presence", {
       config: { presence: { key: String(member.id) } }
     });
-    channel.subscribe(async function (status) {
+    channel.subscribe(async function (status, err) {
+      console.log("[online-presence] حالة اتصال العضو:", status, err || "");
       if (status === "SUBSCRIBED") {
         try {
           await channel.track({
