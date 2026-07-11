@@ -119,6 +119,89 @@
   border:1px solid var(--line); border-radius:99px;
   padding:10px 20px; cursor:pointer; margin-bottom:12px; margin-top:4px;
 }
+
+/* ── Member Card ── */
+.member-card{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:14px 10px 12px;
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius:16px;
+  text-align:center;
+  position:relative;
+}
+.member-card.is-me{
+  border-color: rgba(200,150,90,0.35);
+  background: linear-gradient(160deg, rgba(200,150,90,0.08), var(--ink-3));
+  box-shadow: 0 0 20px rgba(200,150,90,0.08);
+}
+.member-card.is-leader{
+  border-color: rgba(200,150,90,0.5);
+  background: linear-gradient(160deg, rgba(200,150,90,0.13), var(--ink-3));
+}
+.member-avatar{
+  width:40px; height:40px; border-radius:50%;
+  background: linear-gradient(135deg, var(--gold), var(--coral));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:800; font-size:17px; color:#fff;
+  box-shadow: 0 0 10px rgba(200,150,90,0.25);
+  position:relative;
+}
+.member-card.is-me .member-avatar{
+  box-shadow: 0 0 18px rgba(200,150,90,0.45);
+}
+.leader-crown{
+  position:absolute; top:-8px; right:-6px;
+  font-size:14px; line-height:1;
+  filter: drop-shadow(0 0 4px rgba(200,150,90,0.6));
+}
+.member-name{
+  font-size:12px; font-weight:700; color:var(--mist);
+  font-family:var(--font-display);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:100%;
+}
+.member-card.is-me .member-name{ color:var(--gold); }
+.member-pts{
+  font-size:12px; font-weight:800; color:var(--gold);
+  font-family:var(--font-display);
+}
+.member-pts small{ font-size:10px; color:var(--mist-dim); font-weight:400; }
+.me-tag{
+  font-size:9px; font-weight:700; color:var(--gold);
+  background:rgba(200,150,90,0.15); border:1px solid rgba(200,150,90,0.3);
+  border-radius:99px; padding:1px 7px; font-family:var(--font-display);
+}
+
+/* ── Badge shelf override — يتناسق مع الصفحة ── */
+.bdg-shelf-card{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3)) !important;
+  border:1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  padding:18px 20px !important;
+  margin-bottom:0 !important;
+}
+.bdg-shelf-title{
+  font-size:14px !important;
+  color:var(--mist) !important;
+  margin-bottom:16px !important;
+}
+.bdg-grid{
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap:8px !important;
+}
+.bdg-item{
+  border-radius:12px !important;
+  padding:10px 4px 8px !important;
+  background: rgba(6,15,24,0.4) !important;
+  border-color: rgba(200,160,100,0.1) !important;
+}
+.bdg-item.earned{
+  background: linear-gradient(145deg, rgba(200,150,90,0.1), rgba(192,83,58,0.06)) !important;
+  border-color: rgba(200,150,90,0.3) !important;
+}
+.bdg-item .bdg-ico{ font-size:24px !important; }
+.bdg-item .bdg-itm-name{ font-size:10px !important; }
 </style>
 </head>
 <body>
@@ -219,11 +302,11 @@
 
   <!-- ── أعضاء الفريق ── -->
   <div id="teamRosterGlass" style="display:none;margin-bottom:18px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px">
       <span style="font-size:13px;color:var(--mist-dim);font-family:var(--font-display);font-weight:700">👥 أعضاء فريقي</span>
       <span id="rosterGlassCount" style="font-size:11px;color:var(--gold);background:rgba(200,150,90,0.1);border:1px solid rgba(200,150,90,0.2);border-radius:99px;padding:2px 9px;font-family:var(--font-display);font-weight:700"></span>
     </div>
-    <div id="rosterGlassGrid" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    <div id="rosterGlassGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
   </div>
 
   <div class="leader-gate" id="leaderGateBtn" onclick="location.href='leader.html'">
@@ -363,9 +446,6 @@
 
   <!-- ── إنجازاتي ── -->
   <div id="badgesShelfWrap" style="display:none;margin-bottom:18px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:0 2px">
-      <span style="font-size:13px;color:var(--mist-dim);font-family:var(--font-display);font-weight:700">🏅 إنجازاتي</span>
-    </div>
     <div id="badgesShelfContainer"></div>
   </div>
 
@@ -477,13 +557,16 @@ async function loadTeamRoster(teamName){
     grid.innerHTML = res.data.map(function(p){
       var initial = (p.name || "؟").trim().charAt(0);
       var isMe = !!p.is_me;
-      var bg  = isMe ? "rgba(200,150,90,0.13)" : "rgba(255,255,255,0.04)";
-      var bdr = isMe ? "rgba(200,150,90,0.3)"  : "rgba(255,255,255,0.07)";
-      var nameColor = isMe ? "var(--gold)" : "var(--mist)";
-      return '<div style="display:flex;align-items:center;gap:8px;background:' + bg + ';border:1px solid ' + bdr + ';border-radius:99px;padding:6px 12px 6px 6px">'
-           + '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--coral));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">' + initial + '</div>'
-           + '<span style="font-size:12px;font-weight:700;color:' + nameColor + ';white-space:nowrap">' + escapeHtmlSimple(p.name) + (isMe ? ' ⭐' : '') + '</span>'
-           + '<span style="font-size:11px;color:var(--gold);font-family:var(--font-display);font-weight:700;margin-right:2px">' + (p.points || 0) + '</span>'
+      var isLeader = p.role === "leader";
+      var cls = "member-card" + (isMe ? " is-me" : "") + (isLeader ? " is-leader" : "");
+      return '<div class="' + cls + '">'
+           + '<div class="member-avatar">'
+           + initial
+           + (isLeader ? '<span class="leader-crown">👑</span>' : '')
+           + '</div>'
+           + '<div class="member-name">' + escapeHtmlSimple(p.name) + '</div>'
+           + (isMe ? '<div class="me-tag">أنت</div>' : '')
+           + '<div class="member-pts">' + (p.points || 0) + ' <small>نقطة</small></div>'
            + '</div>';
     }).join("");
   }
