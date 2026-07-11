@@ -6,108 +6,146 @@
 <title>جدار الامتنان | Connect Three</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-.gratitude-hero{
-  text-align:center; padding:26px 16px 4px;
-}
-.gratitude-hero .emoji{
-  font-size:52px; display:block; margin-bottom:10px;
-}
-.gratitude-hero h1{
-  font-family:var(--font-display); font-size:21px; color:var(--mist);
-  margin-bottom:6px;
-}
-.gratitude-hero p{ font-size:13px; color:var(--mist-dim); line-height:1.6; }
-
-.char-count{ font-size:11px; color:var(--mist-dim); text-align:left; margin-top:-10px; margin-bottom:14px; }
-
-.wall-feed{ margin-top:22px; }
-.wall-feed h2{
-  font-family:var(--font-display); font-size:15px; color:var(--mist-dim);
-  margin-bottom:14px;
-}
-.wall-item{
-  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
-  border:1px solid var(--line);
-  border-radius:var(--radius-sm);
-  padding:16px 18px; margin-bottom:12px;
+/* ═══ Hero ═══ */
+.page-hero{
   position:relative; overflow:hidden;
+  padding:32px 20px 28px; text-align:center;
+  background:linear-gradient(160deg,rgba(200,150,90,.08),transparent 60%);
+  border-bottom:1px solid var(--line); margin-bottom:20px;
 }
+.page-hero-glow{
+  position:absolute; top:-40px; left:50%; transform:translateX(-50%);
+  width:300px; height:200px; border-radius:50%;
+  background:radial-gradient(circle,rgba(200,150,90,.15),transparent 70%);
+  pointer-events:none;
+}
+.hero-icon{
+  font-size:58px; display:block; margin-bottom:12px;
+  filter:drop-shadow(0 0 18px rgba(200,150,90,.4));
+}
+.hero-title{ font-family:var(--font-display); font-weight:800; font-size:24px; color:var(--mist); margin-bottom:6px; }
+.hero-sub{ font-size:13px; color:var(--mist-dim); line-height:1.6; }
+
+/* ═══ Team Card ═══ */
+.team-card{
+  background:linear-gradient(135deg,rgba(200,150,90,.1),rgba(200,150,90,.04));
+  border:1px solid rgba(200,150,90,.3); border-radius:var(--radius);
+  padding:18px; margin-bottom:20px;
+}
+.team-card-header{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.team-icon-wrap{
+  width:40px; height:40px; border-radius:50%; flex-shrink:0;
+  background:rgba(200,150,90,.15); border:1px solid rgba(200,150,90,.3);
+  display:flex; align-items:center; justify-content:center; font-size:20px;
+}
+.team-card-title{ font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--gold); }
+.team-card-sub{ font-size:11px; color:var(--mist-dim); margin-top:2px; }
+.member-pills{ display:flex; flex-wrap:wrap; gap:8px; }
+.member-pill{
+  display:flex; align-items:center; gap:7px;
+  padding:7px 14px; border-radius:99px;
+  background:rgba(255,255,255,.04); border:1px solid var(--line);
+  font-size:13px; color:var(--mist);
+}
+.member-pill.is-me{ background:rgba(200,150,90,.12); border-color:rgba(200,150,90,.4); color:var(--gold); font-weight:700; }
+.member-pill.is-leader{ background:rgba(200,150,90,.2); border-color:rgba(200,150,90,.5); }
+.pill-avatar{
+  width:26px; height:26px; border-radius:50%;
+  background:var(--ink-3); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:var(--mist-dim);
+}
+.member-pill.is-me .pill-avatar{ background:rgba(200,150,90,.3); color:var(--gold); border-color:rgba(200,150,90,.5); }
+
+/* ═══ Fullscreen Button ═══ */
+.fs-btn{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:12px;
+  background:rgba(200,150,90,.08); border:1px solid rgba(200,150,90,.25);
+  border-radius:99px; color:var(--gold);
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  cursor:pointer; margin-bottom:20px; transition:background .2s;
+}
+.fs-btn:hover{ background:rgba(200,150,90,.15); }
+
+/* ═══ Write Card ═══ */
+.write-card{
+  background:linear-gradient(160deg,var(--ink-2),var(--ink-3));
+  border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px; margin-bottom:20px;
+}
+.write-card label{
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  color:var(--mist-dim); text-transform:uppercase; letter-spacing:.5px;
+  margin-bottom:10px; display:block;
+}
+.write-card textarea{ width:100%; min-height:110px; resize:none; }
+.char-count{ font-size:11px; color:var(--mist-dim); text-align:left; margin-top:-8px; margin-bottom:14px; }
+
+/* ═══ Wall Items ═══ */
+.feed-header{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+}
+.feed-title{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--mist-dim); }
+
+.wall-item{
+  position:relative; overflow:hidden;
+  background:linear-gradient(160deg,var(--ink-2),var(--ink-3));
+  border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:16px 18px 14px; margin-bottom:10px;
+  transition:border-color .2s;
+}
+.wall-item:hover{ border-color:rgba(200,150,90,.3); }
 .wall-item::before{
   content:""; position:absolute; top:0; right:0;
-  width:4px; height:100%;
-  background: linear-gradient(to bottom, var(--gold), var(--coral));
+  width:3px; height:100%;
+  background:linear-gradient(to bottom,var(--gold),var(--coral));
 }
-.wall-name{
-  font-family:var(--font-display); font-weight:700; font-size:13px;
-  color:var(--gold); margin-bottom:6px;
+.wall-author{
+  display:flex; align-items:center; gap:8px; margin-bottom:10px;
 }
-.wall-msg{
-  font-size:15px; color:var(--mist); line-height:1.7;
+.author-avatar{
+  width:30px; height:30px; border-radius:50%;
+  background:linear-gradient(135deg,rgba(200,150,90,.25),rgba(200,150,90,.08));
+  border:1px solid rgba(200,150,90,.3);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:var(--gold);
 }
+.author-name{ font-family:var(--font-display); font-weight:700; font-size:13px; color:var(--gold); }
+.wall-msg{ font-size:15px; color:var(--mist); line-height:1.7; }
 .wall-time{ font-size:11px; color:var(--mist-dim); margin-top:8px; }
 
-.empty-state{
-  text-align:center; padding:30px 20px;
-  color:var(--mist-dim); font-size:14px; line-height:1.8;
-}
+.empty-feed{ text-align:center; padding:36px 20px; color:var(--mist-dim); font-size:14px; line-height:1.8; }
 
-.fullscreen-btn{
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  background: rgba(200,150,90,0.1); border:1px solid var(--line);
-  color:var(--gold); font-family:var(--font-display); font-weight:700;
-  font-size:13px; padding:10px 18px; border-radius:99px;
-  cursor:pointer; text-decoration:none; margin-bottom:18px; width:100%;
-}
-
-/* ===== Fullscreen Wall ===== */
+/* ═══ Fullscreen Overlay ═══ */
 .fs-overlay{
   display:none; position:fixed; inset:0;
-  background:#060f18; z-index:9999;
-  overflow:hidden;
+  background:#060f18; z-index:9999; overflow:hidden; flex-direction:column;
 }
-.fs-overlay.active{ display:flex; flex-direction:column; }
-.fs-header{
-  text-align:center; padding:30px 20px 10px; flex-shrink:0;
-}
-.fs-title{
-  font-family:var(--font-display); font-weight:800; font-size:clamp(20px,4vw,36px);
-  color:var(--gold); margin-bottom:4px;
-}
-.fs-subtitle{ font-size:14px; color:rgba(200,160,100,0.6); }
-.fs-ticker{
-  flex:1; overflow:hidden; position:relative;
-}
+.fs-overlay.active{ display:flex; }
+.fs-header{ text-align:center; padding:30px 20px 10px; flex-shrink:0; }
+.fs-title{ font-family:var(--font-display); font-weight:800; font-size:clamp(22px,4vw,38px); color:var(--gold); margin-bottom:4px; }
+.fs-subtitle{ font-size:14px; color:rgba(200,160,100,.6); }
+.fs-ticker{ flex:1; overflow:hidden; position:relative; }
 .fs-ticker-inner{
   display:flex; flex-direction:column; gap:0;
-  animation: scrollUp 30s linear infinite;
-  padding:20px 0;
+  animation:scrollUp 35s linear infinite; padding:20px 0;
 }
 .fs-ticker-inner:hover{ animation-play-state:paused; }
-@keyframes scrollUp{
-  0%{ transform:translateY(0); }
-  100%{ transform:translateY(-50%); }
-}
+@keyframes scrollUp{ 0%{transform:translateY(0)} 100%{transform:translateY(-50%)} }
 .fs-card{
-  margin: 8px clamp(16px, 5vw, 80px);
-  background: linear-gradient(135deg, rgba(200,150,90,0.12), rgba(192,83,58,0.08));
-  border:1px solid rgba(200,150,90,0.2); border-radius:16px;
-  padding: clamp(14px,2vw,24px) clamp(16px,3vw,32px);
-  flex-shrink:0;
+  margin:8px clamp(16px,5vw,80px);
+  background:linear-gradient(135deg,rgba(200,150,90,.12),rgba(192,83,58,.08));
+  border:1px solid rgba(200,150,90,.2); border-radius:16px;
+  padding:clamp(14px,2vw,24px) clamp(16px,3vw,32px); flex-shrink:0;
 }
-.fs-card-name{
-  font-family:var(--font-display); font-weight:800;
-  font-size:clamp(13px,2vw,18px); color:var(--gold);
-  margin-bottom:8px;
-}
-.fs-card-msg{
-  font-size:clamp(15px,2.5vw,22px); color:#e8e0d0;
-  line-height:1.6; font-family:var(--font-display);
-}
+.fs-card-name{ font-family:var(--font-display); font-weight:800; font-size:clamp(13px,2vw,18px); color:var(--gold); margin-bottom:8px; }
+.fs-card-msg{ font-size:clamp(15px,2.5vw,22px); color:#e8e0d0; line-height:1.6; font-family:var(--font-display); }
 .fs-close{
   position:fixed; top:16px; left:16px;
-  background:rgba(200,150,90,0.15); border:1px solid var(--line);
-  color:var(--mist-dim); font-size:20px; cursor:pointer;
-  padding:8px 14px; border-radius:99px; z-index:10000;
+  background:rgba(200,150,90,.15); border:1px solid var(--line);
+  color:var(--mist-dim); font-size:18px; cursor:pointer;
+  padding:8px 16px; border-radius:99px; z-index:10000;
 }
 </style>
 </head>
@@ -120,20 +158,32 @@
     <a href="#" class="logout-link" id="logoutBtn">خروج</a>
   </div>
 
-  <div class="gratitude-hero">
-    <span class="emoji">🧱</span>
-    <h1>جدار الامتنان</h1>
-    <p>قول شكراً لشخص خلّى المؤتمر ده أحلى</p>
+  <!-- Hero -->
+  <div class="page-hero">
+    <div class="page-hero-glow"></div>
+    <span class="hero-icon">🧱</span>
+    <div class="hero-title">جدار الامتنان</div>
+    <div class="hero-sub">قول شكراً لشخص خلّى المؤتمر ده أحلى</div>
   </div>
 
-  <!-- زرار العرض الكبير (ظاهر للكل) -->
-  <button class="fullscreen-btn" onclick="openFullscreen()">
-    🖥️ عرض الجدار على شاشة كبيرة
-  </button>
+  <!-- أعضاء الفريق -->
+  <div class="team-card" id="teamSection" style="display:none">
+    <div class="team-card-header">
+      <div class="team-icon-wrap">🏅</div>
+      <div>
+        <div class="team-card-title" id="teamNameLabel">فريقك</div>
+        <div class="team-card-sub">أعضاء الفريق</div>
+      </div>
+    </div>
+    <div class="member-pills" id="teamMemberPills"></div>
+  </div>
+
+  <!-- زرار الشاشة الكبيرة -->
+  <button class="fs-btn" onclick="openFullscreen()">🖥️ عرض الجدار على شاشة كبيرة</button>
 
   <!-- Form الكتابة -->
-  <div class="card">
-    <label>رسالتك:</label>
+  <div class="write-card">
+    <label>✍️ رسالتك</label>
     <textarea id="gratMsg" placeholder='مثال: "شكراً يا مينا على مساعدتك طول المؤتمر 💙"'
       maxlength="200" rows="4"
       oninput="document.getElementById('gChar').textContent=this.value.length"></textarea>
@@ -143,15 +193,15 @@
   </div>
 
   <!-- الرسائل -->
-  <div class="wall-feed">
-    <h2>💛 رسائل من القلب (<span id="wallCount">0</span>)</h2>
-    <div id="wallList">
-      <div class="empty-state">جاري التحميل...</div>
-    </div>
+  <div class="feed-header">
+    <div class="feed-title">💛 رسائل من القلب</div>
+    <span id="wallCount" style="font-size:12px;color:var(--mist-dim)">0 رسالة</span>
   </div>
+  <div id="wallList"><div class="empty-feed">جاري التحميل...</div></div>
+
 </div>
 
-<!-- Fullscreen Wall -->
+<!-- Fullscreen -->
 <div class="fs-overlay" id="fsOverlay">
   <button class="fs-close" onclick="closeFullscreen()">✕ إغلاق</button>
   <div class="fs-header">
@@ -173,81 +223,87 @@ var _messages = [];
 
 function esc(s){ return (s||"").replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 
+async function loadTeam(){
+  if(!member) return;
+  var res = await supabase.rpc("get_my_team_info", { p_member_id: member.id });
+  if(res.error || !res.data || !res.data.length) return;
+  var info = res.data[0];
+  if(!info.team_name) return;
+  document.getElementById("teamNameLabel").textContent = "🏅 " + info.team_name;
+  document.getElementById("teamSection").style.display = "block";
+  var r2 = await supabase.rpc("get_team_members", { p_team_name: info.team_name, p_member_id: member.id });
+  if(r2.error || !r2.data) return;
+  document.getElementById("teamMemberPills").innerHTML = r2.data.map(function(p){
+    var isLeader = p.role === "leader";
+    var isMe = p.is_me;
+    var cls = "member-pill"+(isMe?" is-me":"")+(isLeader?" is-leader":"");
+    var init = (p.name||"؟").trim().charAt(0);
+    return '<div class="'+cls+'">'+
+      '<div class="pill-avatar">'+esc(init)+'</div>'+
+      (isLeader?'<span style="font-size:11px">👑</span>':'')+
+      esc(p.name)+
+      (isMe?' <span style="font-size:10px;opacity:.7">(أنت)</span>':'')+
+    '</div>';
+  }).join("");
+}
+
 async function sendGratitude(){
   var txt = (document.getElementById("gratMsg").value||"").trim();
   var msg = document.getElementById("gratFormMsg");
-  if(txt.length < 5){
-    msg.textContent = "⚠️ اكتب رسالة أطول شوية";
-    msg.style.color = "var(--coral)"; return;
-  }
+  if(txt.length<5){ msg.textContent="⚠️ اكتب رسالة أطول شوية"; msg.style.color="var(--coral)"; return; }
   var btn = document.getElementById("sendGratBtn");
-  btn.disabled = true; btn.textContent = "بنحفظ...";
-
+  btn.disabled=true; btn.textContent="بنحفظ...";
   var res = await supabase.rpc("submit_gratitude", { p_member_id: member.id, p_message: txt });
-  btn.disabled = false; btn.textContent = "🧱 حط في الجدار";
-
-  if(res.error){
-    msg.textContent = "❌ مش قادر يحفظ، حاول تاني";
-    msg.style.color = "var(--coral)"; return;
-  }
-  msg.textContent = "✅ اتضافت للجدار!";
-  msg.style.color = "var(--pitch)";
-  document.getElementById("gratMsg").value = "";
-  document.getElementById("gChar").textContent = "0";
-  setTimeout(function(){ msg.textContent = ""; }, 3000);
+  btn.disabled=false; btn.textContent="🧱 حط في الجدار";
+  if(res.error){ msg.textContent="❌ مش قادر يحفظ، حاول تاني"; msg.style.color="var(--coral)"; return; }
+  msg.textContent="✅ اتضافت للجدار!"; msg.style.color="var(--pitch)";
+  document.getElementById("gratMsg").value=""; document.getElementById("gChar").textContent="0";
+  setTimeout(function(){ msg.textContent=""; }, 3000);
   loadWall();
 }
 
 async function loadWall(){
   var res = await supabase.rpc("get_gratitude_messages");
-  if(res.error){ return; }
+  if(res.error) return;
   _messages = res.data || [];
-  document.getElementById("wallCount").textContent = _messages.length;
-
-  if(_messages.length === 0){
-    document.getElementById("wallList").innerHTML =
-      '<div class="empty-state">لسه محدش كتب 💙<br>كن أول واحد تشكر حد!</div>';
+  document.getElementById("wallCount").textContent = _messages.length + " رسالة";
+  if(!_messages.length){
+    document.getElementById("wallList").innerHTML='<div class="empty-feed">لسه محدش كتب 💙<br>كن أول واحد تشكر حد!</div>';
     return;
   }
-
   document.getElementById("wallList").innerHTML = _messages.map(function(m){
-    var d = new Date(m.created_at);
-    var t = d.toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit"});
-    return '<div class="wall-item">'
-         + '<div class="wall-name">✍️ ' + esc(m.member_name) + '</div>'
-         + '<div class="wall-msg">' + esc(m.message) + '</div>'
-         + '<div class="wall-time">' + t + '</div>'
-         + '</div>';
+    var t = new Date(m.created_at).toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+    var init = (m.member_name||"؟").trim().charAt(0);
+    return '<div class="wall-item">'+
+      '<div class="wall-author">'+
+        '<div class="author-avatar">'+esc(init)+'</div>'+
+        '<div class="author-name">'+esc(m.member_name)+'</div>'+
+      '</div>'+
+      '<div class="wall-msg">'+esc(m.message)+'</div>'+
+      '<div class="wall-time">'+t+'</div>'+
+    '</div>';
   }).join("");
 }
 
 function openFullscreen(){
-  var msgs = _messages.slice();
-  if(msgs.length === 0){
-    alert("لسه فيش رسائل في الجدار!");
-    return;
-  }
-  // كرّر الرسائل مرتين عشان الـ scroll يبان smooth
-  var doubled = msgs.concat(msgs);
+  if(!_messages.length){ alert("لسه فيش رسائل في الجدار!"); return; }
+  var doubled = _messages.concat(_messages);
   document.getElementById("fsTicker").innerHTML = doubled.map(function(m){
-    return '<div class="fs-card">'
-         + '<div class="fs-card-name">✍️ ' + esc(m.member_name) + '</div>'
-         + '<div class="fs-card-msg">' + esc(m.message) + '</div>'
-         + '</div>';
+    return '<div class="fs-card">'+
+      '<div class="fs-card-name">✍️ '+esc(m.member_name)+'</div>'+
+      '<div class="fs-card-msg">'+esc(m.message)+'</div>'+
+    '</div>';
   }).join("");
   document.getElementById("fsOverlay").classList.add("active");
 }
+function closeFullscreen(){ document.getElementById("fsOverlay").classList.remove("active"); }
 
-function closeFullscreen(){
-  document.getElementById("fsOverlay").classList.remove("active");
-}
-
-// Realtime
 supabase.channel("rt-gratitude")
-  .on("postgres_changes",{event:"INSERT",schema:"public",table:"gratitude_wall"}, loadWall)
-  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"gratitude_wall"}, loadWall)
+  .on("postgres_changes",{event:"INSERT",schema:"public",table:"gratitude_wall"},loadWall)
+  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"gratitude_wall"},loadWall)
   .subscribe();
 
+loadTeam();
 loadWall();
 </script>
 </body>
