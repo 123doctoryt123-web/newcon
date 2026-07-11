@@ -41,6 +41,7 @@ function showPanel() {
   loadScanPoints();
   loadAttendanceLog();
   loadSiteLockStatus();
+  initOnlinePresence();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -366,6 +367,46 @@ async function sendNotification(isAlarm) {
   btn.disabled = false;
   btn.textContent = isAlarm ? "⏰ إرسال منبه (بصوت عالي)" : "🔔 إرسال إشعار";
   setTimeout(function () { msg.innerHTML = ""; }, 5000);
+}
+
+// ============================================================
+// الموجودين الآن (Presence)
+// ============================================================
+var onlineChannel = null;
+var ONLINE_PAGE_NAMES = {
+  "dashboard.html": "الرئيسية", "puzzle.html": "اللغز", "wheel.html": "عجلة الجوائز",
+  "daily-question.html": "سؤال اليوم", "leaderboard.html": "الليدربورد", "program.html": "البرنامج",
+  "project.html": "مشروعي", "book.html": "درس الكتاب", "spy.html": "الجاسوس", "myqr.html": "QR بتاعي",
+  "message.html": "رسالة ليك", "confpredict.html": "توقع المؤتمر", "predict.html": "توقع النتيجة",
+  "retreat.html": "خلوتي", "poll.html": "الاستفتاء", "secretbox.html": "الأسرار", "gratitude.html": "الامتنان",
+  "team-challenge.html": "تحدي الفريق", "leader.html": "لوحة القائد"
+};
+
+function initOnlinePresence() {
+  if (onlineChannel) return;
+  onlineChannel = supabase.channel("site-presence", { config: { presence: {} } });
+  onlineChannel.on("presence", { event: "sync" }, renderOnlineList);
+  onlineChannel.subscribe();
+}
+
+function renderOnlineList() {
+  var state = onlineChannel.presenceState();
+  var list = document.getElementById("onlineList");
+  var countEl = document.getElementById("onlineCount");
+  if (!list || !countEl) return;
+  var entries = Object.keys(state).map(function (key) { return state[key][0]; });
+  countEl.textContent = entries.length;
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state">مفيش حد فاتح الموقع دلوقتي</div>';
+    return;
+  }
+  list.innerHTML = entries.map(function (e) {
+    var pageLabel = ONLINE_PAGE_NAMES[e.page] || e.page || "—";
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)">' +
+      '<span style="font-size:13.5px;color:var(--mist)">' + escapeHtml(e.name) + '</span>' +
+      '<span style="font-size:11.5px;color:var(--gold);background:rgba(200,150,90,0.1);border:1px solid var(--line);border-radius:99px;padding:3px 10px">' + escapeHtml(pageLabel) + '</span>' +
+      '</div>';
+  }).join("");
 }
 
 // ============================================================
