@@ -104,3 +104,39 @@ function logout(){
     checkSiteLock();
   }
 })();
+
+/* ============================================================
+   تتبع "الموجودين الآن" — بيبلّغ لوحة الأدمن إن الشخص ده فاتح
+   الموقع دلوقتي وفي أنهي صفحة. بيشتغل تلقائيًا لو في جلسة مسجّلة
+   ============================================================ */
+(function () {
+  function startPresence() {
+    if (typeof supabase === "undefined") return;
+    var member = getSession();
+    if (!member) return;
+    var page = (window.location.pathname.split("/").pop() || "").toLowerCase();
+    var channel = supabase.channel("site-presence", {
+      config: { presence: { key: String(member.id) } }
+    });
+    channel.subscribe(async function (status) {
+      if (status === "SUBSCRIBED") {
+        try {
+          await channel.track({
+            id: member.id,
+            name: member.name,
+            page: page,
+            online_at: new Date().toISOString()
+          });
+        } catch (e) {
+          console.warn("تعذّر تسجيل الحضور اللحظي:", e);
+        }
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startPresence);
+  } else {
+    startPresence();
+  }
+})();
