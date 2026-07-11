@@ -1,27 +1,58 @@
-function saveSession(member){
+// ============================================================
+// auth.js — نظام جلسة آمن بـ server-side token
+// ============================================================
+// التغييرات:
+//   • الجلسة دلوقتي بتحتوي session_token بيتتحقق منه في السيرفر
+//   • مش بنعتمد على member.id من الـ localStorage وبس
+//   • كل RPC call حساسة بتبعت التوكن ويتحقق منه السيرفر
+// ============================================================
+
+function saveSession(member) {
   localStorage.setItem("member", JSON.stringify(member));
 }
-function getSession(){
+function getSession() {
   var raw = localStorage.getItem("member");
   return raw ? JSON.parse(raw) : null;
 }
-function clearSession(){
+function clearSession() {
   localStorage.removeItem("member");
 }
-function requireSession(){
+
+// requireSession — بترجع الـ member أو بتروح لصفحة الدخول
+function requireSession() {
   var m = getSession();
-  if(!m){ window.location.href = "index.html"; return null; }
+  if (!m || !m.id || !m.session_token) {
+    window.location.href = "index.html";
+    return null;
+  }
   return m;
 }
-function logout(){
+
+// getMemberId — مساعد سريع
+function getMemberId() {
+  var m = getSession();
+  return m ? m.id : null;
+}
+
+// getSessionToken — بيرجع التوكن
+function getSessionToken() {
+  var m = getSession();
+  return m ? m.session_token : null;
+}
+
+function logout() {
+  // أخبر السيرفر بإلغاء التوكن (fire-and-forget)
+  var m = getSession();
+  if (m && m.session_token && typeof supabase !== "undefined") {
+    supabase.rpc("logout_session", { p_token: m.session_token }).catch(function () {});
+  }
   clearSession();
   window.location.href = "index.html";
 }
 
 /* ============================================================
-   قفل/بلور الموقع بالكامل — يشتغل تلقائيًا في أي صفحة بتحمّل
-   auth.js (ما عدا صفحة الدخول والتسجيل، عشان تفضل شغالة دايمًا)
-   الأدمن بس اللي بيتحكم فيه من admin.html > الإعدادات
+   قفل/بلور الموقع بالكامل — بيشتغل تلقائياً في أي صفحة بتحمّل
+   auth.js (ما عدا صفحة الدخول والتسجيل)
    ============================================================ */
 (function () {
   var page = (window.location.pathname.split("/").pop() || "").toLowerCase();
@@ -29,7 +60,7 @@ function logout(){
   if (EXCLUDED_PAGES.indexOf(page) !== -1) return;
 
   var OVERLAY_ID = "siteLockOverlay";
-  var STYLE_ID = "siteLockStyle";
+  var STYLE_ID   = "siteLockStyle";
 
   function injectStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -80,8 +111,7 @@ function logout(){
     var logoutBtn = document.getElementById("slkLogoutBtn");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", function () {
-        try { clearSession(); } catch (e) {}
-        window.location.href = "index.html";
+        try { logout(); } catch (e) { clearSession(); window.location.href = "index.html"; }
       });
     }
   }
@@ -106,24 +136,32 @@ function logout(){
 })();
 
 /* ============================================================
-   تتبع "الموجودين الآن" — بيبلّغ لوحة الأدمن إن الشخص ده فاتح
-   الموقع دلوقتي وفي أنهي صفحة. بيبعت نبضة كل 20 ثانية
+   تتبع "الموجودين الآن" — heartbeat كل 20 ثانية
    ============================================================ */
 (function () {
   function sendHeartbeat(member, page) {
+    // نبعت التوكن مع الـ heartbeat للتحقق في السيرفر
     supabase.rpc("heartbeat_online", {
-      p_member_id: member.id,
-      p_name: member.name,
-      p_page: page
+      p_member_id:     member.id,
+      p_session_token: member.session_token,
+      p_name:          member.name,
+      p_page:          page
     }).then(function (res) {
-      if (res.error) console.warn("[online-presence] تعذّر إرسال النبضة:", res.error);
+      if (res.error) {
+        // لو التوكن انتهى أو invalid → لوق out
+        if (res.error.message && res.error.message.includes("invalid_token")) {
+          console.warn("[auth] session token invalid — logging out");
+          clearSession();
+          window.location.href = "index.html";
+        }
+      }
     });
   }
 
   function startHeartbeat() {
     if (typeof supabase === "undefined") return;
     var member = getSession();
-    if (!member) return;
+    if (!member || !member.session_token) return;
     var page = (window.location.pathname.split("/").pop() || "").toLowerCase();
     sendHeartbeat(member, page);
     setInterval(function () { sendHeartbeat(member, page); }, 20000);
