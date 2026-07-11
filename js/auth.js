@@ -107,37 +107,31 @@ function logout(){
 
 /* ============================================================
    تتبع "الموجودين الآن" — بيبلّغ لوحة الأدمن إن الشخص ده فاتح
-   الموقع دلوقتي وفي أنهي صفحة. بيشتغل تلقائيًا لو في جلسة مسجّلة
+   الموقع دلوقتي وفي أنهي صفحة. بيبعت نبضة كل 20 ثانية
    ============================================================ */
 (function () {
-  function startPresence() {
+  function sendHeartbeat(member, page) {
+    supabase.rpc("heartbeat_online", {
+      p_member_id: member.id,
+      p_name: member.name,
+      p_page: page
+    }).then(function (res) {
+      if (res.error) console.warn("[online-presence] تعذّر إرسال النبضة:", res.error);
+    });
+  }
+
+  function startHeartbeat() {
     if (typeof supabase === "undefined") return;
     var member = getSession();
     if (!member) return;
     var page = (window.location.pathname.split("/").pop() || "").toLowerCase();
-    var channel = supabase.channel("site-presence", {
-      config: { presence: { key: String(member.id) } }
-    });
-    channel.subscribe(async function (status, err) {
-      console.log("[online-presence] حالة اتصال العضو:", status, err || "");
-      if (status === "SUBSCRIBED") {
-        try {
-          await channel.track({
-            id: member.id,
-            name: member.name,
-            page: page,
-            online_at: new Date().toISOString()
-          });
-        } catch (e) {
-          console.warn("تعذّر تسجيل الحضور اللحظي:", e);
-        }
-      }
-    });
+    sendHeartbeat(member, page);
+    setInterval(function () { sendHeartbeat(member, page); }, 20000);
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", startPresence);
+    document.addEventListener("DOMContentLoaded", startHeartbeat);
   } else {
-    startPresence();
+    startHeartbeat();
   }
 })();
