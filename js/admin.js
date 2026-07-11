@@ -40,6 +40,7 @@ function showPanel() {
   loadSubmissions();
   loadScanPoints();
   loadAttendanceLog();
+  loadSiteLockStatus();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -54,6 +55,8 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("addMaterialBtn").addEventListener("click", addMaterial);
   document.getElementById("saveTeamsBtn").addEventListener("click", saveTeams);
   document.getElementById("toggleLockBtn").addEventListener("click", toggleLock);
+  document.getElementById("toggleSiteLockBtn").addEventListener("click", toggleSiteLock);
+  document.getElementById("saveSiteLockMsgBtn").addEventListener("click", saveSiteLockMessage);
   document.getElementById("changePassBtn").addEventListener("click", changePass);
   document.getElementById("adminLogoutBtn").addEventListener("click", function () {
     clearAdminPass();
@@ -363,6 +366,39 @@ async function sendNotification(isAlarm) {
   btn.disabled = false;
   btn.textContent = isAlarm ? "⏰ إرسال منبه (بصوت عالي)" : "🔔 إرسال إشعار";
   setTimeout(function () { msg.innerHTML = ""; }, 5000);
+}
+
+// ============================================================
+// قفل الموقع بالكامل
+// ============================================================
+var isSiteLocked = true;
+
+async function loadSiteLockStatus() {
+  var res = await supabase.rpc("get_site_lock_status");
+  if (res.error || !res.data) return;
+  var row = Array.isArray(res.data) ? res.data[0] : res.data;
+  if (!row) return;
+  isSiteLocked = row.is_locked;
+  document.getElementById("siteLockStatusText").textContent =
+    "حالة الموقع: " + (isSiteLocked ? "🔒 مقفول (مبلور للكل)" : "🔓 مفتوح للكل");
+  document.getElementById("toggleSiteLockBtn").textContent = isSiteLocked ? "افتح الموقع" : "اقفل الموقع";
+  var msgBox = document.getElementById("siteLockMsgInput");
+  if (msgBox && !msgBox.value) msgBox.value = row.lock_message || "";
+}
+
+async function toggleSiteLock() {
+  isSiteLocked = !isSiteLocked;
+  await supabase.rpc("admin_set_site_lock", { p_password: getAdminPass(), p_locked: isSiteLocked });
+  await loadSiteLockStatus();
+}
+
+async function saveSiteLockMessage() {
+  var msg = document.getElementById("siteLockMsgInput").value.trim();
+  var box = document.getElementById("siteLockMsg");
+  if (!msg) { box.innerHTML = '<div class="error-msg" style="display:block">اكتب رسالة الانتظار الأول</div>'; return; }
+  await supabase.rpc("admin_set_site_lock", { p_password: getAdminPass(), p_locked: isSiteLocked, p_message: msg });
+  box.innerHTML = '<div class="success-msg" style="display:block">✅ اتحفظت الرسالة</div>';
+  setTimeout(function () { box.innerHTML = ""; }, 3000);
 }
 
 // ============================================================
