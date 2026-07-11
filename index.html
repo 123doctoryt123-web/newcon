@@ -28,16 +28,16 @@
 <script src="js/supabaseclient.js"></script>
 <script src="js/auth.js"></script>
 <script>
-  if (getSession()) window.location.href = "dashboard.html";
+  if(getSession()) window.location.href = "dashboard.html";
 
-  async function doLogin() {
+  async function doLogin(){
     var username = document.getElementById("usernameInput").value.trim();
     var password = document.getElementById("passwordInput").value.trim();
-    var errBox   = document.getElementById("errorMsg");
-    var btn      = document.getElementById("loginBtn");
+    var errBox = document.getElementById("errorMsg");
+    var btn = document.getElementById("loginBtn");
     errBox.style.display = "none";
 
-    if (!username || !password) {
+    if(!username || !password){
       errBox.textContent = "اكتب اليوزر والباسورد";
       errBox.style.display = "block";
       return;
@@ -49,26 +49,19 @@
 
     btn.disabled = false; btn.textContent = "دخول";
 
-    if (res.error || !res.data || res.data.length === 0) {
+    if(res.error || !res.data || res.data.length === 0){
       errBox.textContent = "اليوزر أو الباسورد غلط";
       errBox.style.display = "block";
       return;
     }
 
-    var d = res.data[0];
-    // ✅ دلوقتي بنحفظ session_token جنب id و name
-    saveSession({
-      id:            d.id,
-      name:          d.name,
-      username:      username,
-      session_token: d.session_token
-    });
+    saveSession({ id: res.data[0].id, name: res.data[0].name, username: username });
     window.location.href = "dashboard.html";
   }
 
   document.getElementById("loginBtn").addEventListener("click", doLogin);
-  document.getElementById("passwordInput").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") doLogin();
+  document.getElementById("passwordInput").addEventListener("keydown", function(e){
+    if(e.key === "Enter") doLogin();
   });
 </script>
 </body>
