@@ -1,55 +1,74 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>درس الكتاب | Connect Three</title>
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+-- ============================================================
+-- book_questions — أسئلة مجهولة لدرس الكتاب
+-- ============================================================
 
-<div class="container">
-  <div class="topbar">
-    <a href="dashboard.html" class="brand">
-      <img src="logo.png" style="width:28px;height:28px;object-fit:contain;">
-      Connect Three
-    </a>
-    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
-  </div>
+-- 1. الجدول
+create table if not exists book_questions (
+  id          bigint generated always as identity primary key,
+  question    text        not null,
+  created_at  timestamptz not null default now()
+);
 
-  <h1 class="display" style="font-size:20px;margin-bottom:6px">📖 درس الكتاب</h1>
-  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">أجب على أسئلة الدرس من هنا</p>
+-- RLS
+alter table book_questions enable row level security;
 
-  <div class="card glow" id="formCard">
-    <div class="empty-state">
-      <div style="font-size:48px;margin-bottom:12px">📋</div>
-      <div>الفورم مش متاح لسه، تابع بعدين</div>
-    </div>
-  </div>
-</div>
+-- الكل يقرأ
+create policy "public read book_questions"
+  on book_questions for select using (true);
 
-<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-<script src="js/supabaseclient.js"></script>
-<script src="js/auth.js"></script>
-<script>
-var member = requireSession();
-document.getElementById("logoutBtn").addEventListener("click", logout);
+-- الكل يكتب (مجهول)
+create policy "anyone insert book_questions"
+  on book_questions for insert with check (true);
 
-async function loadForm(){
-  var res = await supabase.rpc("get_form_url");
-  var card = document.getElementById("formCard");
-  var url = res.data;
+-- الأدمن بس يحذف (role = 'admin' في جدول members)
+create policy "admin delete book_questions"
+  on book_questions for delete
+  using (
+    exists (
+      select 1 from members
+      where id = (select (current_setting('request.jwt.claims', true)::json->>'sub')::uuid)
+        and role = 'admin'
+    )
+  );
 
-  if(!url || url.trim() === ""){
-    card.innerHTML = '<div class="empty-state"><div style="font-size:48px;margin-bottom:12px">📋</div><div>الفورم مش متاح لسه، تابع بعدين</div></div>';
-    return;
-  }
+-- ============================================================
+-- 2. RPCs
+-- ============================================================
 
-  card.innerHTML = '<p style="text-align:center;color:var(--mist-dim);font-size:14px;margin-bottom:16px">اضغط الزرار عشان تفتح فورم الدرس</p><a href="' + url + '" target="_blank" class="btn">فتح فورم الدرس 📋</a>';
-}
+-- بعت سؤال مجهول
+create or replace function submit_book_question(p_question text)
+returns void language plpgsql security definer as $$
+begin
+  insert into book_questions(question) values (trim(p_question));
+end;$$;
 
-loadForm();
-</script>
-<script src="js/realtime.js"></script>
-</body>
-</html>
+-- جيب كل الأسئلة (الأحدث أولاً)
+create or replace function get_book_questions()
+returns table(id bigint, question text, created_at timestamptz)
+language plpgsql security definer as $$
+begin
+  return query
+    select bq.id, bq.question, bq.created_at
+    from book_questions bq
+    order by bq.created_at desc;
+end;$$;
+
+-- الأدمن يحذف سؤال واحد
+create or replace function admin_delete_book_question(p_id bigint, p_admin_id uuid)
+returns void language plpgsql security definer as $$
+begin
+  if not exists(select 1 from members where id = p_admin_id and role = 'admin') then
+    raise exception 'not admin';
+  end if;
+  delete from book_questions where id = p_id;
+end;$$;
+
+-- الأدمن يمسح كل الأسئلة
+create or replace function admin_clear_book_questions(p_admin_id uuid)
+returns void language plpgsql security definer as $$
+begin
+  if not exists(select 1 from members where id = p_admin_id and role = 'admin') then
+    raise exception 'not admin';
+  end if;
+  delete from book_questions;
+end;$$;
