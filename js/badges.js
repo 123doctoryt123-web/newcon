@@ -202,27 +202,43 @@ var Badges = (function () {
 
       var total = Object.keys(earnedIds).length;
 
+      var earnedList  = ALL_BADGES.filter(function(b){ return !!earnedIds[b.id]; });
+      var lockedList  = ALL_BADGES.filter(function(b){ return !earnedIds[b.id]; });
+
+      function earnedRow(b, i){
+        return '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:linear-gradient(135deg,rgba(200,150,90,0.13),rgba(192,83,58,0.07));border:1px solid rgba(200,150,90,0.3);margin-bottom:8px;animation:bdg-pop .4s cubic-bezier(0.34,1.56,0.64,1) ' + (i*0.07) + 's both">'
+             + '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,rgba(200,150,90,0.2),rgba(192,83,58,0.12));border:1px solid rgba(200,150,90,0.35);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;box-shadow:0 0 12px rgba(200,150,90,0.2)">' + b.emoji + '</div>'
+             + '<div style="flex:1">'
+             + '<div style="font-family:\'Changa\',\'Tajawal\',sans-serif;font-weight:800;font-size:13px;color:#E8E0D0">' + b.name + '</div>'
+             + '</div>'
+             + '<div style="font-size:18px">✅</div>'
+             + '</div>';
+      }
+
+      function lockedRows(list){
+        if(!list.length) return '';
+        return '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px">'
+             + list.map(function(b){
+                 return '<div title="' + b.name + '" style="display:flex;align-items:center;gap:6px;padding:5px 10px 5px 6px;border-radius:99px;border:1px solid rgba(255,255,255,0.07);background:rgba(6,15,24,0.35)">'
+                      + '<span style="font-size:15px;filter:grayscale(1) opacity(0.3)">' + b.emoji + '</span>'
+                      + '<span style="font-size:11px;color:#50483a;font-family:\'Tajawal\',sans-serif">' + b.name + '</span>'
+                      + '</div>';
+               }).join('')
+             + '</div>';
+      }
+
       container.innerHTML =
-        '<div style="background:linear-gradient(160deg,#152235,#1C2E45);border:1px solid rgba(200,160,100,0.15);border-radius:18px;padding:18px 20px">' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
-            '<span style="font-family:\'Changa\',\'Tajawal\',sans-serif;font-weight:800;font-size:14px;color:#E8E0D0">🏅 إنجازاتي</span>' +
-            '<span style="font-size:11px;color:#C8975A;background:rgba(200,150,90,0.1);border:1px solid rgba(200,150,90,0.2);border-radius:99px;padding:2px 10px;font-family:\'Changa\',sans-serif;font-weight:700">' + total + ' / ' + ALL_BADGES.length + '</span>' +
-          '</div>' +
-          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
-            ALL_BADGES.map(function (b) {
-              var earned = !!earnedIds[b.id];
-              var bg  = earned ? 'linear-gradient(145deg,rgba(200,150,90,0.13),rgba(192,83,58,0.07))' : 'rgba(6,15,24,0.4)';
-              var bdr = earned ? 'rgba(200,150,90,0.35)' : 'rgba(200,160,100,0.08)';
-              var nameColor = earned ? '#C8975A' : '#605848';
-              var filter = earned ? 'none' : 'grayscale(1) opacity(0.25)';
-              var delay  = (ALL_BADGES.indexOf(b) * 0.06) + 's';
-              return '<div title="' + b.name + '" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px 10px;border-radius:14px;border:1.5px solid ' + bdr + ';background:' + bg + ';animation-delay:' + delay + '" class="' + (earned ? 'bdg-item earned' : 'bdg-item') + '">' +
-                '<span style="font-size:26px;line-height:1;filter:' + filter + '">' + b.emoji + '</span>' +
-                '<span style="font-size:10px;color:' + nameColor + ';text-align:center;font-family:\'Tajawal\',sans-serif;font-weight:' + (earned ? '700' : '400') + ';line-height:1.3">' + b.name + '</span>' +
-                '</div>';
-            }).join('') +
-          '</div>' +
-        '</div>';
+        '<div style="background:linear-gradient(160deg,#152235,#1C2E45);border:1px solid rgba(200,160,100,0.15);border-radius:18px;padding:18px 20px">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+        +   '<span style="font-family:\'Changa\',\'Tajawal\',sans-serif;font-weight:800;font-size:14px;color:#E8E0D0">🏅 إنجازاتي</span>'
+        +   '<span style="font-size:11px;color:#C8975A;background:rgba(200,150,90,0.1);border:1px solid rgba(200,150,90,0.2);border-radius:99px;padding:2px 10px;font-family:\'Changa\',sans-serif;font-weight:700">' + total + ' / ' + ALL_BADGES.length + '</span>'
+        + '</div>'
+        + (earnedList.length ? earnedList.map(function(b,i){ return earnedRow(b,i); }).join('') : '')
+        + (lockedList.length ? '<div style="margin-top:' + (earnedList.length ? '10px' : '0') + ';padding-top:' + (earnedList.length ? '10px' : '0') + ';border-top:' + (earnedList.length ? '1px solid rgba(255,255,255,0.05)' : 'none') + '">'
+            + '<div style="font-size:11px;color:#50483a;font-family:\'Tajawal\',sans-serif;margin-bottom:8px">لسه مكسبتهاش</div>'
+            + lockedRows(lockedList)
+            + '</div>' : '')
+        + '</div>';
     } catch (e) {
       console.warn('[Badges] renderShelf error:', e);
     }
