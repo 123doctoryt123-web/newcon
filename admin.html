@@ -147,6 +147,7 @@
       <div class="tab" data-tab="dailyq">❓ سؤال اليوم</div>
       <!-- خطوة 1 — تاب تحدي الفريق -->
       <div class="tab" data-tab="teamchallenge">🏆 تحدي الفريق</div>
+      <div class="tab" data-tab="online">🟢 الموجودين الآن</div>
     </div>
 
     <!-- الشباب -->
@@ -370,19 +371,6 @@
           <div id="formMsg" style="margin-top:10px"></div>
         </div>
       </div>
-
-      <div class="card" style="margin-top:4px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <strong>💬 الأسئلة المجهولة</strong>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span id="adminBqCount" style="font-size:12px;color:var(--mist-dim)">بنحمّل...</span>
-            <button class="btn danger small" onclick="adminClearAllBQ()">🗑️ مسح الكل</button>
-          </div>
-        </div>
-        <div id="adminBqFeed">
-          <div class="empty-state">بنحمّل الأسئلة...</div>
-        </div>
-      </div>
     </div>
 
     <!-- QR الحضور -->
@@ -565,6 +553,20 @@
 
     <!-- الإعدادات -->
     <div class="tab-panel" id="panel-settings">
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+          <strong id="siteLockStatusText">حالة الموقع: ...</strong>
+          <button class="btn small" id="toggleSiteLockBtn">تغيير</button>
+        </div>
+        <p style="font-size:12.5px;color:var(--mist-dim);margin-bottom:12px;line-height:1.7">
+          لما الموقع "مقفول"، أي حد يسجّل ويدخل الداشبورد هيلاقي كل حاجة مبلورة ومقفولة، ومش هيقدر يعمل حاجة غير إنه يسجّل حسابه بس.
+          افتح الموقع لما تكون جاهز تظهر المحتوى للكل.
+        </p>
+        <label for="siteLockMsgInput">رسالة الانتظار (تظهر للشباب وهم مستنيين)</label>
+        <textarea id="siteLockMsgInput" placeholder="قريبًا هيتفتح كل حاجة... استنى شوية 👀"></textarea>
+        <button class="btn outline" id="saveSiteLockMsgBtn">حفظ الرسالة</button>
+        <div id="siteLockMsg" style="margin-top:10px"></div>
+      </div>
       <div class="card">
         <label for="newAdminPass">تغيير كلمة سر الأدمن</label>
         <input type="password" id="newAdminPass" placeholder="كلمة سر جديدة">
@@ -943,6 +945,21 @@
       </div>
 
     </div><!-- /panel-teamchallenge -->
+
+    <!-- الموجودين الآن -->
+    <div class="tab-panel" id="panel-online">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <strong>🟢 فاتحين الموقع دلوقتي (<span id="onlineCount">0</span>)</strong>
+        </div>
+        <p style="font-size:12.5px;color:var(--mist-dim);margin-bottom:14px">
+          بتتحدث كل 10 ثواني — أي حد يقفل الموقع أو يبعد عنه هيتشال من القايمة تلقائيًا بعد نص دقيقة.
+        </p>
+        <div id="onlineList">
+          <div class="empty-state">بنحمّل...</div>
+        </div>
+      </div>
+    </div><!-- /panel-online -->
 
   </div><!-- /adminPanel -->
 </div>
