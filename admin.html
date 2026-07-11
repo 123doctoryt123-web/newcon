@@ -552,6 +552,20 @@
 
     <!-- الإعدادات -->
     <div class="tab-panel" id="panel-settings">
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+          <strong id="siteLockStatusText">حالة الموقع: ...</strong>
+          <button class="btn small" id="toggleSiteLockBtn">تغيير</button>
+        </div>
+        <p style="font-size:12.5px;color:var(--mist-dim);margin-bottom:12px;line-height:1.7">
+          لما الموقع "مقفول"، أي حد يسجّل ويدخل الداشبورد هيلاقي كل حاجة مبلورة ومقفولة، ومش هيقدر يعمل حاجة غير إنه يسجّل حسابه بس.
+          افتح الموقع لما تكون جاهز تظهر المحتوى للكل.
+        </p>
+        <label for="siteLockMsgInput">رسالة الانتظار (تظهر للشباب وهم مستنيين)</label>
+        <textarea id="siteLockMsgInput" placeholder="قريبًا هيتفتح كل حاجة... استنى شوية 👀"></textarea>
+        <button class="btn outline" id="saveSiteLockMsgBtn">حفظ الرسالة</button>
+        <div id="siteLockMsg" style="margin-top:10px"></div>
+      </div>
       <div class="card">
         <label for="newAdminPass">تغيير كلمة سر الأدمن</label>
         <input type="password" id="newAdminPass" placeholder="كلمة سر جديدة">
