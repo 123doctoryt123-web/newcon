@@ -200,25 +200,38 @@ async function stopSpyGame(){
 }
 
 // ============================================================
-// درس الكتاب
+// درس الكتاب — الأسئلة السرية
 // ============================================================
-async function loadFormUrl(){
-  var res=await supabase.rpc("get_form_url");
-  if(res.data) document.getElementById("formUrl").value=res.data;
+async function loadBookQuestions() {
+  var res = await supabase.rpc("admin_get_book_questions", { p_password: getAdminPass() });
+  var el = document.getElementById("bookQList");
+  if (!el) return;
+  if (res.error || !res.data || !res.data.length) {
+    el.innerHTML = '<div class="empty-state">مفيش أسئلة لسه</div>';
+    return;
+  }
+  el.innerHTML = res.data.map(function(q, i) {
+    return '<div style="padding:12px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">' +
+      '<span style="color:var(--mist-dim);font-size:12px;min-width:20px">' + (i+1) + '</span>' +
+      '<div style="flex:1">' +
+        '<div style="color:var(--mist);font-size:14px">' + escHtml(q.question) + '</div>' +
+        '<div style="color:var(--mist-dim);font-size:11px;margin-top:4px">' + timeAgo(q.created_at) + '</div>' +
+      '</div>' +
+      '<button onclick="deleteBookQ(' + q.id + ')" style="background:none;border:none;color:#c0533a;cursor:pointer;font-size:16px">✕</button>' +
+    '</div>';
+  }).join('');
 }
 
-async function saveFormUrl(){
-  var url=document.getElementById("formUrl").value.trim();
-  var msg=document.getElementById("formMsg");
-  var btn=document.getElementById("saveFormBtn");
-  btn.disabled=true; btn.textContent="بنحفظ...";
-  await supabase.rpc("admin_set_form_url",{p_password:getAdminPass(),p_url:url});
-  btn.disabled=false; btn.textContent="حفظ الرابط";
-  msg.innerHTML='<div class="success-msg" style="display:block">✅ تم حفظ الرابط</div>';
-  setTimeout(function(){ msg.innerHTML=""; },3000);
+async function deleteBookQ(id) {
+  await supabase.rpc("admin_delete_book_question", { p_password: getAdminPass(), p_id: id });
+  loadBookQuestions();
 }
 
-
+async function clearBookQuestions() {
+  if (!confirm("هتمسح كل الأسئلة؟")) return;
+  await supabase.rpc("admin_clear_book_questions", { p_password: getAdminPass() });
+  loadBookQuestions();
+}
 // ============================================================
 // القادة: تحميل وتعيين الأدوار
 // ============================================================
