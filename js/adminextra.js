@@ -646,6 +646,10 @@ function openMemberModal(memberId){
   document.getElementById('modalRole').value      = m.role      || 'member';
   document.getElementById('modalMsg').innerHTML   = '';
 
+  // إظهار/إخفاء صف الغرفة
+  var roomRow = document.getElementById('modalRoomRow');
+  if(roomRow) roomRow.style.display = (m.role === 'room_admin') ? 'block' : 'none';
+
   document.getElementById('memberModal').classList.add('open');
   document.getElementById('modalTeamName').focus();
 }
@@ -686,9 +690,23 @@ async function saveMemberModal(){
   // 2) حفظ الدور (لو اتغير أو مختلف)
   var r2 = { error: null };
   if(roleChanged){
-    r2 = await supabase.rpc('admin_set_member_role', {
-      p_password: getAdminPass(), p_member_id: _modalMemberId, p_role: role
-    });
+    if(role === 'room_admin'){
+      // تعيين أمين غرفة — محتاج اسم الغرفة
+      var roomSel = document.getElementById('modalRoomSelect');
+      var roomName = roomSel ? roomSel.value : '';
+      if(!roomName){
+        showModalMsg('❌ اختار الغرفة الأول', 'error');
+        btn.disabled = false; btn.textContent = '💾 حفظ';
+        return;
+      }
+      r2 = await supabase.rpc('admin_assign_room', {
+        p_password: getAdminPass(), p_member_id: _modalMemberId, p_room_name: roomName
+      });
+    } else {
+      r2 = await supabase.rpc('admin_set_member_role', {
+        p_password: getAdminPass(), p_member_id: _modalMemberId, p_role: role
+      });
+    }
   }
 
   btn.disabled = false; btn.textContent = '💾 حفظ';
@@ -724,6 +742,15 @@ document.addEventListener('DOMContentLoaded', function(){
   if(cancelBtn) cancelBtn.addEventListener('click', closeMemberModal);
   if(saveBtn)   saveBtn.addEventListener('click',  saveMemberModal);
 
+  // إظهار/إخفاء صف الغرفة لما يتغير الدور
+  var modalRole = document.getElementById('modalRole');
+  if(modalRole){
+    modalRole.addEventListener('change', function(){
+      var roomRow = document.getElementById('modalRoomRow');
+      if(roomRow) roomRow.style.display = (modalRole.value === 'room_admin') ? 'block' : 'none';
+    });
+  }
+
   // إغلاق بالضغط على الخلفية
   modal.addEventListener('click', function(e){
     if(e.target === modal) closeMemberModal();
@@ -734,3 +761,55 @@ document.addEventListener('DOMContentLoaded', function(){
     if(e.key === 'Escape' && modal.classList.contains('open')) closeMemberModal();
   });
 });
+
+// ============================================================
+// تحميل تاب الدرجات لما ينفتح
+// ============================================================
+(function watchScoresTab(){
+  var panel = document.getElementById('panel-scores');
+  if(!panel) return;
+  var loaded = false;
+  var observer = new MutationObserver(function(){
+    if(panel.classList.contains('active') && !loaded){
+      loaded = true;
+      loadRoomScores();
+      loadProjectScores();
+    }
+    if(!panel.classList.contains('active')) loaded = false;
+  });
+  observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+})();
+
+async function loadRoomScores(){
+  var box = document.getElementById('roomScoresList');
+  if(!box) return;
+  var res = await supabase.rpc('admin_list_room_scores', { p_password: getAdminPass() });
+  if(res.error || !res.data || !res.data.length){
+    box.innerHTML = '<div class="empty-state">لسه مفيش درجات غرف</div>'; return;
+  }
+  box.innerHTML = '<table><thead><tr><th>الغرفة</th><th>الفريق</th><th>الدرجة الكلية</th><th>الحاضرين</th><th>نصيب الفرد</th><th>التاريخ</th><th>الأمين</th></tr></thead><tbody>' +
+    res.data.map(function(r){
+      return '<tr><td>'+escHtml(r.room_name)+'</td><td>'+escHtml(r.team_name)+'</td>' +
+        '<td style="color:var(--gold);font-weight:700">'+r.total_score+'</td>' +
+        '<td>'+r.present_count+'</td>' +
+        '<td style="color:var(--pitch);font-weight:700">'+parseFloat(r.score_per_member).toFixed(1)+'</td>' +
+        '<td style="font-size:11px;color:var(--mist-dim)">'+r.session_date+'</td>' +
+        '<td style="font-size:11px">'+escHtml(r.admin_name)+'</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+async function loadProjectScores(){
+  var box = document.getElementById('projectScoresList');
+  if(!box) return;
+  var res = await supabase.rpc('admin_list_project_scores', { p_password: getAdminPass() });
+  if(res.error || !res.data || !res.data.length){
+    box.innerHTML = '<div class="empty-state">لسه مفيش درجات مشروع</div>'; return;
+  }
+  box.innerHTML = '<table><thead><tr><th>المجموعة</th><th>الفريق</th><th>الدرجة</th><th>ملاحظة</th><th>المصحح</th></tr></thead><tbody>' +
+    res.data.map(function(r){
+      return '<tr><td>'+escHtml(r.group_name)+'</td><td>'+escHtml(r.team_name)+'</td>' +
+        '<td style="color:var(--gold);font-weight:700">'+r.score+'</td>' +
+        '<td style="font-size:11px;color:var(--mist-dim)">'+escHtml(r.note||'—')+'</td>' +
+        '<td style="font-size:11px">'+escHtml(r.reviewer_name)+'</td></tr>';
+    }).join('') + '</tbody></table>';
+}
