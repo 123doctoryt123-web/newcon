@@ -314,9 +314,18 @@
     <div class="leader-gate-icon">👑</div>
     <div>
       <h3>لوحة القائد</h3>
-      <p>إحصائيات فريقك، التوقعات، وسكان الحضور</p>
+      <p>إحصائيات فريقك والتوقعات</p>
     </div>
     <div class="arrow">‹</div>
+  </div>
+
+  <div class="leader-gate" id="secretaryGateBtn" onclick="location.href='secretary.html'" style="display:none;border-color:var(--pitch);background:linear-gradient(120deg,rgba(74,124,111,0.15),rgba(74,124,111,0.05))">
+    <div class="leader-gate-icon" style="background:linear-gradient(135deg,var(--pitch),var(--pitch-dim))">🗝️</div>
+    <div>
+      <h3 style="color:#a9e6c4">لوحة أمين الغرفة</h3>
+      <p>أعط درجات للفريق الخاص بك</p>
+    </div>
+    <div class="arrow" style="color:var(--pitch)">‹</div>
   </div>
 
   <!-- سيكشن حضور درس الكتاب — للليدر بس -->
@@ -486,6 +495,11 @@ async function initRoleBasedUI(){
     var btn = document.getElementById("leaderGateBtn");
     if(btn) btn.classList.add("visible");
     loadBookAttendanceSection();
+  }
+
+  if(_memberRole === "secretary"){
+    var secBtn = document.getElementById("secretaryGateBtn");
+    if(secBtn) secBtn.style.display = "flex";
   }
 
   if(_memberRole === "room_admin"){
