@@ -200,6 +200,14 @@ async function stopSpyGame(){
 // ============================================================
 // درس الكتاب — الأسئلة السرية
 // ============================================================
+function timeAgo(dateStr) {
+  var diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return "منذ أقل من دقيقة";
+  if (diff < 3600) return "منذ " + Math.floor(diff / 60) + " دقيقة";
+  if (diff < 86400) return "منذ " + Math.floor(diff / 3600) + " ساعة";
+  return "منذ " + Math.floor(diff / 86400) + " يوم";
+}
+
 async function loadBookQuestions() {
   var res = await supabase.rpc("admin_get_book_questions", { p_password: getAdminPass() });
   var el = document.getElementById("bookQList");
