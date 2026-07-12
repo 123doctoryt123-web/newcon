@@ -85,6 +85,8 @@ function renderTeamsTable(){
   if(!tbody) return;
   var roleLabel={
     leader:'<span class="badge-leader">👑 قائد</span>',
+    room_admin:'<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>',
+    project_reviewer:'<span style="color:var(--pitch);font-size:12px">📝 مصحح</span>',
     member:'<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
   };
   tbody.innerHTML=teamsMembersCache.map(function(m){
@@ -297,6 +299,8 @@ async function loadLeadersAdmin(){
   if(tbody){
     var roleLabel = {
       leader: '<span class="badge-leader">👑 قائد</span>',
+      room_admin: '<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>',
+      project_reviewer: '<span style="color:var(--pitch);font-size:12px">📝 مصحح</span>',
       member: '<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
     };
     tbody.innerHTML = leadersMembersCache.map(function(m){
