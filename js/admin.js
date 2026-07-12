@@ -535,3 +535,4 @@ async function clearAnnouncement() {
     card.style.display = "none";
   }
 }
+
