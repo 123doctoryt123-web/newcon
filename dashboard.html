@@ -488,7 +488,8 @@ async function initRoleBasedUI(){
   }
 
   if(_memberRole === "room_admin"){
-    showRoomAdminUI();
+    var secBtn = document.getElementById("secretaryGateBtn");
+    if(secBtn) secBtn.style.display = "flex";
   }
 
   if(_memberRole === "project_reviewer"){
