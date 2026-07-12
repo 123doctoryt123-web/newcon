@@ -15,10 +15,8 @@ document.addEventListener("DOMContentLoaded",function(){
   document.getElementById("stopSpyBtn").addEventListener("click",stopSpyGame);
   document.getElementById("selectAllSpyBtn").addEventListener("click",function(){ teamsMembersCache.forEach(function(m){ spySelectedIds.add(m.id); }); renderSpyMembers(); });
   document.getElementById("deselectAllSpyBtn").addEventListener("click",function(){ spySelectedIds.clear(); renderSpyMembers(); });
-  document.getElementById("saveFormBtn").addEventListener("click",saveFormUrl);
   loadTeamsAdmin();
   loadProgramAdmin();
-  loadFormUrl();
 
   // القادة والمشاريع — listeners بس، التحميل هيحصل لما التاب ينفتح
   var setLeaderBtn = document.getElementById('setLeaderBtn');
