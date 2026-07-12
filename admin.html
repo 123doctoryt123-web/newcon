@@ -360,19 +360,20 @@
       </div>
     </div>
 
-    <!-- درس الكتاب -->
-    <div class="tab-panel" id="panel-book">
-      <div class="card">
-        <strong>📖 رابط فورم درس الكتاب</strong>
-        <div style="margin-top:14px">
-          <label>رابط جوجل فورم</label>
-          <input type="url" id="formUrl" placeholder="https://forms.google.com/...">
-          <button class="btn" id="saveFormBtn">حفظ الرابط</button>
-          <div id="formMsg" style="margin-top:10px"></div>
-        </div>
-      </div>
+   <!-- درس الكتاب -->
+<div class="tab-panel" id="panel-book">
+  <div class="card">
+    <strong>📖 أسئلة درس الكتاب</strong>
+    <p style="font-size:13px;color:var(--mist-dim);margin:8px 0 14px">
+      الأسئلة اللي بعتها الشباب بشكل مجهول — بتتحدث تلقائياً
+    </p>
+    <button class="btn outline" id="refreshBookQBtn" onclick="loadBookQuestions()">🔄 تحديث</button>
+    <button class="btn" id="clearBookQBtn" style="background:#c0533a;margin-right:8px" onclick="clearBookQuestions()">🗑️ مسح الكل</button>
+    <div id="bookQList" style="margin-top:16px">
+      <div class="empty-state">بنحمّل...</div>
     </div>
-
+  </div>
+</div>
     <!-- QR الحضور -->
     <div class="tab-panel" id="panel-qr">
       <div class="card">
