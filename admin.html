@@ -138,6 +138,7 @@
       <div class="tab" data-tab="notifications">الإشعارات</div>
       <div class="tab" data-tab="retreat">الخلوة</div>
       <div class="tab" data-tab="settings">الإعدادات</div>
+      <div class="tab" data-tab="scores">📊 الدرجات</div>
       <div class="tab" data-tab="puzzle">🧩 اللغز</div>
       <div class="tab" data-tab="poll">🗳️ الاستفتاء</div>
       <div class="tab" data-tab="confpredict">🔮 التوقعات</div>
@@ -233,6 +234,39 @@
       </div>
 
     </div><!-- /panel-teams -->
+
+    <!-- ══ تاب الدرجات ══ -->
+    <div class="tab-panel" id="panel-scores">
+
+      <!-- درجات الغرف -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">🏠</div>
+          <div>
+            <div class="wizard-step-title">درجات الغرف</div>
+            <div class="wizard-step-sub">الدرجات اللي أمناء الغرف أعطوها للفرق</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <div id="roomScoresList"><div class="empty-state">بنحمّل...</div></div>
+        </div>
+      </div>
+
+      <!-- درجات المشروع -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">📝</div>
+          <div>
+            <div class="wizard-step-title">درجات المشروع</div>
+            <div class="wizard-step-sub">الدرجات اللي المصححون أعطوها للمجموعات</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <div id="projectScoresList"><div class="empty-state">بنحمّل...</div></div>
+        </div>
+      </div>
+
+    </div><!-- /panel-scores -->
 
     <!-- hidden compat elements -->
     <select id="teamMemberSelect"  style="display:none"></select>
@@ -1637,7 +1671,25 @@ window.addEventListener("DOMContentLoaded", function() {
     <select id="modalRole">
       <option value="member">عضو عادي</option>
       <option value="leader">👑 قائد فريق</option>
+      <option value="room_admin">🏠 أمين غرفة</option>
+      <option value="project_reviewer">📝 مصحح مشروع</option>
     </select>
+
+    <!-- غرفة الأمين — تظهر بس لو الدور room_admin -->
+    <div id="modalRoomRow" style="display:none;margin-top:10px">
+      <label>الغرفة المخصصة</label>
+      <select id="modalRoomSelect">
+        <option value="">— اختار الغرفة —</option>
+        <option value="غرفة لعبة 1">غرفة لعبة 1</option>
+        <option value="غرفة لعبة 2">غرفة لعبة 2</option>
+        <option value="غرفة لعبة 3">غرفة لعبة 3</option>
+        <option value="غرفة لعبة 4">غرفة لعبة 4</option>
+        <option value="غرفة لعبة 5">غرفة لعبة 5</option>
+        <option value="درس الكتاب">درس الكتاب</option>
+        <option value="أعمال يدوية">أعمال يدوية</option>
+        <option value="تنمية">تنمية</option>
+      </select>
+    </div>
 
     <div id="modalMsg" style="margin-top:10px"></div>
 
