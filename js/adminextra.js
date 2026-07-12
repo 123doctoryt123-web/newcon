@@ -787,19 +787,49 @@ document.addEventListener('DOMContentLoaded', function(){
 async function loadRoomScores(){
   var box = document.getElementById('roomScoresList');
   if(!box) return;
+
+  // جيب الملخص
   var res = await supabase.rpc('admin_list_room_scores', { p_password: getAdminPass() });
+  // جيب التفاصيل الكاملة
+  var det = await supabase.rpc('admin_list_room_details', { p_password: getAdminPass() });
+
   if(res.error || !res.data || !res.data.length){
     box.innerHTML = '<div class="empty-state">لسه مفيش درجات غرف</div>'; return;
   }
-  box.innerHTML = '<table><thead><tr><th>الغرفة</th><th>الفريق</th><th>الدرجة الكلية</th><th>الحاضرين</th><th>نصيب الفرد</th><th>التاريخ</th><th>الأمين</th></tr></thead><tbody>' +
+
+  // ملخص
+  var html = '<table><thead><tr><th>الأمين/الغرفة</th><th>الفريق</th><th>نقاط الجلسة</th><th>الحاضرين</th><th>نصيب الفرد</th><th>التاريخ</th></tr></thead><tbody>' +
     res.data.map(function(r){
-      return '<tr><td>'+escHtml(r.room_name)+'</td><td>'+escHtml(r.team_name)+'</td>' +
+      return '<tr>' +
+        '<td style="font-weight:700">'+escHtml(r.room_name)+'</td>' +
+        '<td>'+escHtml(r.team_name)+'</td>' +
         '<td style="color:var(--gold);font-weight:700">'+r.total_score+'</td>' +
-        '<td>'+r.present_count+'</td>' +
+        '<td style="color:#a9e6c4">'+r.present_count+'</td>' +
         '<td style="color:var(--pitch);font-weight:700">'+parseFloat(r.score_per_member).toFixed(1)+'</td>' +
         '<td style="font-size:11px;color:var(--mist-dim)">'+r.session_date+'</td>' +
-        '<td style="font-size:11px">'+escHtml(r.admin_name)+'</td></tr>';
+        '</tr>';
     }).join('') + '</tbody></table>';
+
+  // تفاصيل كل عضو
+  if(!det.error && det.data && det.data.length){
+    html += '<div style="margin-top:18px;font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:10px">📋 تفاصيل الأعضاء</div>';
+    html += '<table><thead><tr><th>الأمين</th><th>الفريق</th><th>العضو</th><th>الحضور</th><th>نقاط الجلسة</th><th>بونص</th><th>الإجمالي</th><th>التاريخ</th></tr></thead><tbody>' +
+      det.data.map(function(r){
+        var present = r.session_pts > 0 || r.bonus_pts > 0;
+        return '<tr>' +
+          '<td style="font-size:11px">'+escHtml(r.secretary_name)+'</td>' +
+          '<td>'+escHtml(r.team_name)+'</td>' +
+          '<td style="font-weight:700;color:var(--mist)">'+escHtml(r.member_name)+'</td>' +
+          '<td>'+(present?'<span style="color:#a9e6c4">✅ حاضر</span>':'<span style="color:#ffb3a6">❌ غائب</span>')+'</td>' +
+          '<td style="color:var(--gold);font-weight:700">'+r.session_pts+'</td>' +
+          '<td style="color:var(--pitch);font-weight:700">'+(r.bonus_pts>0?'+'+r.bonus_pts:'—')+'</td>' +
+          '<td style="color:var(--gold);font-weight:800">'+(r.session_pts+r.bonus_pts)+'</td>' +
+          '<td style="font-size:11px;color:var(--mist-dim)">'+r.session_date+'</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  box.innerHTML = html;
 }
 
 async function loadProjectScores(){
