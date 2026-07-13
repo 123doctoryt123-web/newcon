@@ -630,8 +630,22 @@
         <label>عنوان اللغز</label>
         <input type="text" id="puzTitle" placeholder="مثال: اللغز الأول" value="اللغز 🧩">
 
-        <label style="margin-top:10px">رابط الصورة الافتراضية (لو فيه مكان واحد للكل)</label>
-        <input type="url" id="puzImgUrl" placeholder="https://... (اختياري)">
+        <!-- صور الفرقتين -->
+        <div style="background:rgba(200,150,90,0.07);border:1px solid rgba(200,150,90,0.2);border-radius:8px;padding:12px 14px;margin-top:10px">
+          <p style="font-size:12px;color:var(--gold);font-weight:700;margin:0 0 10px">🖼️ صور المكانين (بازل)</p>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1">
+              <label style="font-size:12px;color:var(--mist-dim)">📍 فرقة A — الصورة الأولى</label>
+              <input type="url" id="puzImgA" placeholder="https://... رابط صورة فرقة A">
+              <p style="font-size:11px;color:var(--mist-dim);margin:4px 0 0">بتتبعت لـ 2 أشخاص</p>
+            </div>
+            <div style="flex:1">
+              <label style="font-size:12px;color:var(--mist-dim)">📍 فرقة B — الصورة التانية</label>
+              <input type="url" id="puzImgB" placeholder="https://... رابط صورة فرقة B">
+              <p style="font-size:11px;color:var(--mist-dim);margin:4px 0 0">بتتبعت لـ 3 أشخاص</p>
+            </div>
+          </div>
+        </div>
 
         <label style="margin-top:10px">تلميح (اختياري)</label>
         <input type="text" id="puzHint" placeholder="مثال: قريب من المدخل الرئيسي">
@@ -653,32 +667,65 @@
         <div id="puzCreateMsg" style="margin-top:10px;font-size:13px"></div>
       </div>
 
-      <!-- ② إضافة المشتركين -->
+      <!-- ② إضافة المشتركين بالفرق -->
       <div class="card" id="puzParticipantsCard" style="display:none">
-        <strong style="font-size:15px">👥 إضافة المشتركين</strong>
+        <strong style="font-size:15px">👥 تقسيم المشتركين للفرقتين</strong>
         <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">
-          اختار الشباب دفعة واحدة وضغط زر واحد بس
+          كل فرقة هتشوف صورة مكان مختلف — لازم يتعاونوا يحلوا اللغز
         </p>
 
-        <input type="text" id="puzMemberSearch" placeholder="🔍 ابحث باسم الشخص…"
-          oninput="filterPuzMembers()"
-          style="margin-bottom:10px">
-
-        <div id="puzCheckList"
-          style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px;display:flex;flex-direction:column;gap:6px">
-          <p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">
-            ⏳ جاري تحميل القائمة…
-          </p>
+        <!-- تبويبات الفرق -->
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button id="puzTabBtnA" class="btn small" onclick="switchPuzTab('A')"
+            style="flex:1;background:rgba(200,150,90,0.2);border-color:var(--gold);color:var(--gold)">
+            📍 فرقة A
+          </button>
+          <button id="puzTabBtnB" class="btn small outline" onclick="switchPuzTab('B')"
+            style="flex:1">
+            📍 فرقة B
+          </button>
         </div>
 
-        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-          <button class="btn small outline" onclick="selectAllPuzMembers()">تحديد الكل</button>
-          <button class="btn small outline" onclick="deselectAllPuzMembers()">إلغاء الكل</button>
-          <span id="puzSelectedCount" style="font-size:12px;color:var(--mist-dim);margin-right:auto">0 محدود</span>
+        <!-- تاب فرقة A -->
+        <div id="puzTabA">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:rgba(200,150,90,0.08);border-radius:6px;padding:8px 10px">
+            <span style="font-size:12px;color:var(--gold);font-weight:700">📍 فرقة A</span>
+            <span style="font-size:11px;color:var(--mist-dim)">— هيشوفوا الصورة الأولى</span>
+            <span id="puzCountA" style="margin-right:auto;font-size:12px;color:var(--gold);font-weight:700">0 محدود</span>
+          </div>
+          <input type="text" id="puzSearchA" placeholder="🔍 ابحث في الأسماء…"
+            oninput="filterPuzTeam('A')" style="margin-bottom:8px">
+          <div id="puzListA"
+            style="max-height:200px;overflow-y:auto;border:1px solid rgba(200,150,90,0.25);border-radius:var(--radius-sm);padding:8px;display:flex;flex-direction:column;gap:4px">
+            <p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">⏳ جاري التحميل…</p>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn small outline" onclick="selectAllPuzTeam('A')">تحديد الكل</button>
+            <button class="btn small outline" onclick="deselectAllPuzTeam('A')">إلغاء الكل</button>
+          </div>
         </div>
 
-        <button class="btn" style="margin-top:12px;width:100%" onclick="addParticipantsBulk()">
-          ➕ أضف المحددين للغز
+        <!-- تاب فرقة B -->
+        <div id="puzTabB" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:rgba(74,124,111,0.1);border-radius:6px;padding:8px 10px">
+            <span style="font-size:12px;color:#a9e6c4;font-weight:700">📍 فرقة B</span>
+            <span style="font-size:11px;color:var(--mist-dim)">— هيشوفوا الصورة التانية</span>
+            <span id="puzCountB" style="margin-right:auto;font-size:12px;color:#a9e6c4;font-weight:700">0 محدود</span>
+          </div>
+          <input type="text" id="puzSearchB" placeholder="🔍 ابحث في الأسماء…"
+            oninput="filterPuzTeam('B')" style="margin-bottom:8px">
+          <div id="puzListB"
+            style="max-height:200px;overflow-y:auto;border:1px solid rgba(74,124,111,0.25);border-radius:var(--radius-sm);padding:8px;display:flex;flex-direction:column;gap:4px">
+            <p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">⏳ جاري التحميل…</p>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn small outline" onclick="selectAllPuzTeam('B')">تحديد الكل</button>
+            <button class="btn small outline" onclick="deselectAllPuzTeam('B')">إلغاء الكل</button>
+          </div>
+        </div>
+
+        <button class="btn" style="margin-top:14px;width:100%" onclick="addParticipantsBulk()">
+          ➕ أضف الفريقين للغز
         </button>
         <div id="puzAddMsg" style="margin-top:8px;font-size:13px"></div>
 
