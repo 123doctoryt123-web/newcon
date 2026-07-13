@@ -305,10 +305,11 @@
         <textarea id="matDesc" placeholder="وصف بسيط للمادة"></textarea>
         <label for="matContent">نص إضافي (اختياري)</label>
         <textarea id="matContent" placeholder="ممكن تحط هنا نص كامل لو مش رابط"></textarea>
-        <label for="matGroup">خاصة بمجموعة؟ (اتركها "للكل" لو عامة)</label>
-        <select id="matGroup">
-          <option value="">🌐 للكل (عامة)</option>
-        </select>
+        <label>خاصة بمجموعات؟ (اتركها فاضية لو عامة للكل)</label>
+        <div id="matGroupList" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;padding:8px;background:var(--ink-3);border-radius:8px;border:1px solid var(--line)">
+          <span style="color:var(--mist-dim);font-size:12px">بتحمّل المجموعات...</span>
+        </div>
+        <p id="matGroupCount" style="font-size:11px;color:var(--mist-dim);margin:4px 0 0">0 مجموعة محددة — هترسل للكل</p>
         <button class="btn" id="addMaterialBtn">إضافة المادة</button>
       </div>
       <div class="card">
