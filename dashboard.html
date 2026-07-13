@@ -328,6 +328,15 @@
     <div class="arrow" style="color:var(--pitch)">‹</div>
   </div>
 
+  <div class="leader-gate" id="retreatServantGateBtn" onclick="location.href='secretary.html'" style="display:none;border-color:#a9e6c4;background:linear-gradient(120deg,rgba(169,230,196,0.1),rgba(74,124,111,0.05))">
+    <div class="leader-gate-icon" style="background:linear-gradient(135deg,#4a7c6f,#2d5a4f)">🕊️</div>
+    <div>
+      <h3 style="color:#a9e6c4">لوحة خادم الخلوة</h3>
+      <p>سجّل حضور الشباب في الخلوة</p>
+    </div>
+    <div class="arrow" style="color:#a9e6c4">‹</div>
+  </div>
+
   <div id="mainContent">
   <p style="color:var(--mist-dim);font-size:14px;margin-bottom:14px">اختار وين عايز تروح</p>
 
@@ -494,6 +503,11 @@ async function initRoleBasedUI(){
 
   if(_memberRole === "project_reviewer"){
     showProjectReviewerUI();
+  }
+
+  if(_memberRole === "retreat_servant"){
+    var retreatBtn = document.getElementById("retreatServantGateBtn");
+    if(retreatBtn) retreatBtn.style.display = "flex";
   }
 }
 initRoleBasedUI();
