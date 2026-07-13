@@ -503,9 +503,9 @@
             <div>
               <label>اليوم</label>
               <select id="manualDaySelect" style="margin-bottom:0" onchange="loadManualSlots()">
-                <option value="1">19 يوليو</option>
-                <option value="2">20 يوليو</option>
-                <option value="3">21 يوليو</option>
+                <option value="1">اليوم الأول</option>
+                <option value="2">اليوم الثاني</option>
+                <option value="3">اليوم الثالث</option>
               </select>
             </div>
             <div>
@@ -525,17 +525,17 @@
         <strong>📍 تعديل مكان كل يوم</strong>
         <div style="margin-top:14px;display:grid;gap:10px">
           <div style="display:flex;gap:8px;align-items:center">
-            <label style="min-width:80px;margin:0">19 يوليو</label>
+            <label style="min-width:80px;margin:0">اليوم الأول</label>
             <input type="text" id="loc1Input" placeholder="مثال: الكنيسة فوق" style="margin:0;flex:1">
             <button class="btn small outline" onclick="updateLocation(1)">حفظ</button>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <label style="min-width:80px;margin:0">20 يوليو</label>
+            <label style="min-width:80px;margin:0">اليوم الثاني</label>
             <input type="text" id="loc2Input" placeholder="المكان" style="margin:0;flex:1">
             <button class="btn small outline" onclick="updateLocation(2)">حفظ</button>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <label style="min-width:80px;margin:0">21 يوليو</label>
+            <label style="min-width:80px;margin:0">اليوم الثالث</label>
             <input type="text" id="loc3Input" placeholder="المكان" style="margin:0;flex:1">
             <button class="btn small outline" onclick="updateLocation(3)">حفظ</button>
           </div>
@@ -567,9 +567,9 @@
           <strong>جدول المواعيد</strong>
           <div style="display:flex;gap:6px">
             <button class="btn small outline" onclick="filterRetreatDay(0)" id="retreatFilterAll" style="border-color:var(--gold);color:var(--gold)">الكل</button>
-            <button class="btn small outline" onclick="filterRetreatDay(1)" id="retreatFilter1">يوم 1</button>
-            <button class="btn small outline" onclick="filterRetreatDay(2)" id="retreatFilter2">يوم 2</button>
-            <button class="btn small outline" onclick="filterRetreatDay(3)" id="retreatFilter3">يوم 3</button>
+            <button class="btn small outline" onclick="filterRetreatDay(1)" id="retreatFilter1">اليوم الأول</button>
+            <button class="btn small outline" onclick="filterRetreatDay(2)" id="retreatFilter2">اليوم الثاني</button>
+            <button class="btn small outline" onclick="filterRetreatDay(3)" id="retreatFilter3">اليوم الثالث</button>
           </div>
         </div>
         <div id="retreatTableWrap" style="overflow-x:auto">
@@ -1077,7 +1077,7 @@ async function adminBookManual() {
 
 var retreatAllSlots = [];
 var retreatCurrentFilter = 0;
-var retreatDayNames = { 1: '19 يوليو', 2: '20 يوليو', 3: '21 يوليو' };
+var retreatDayNames = { 1: 'اليوم الأول (5م - 10م)', 2: 'اليوم الثاني (10ص - 2ظ)', 3: 'اليوم الثالث (11ص - 1ظ)' };
 
 // تحميل المواعيد لما يفتح التاب
 document.addEventListener("tabChanged", function(e) {
@@ -1683,6 +1683,7 @@ window.addEventListener("DOMContentLoaded", function() {
       <option value="member">عضو عادي</option>
       <option value="leader">👑 قائد فريق</option>
       <option value="room_admin">🏠 أمين غرفة</option>
+      <option value="retreat_servant">🕊️ خادم الخلوة</option>
       <option value="project_reviewer">📝 مصحح مشروع</option>
     </select>
 
@@ -1691,14 +1692,8 @@ window.addEventListener("DOMContentLoaded", function() {
       <label>الغرفة المخصصة</label>
       <select id="modalRoomSelect">
         <option value="">— اختار الغرفة —</option>
-        <option value="غرفة لعبة 1">غرفة لعبة 1</option>
-        <option value="غرفة لعبة 2">غرفة لعبة 2</option>
-        <option value="غرفة لعبة 3">غرفة لعبة 3</option>
-        <option value="غرفة لعبة 4">غرفة لعبة 4</option>
-        <option value="غرفة لعبة 5">غرفة لعبة 5</option>
-        <option value="درس الكتاب">درس الكتاب</option>
-        <option value="أعمال يدوية">أعمال يدوية</option>
-        <option value="تنمية">تنمية</option>
+        <option value="غرفة سيدنا">⛪ غرفة سيدنا</option>
+        <option value="غرفة الآباء الكهنة">✝️ غرفة الآباء الكهنة</option>
       </select>
     </div>
 
