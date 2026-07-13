@@ -86,6 +86,7 @@ function renderTeamsTable(){
   var roleLabel={
     leader:'<span class="badge-leader">👑 قائد</span>',
     room_admin:'<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>',
+    retreat_servant:'<span style="color:#a9e6c4;font-size:12px">🕊️ خادم الخلوة</span>',
     project_reviewer:'<span style="color:var(--pitch);font-size:12px">📝 مصحح</span>',
     member:'<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
   };
@@ -297,6 +298,7 @@ async function loadLeadersAdmin(){
     var roleLabel = {
       leader: '<span class="badge-leader">👑 قائد</span>',
       room_admin: '<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>',
+      retreat_servant: '<span style="color:#a9e6c4;font-size:12px">🕊️ خادم الخلوة</span>',
       project_reviewer: '<span style="color:var(--pitch);font-size:12px">📝 مصحح</span>',
       member: '<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
     };
@@ -326,7 +328,7 @@ async function setMemberRole(memberId, role){
 
   var m = leadersMembersCache.find(function(x){ return x.id===memberId; });
   var name = m ? m.name : 'هذا الشاب';
-  var label = role === 'leader' ? '👑 قائد فريق' : 'عضو عادي';
+  var label = {leader:'👑 قائد فريق', room_admin:'🏠 أمين غرفة', retreat_servant:'🕊️ خادم الخلوة', project_reviewer:'📝 مصحح مشروع'}[role] || 'عضو عادي';
 
   if(!confirm('هتعيّن "' + name + '" كـ ' + label + '؟')){ return false; }
 
