@@ -298,10 +298,7 @@ function openFullscreen(){
 }
 function closeFullscreen(){ document.getElementById("fsOverlay").classList.remove("active"); }
 
-supabase.channel("rt-gratitude")
-  .on("postgres_changes",{event:"INSERT",schema:"public",table:"gratitude_wall"},loadWall)
-  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"gratitude_wall"},loadWall)
-  .subscribe();
+// Realtime — يتم التحديث التلقائي عبر js/realtime.js (مع إعادة المحاولة تلقائياً)
 
 loadTeam();
 loadWall();

@@ -335,20 +335,8 @@ async function vote(optIdx){
 // Realtime — بيستمع للتغييرات في poll_votes
 // ============================================================
 function setupRealtime(){
-  supabase.channel("rt-poll-votes")
-    .on("postgres_changes", {
-      event: "*", schema: "public", table: "poll_votes"
-    }, function(payload){
-      // إعادة تحميل النتائج لما أي صوت يتسجل
-      reloadVotesOnly();
-    })
-    .on("postgres_changes", {
-      event: "*", schema: "public", table: "polls"
-    }, function(){
-      // لو الاستفتاء اتغير (وقف أو جديد)
-      loadPoll();
-    })
-    .subscribe();
+  // التحديث التلقائي يتم عبر js/realtime.js (مع إعادة المحاولة تلقائياً)
+  // هذه الدالة تُبقى هنا فقط للتوافق مع الكود القديم
 }
 
 async function reloadVotesOnly(){

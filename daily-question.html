@@ -383,13 +383,7 @@ function showEmpty(msg, noQuestion){
 }
 
 // ============================================================
-// Realtime — لو الأدمن نزّل سؤال جديد أو وقّف القديم
-// ============================================================
-supabase.channel('rt-daily-question')
-  .on('postgres_changes', {
-    event: '*', schema: 'public', table: 'daily_questions'
-  }, function(){ loadQuestion(); })
-  .subscribe();
+// Realtime — يتم التحديث التلقائي عبر js/realtime.js (مع إعادة المحاولة تلقائياً)
 
 // ============================================================
 // Helpers
