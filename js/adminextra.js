@@ -313,8 +313,8 @@ async function loadLeadersAdmin(){
     }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب مضافين</td></tr>';
   }
 
-  // ملأ اختيار أعضاء المجموعة
-  renderGroupMembersCheckList();
+  // ملأ اختيار أعضاء المجموعة مع تحميل الأعضاء المتضافين
+  loadTakenMembersMap();
 }
 
 async function setMemberRole(memberId, role){
@@ -344,6 +344,8 @@ async function setMemberRole(memberId, role){
 // ============================================================
 // الفريق المختار في الـ filter
 var _groupFilterTeam = '';
+// cache للأعضاء المتضافين بالفعل في مجموعة { member_id: group_name }
+var _takenMembersMap = {};
 
 function renderGroupFilterChips(){
   var bar = document.getElementById('groupFilterBar');
@@ -387,14 +389,25 @@ function renderGroupMembersCheckList(){
     return;
   }
   box.innerHTML = filtered.map(function(m){
-    var selected = groupSelectedIds.has(m.id);
-    var roleIcon = m.role === 'leader' ? ' 👑' : '';
+    var selected  = groupSelectedIds.has(m.id);
+    var takenIn   = _takenMembersMap[m.id]; // اسم المجموعة لو متضاف فيها
+    var roleIcon  = m.role === 'leader' ? ' 👑' : '';
+    if(takenIn){
+      // رمادي — مش قابل للاختيار
+      return '<button class="btn small outline grp-member-btn" data-id="' + m.id + '" data-taken="1" ' +
+        'title="موجود في مجموعة: ' + escHtml(takenIn) + '" ' +
+        'style="margin:2px;opacity:0.38;cursor:not-allowed;pointer-events:auto;position:relative">' +
+        '🔒 ' + escHtml(m.name) + roleIcon +
+        '<span style="position:absolute;inset:0" title="موجود في: ' + escHtml(takenIn) + '"></span>' +
+        '</button>';
+    }
     return '<button class="btn small ' + (selected ? '' : 'outline') + ' grp-member-btn" data-id="' + m.id + '" style="margin:2px;position:relative">' +
       (selected ? '✅ ' : '') + escHtml(m.name) + roleIcon +
       '</button>';
   }).join('');
   box.querySelectorAll('.grp-member-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
+      if(btn.dataset.taken) return; // متضاف — تجاهل الكليك
       var id = btn.dataset.id;
       if(groupSelectedIds.has(id)) groupSelectedIds.delete(id); else groupSelectedIds.add(id);
       var countEl = document.getElementById('groupSelCount');
@@ -405,6 +418,18 @@ function renderGroupMembersCheckList(){
   // حدّث العداد
   var countEl = document.getElementById('groupSelCount');
   if(countEl) countEl.textContent = 'تم اختيار: ' + groupSelectedIds.size;
+}
+
+// تحميل خريطة الأعضاء المتضافين في مجموعات { member_id: group_name }
+async function loadTakenMembersMap(){
+  var res = await supabase.rpc('admin_list_project_groups', { p_password: getAdminPass() });
+  _takenMembersMap = {};
+  if(!res.error && res.data){
+    res.data.forEach(function(row){
+      _takenMembersMap[row.member_id] = row.group_name;
+    });
+  }
+  renderGroupMembersCheckList();
 }
 
 async function createProjectGroup(){
@@ -455,11 +480,8 @@ async function createProjectGroup(){
   msg.innerHTML = '<div class="success-msg" style="display:block">✅ تم إنشاء مجموعة "' + escHtml(name) + '" بـ ' + ids.length + ' أعضاء</div>';
   document.getElementById('groupNameInput').value = '';
   groupSelectedIds.clear();
-  renderGroupMembersCheckList();
-  var countEl = document.getElementById('groupSelCount');
-  if(countEl) countEl.textContent = 'تم اختيار: 0';
   setTimeout(function(){ msg.innerHTML = ''; }, 4000);
-  loadProjectGroups();
+  loadProjectGroups(); // هيستدعي loadTakenMembersMap داخلياً
 }
 
 async function loadProjectGroups(){
@@ -506,6 +528,8 @@ async function loadProjectGroups(){
       loadProjectGroups();
     });
   });
+  // حدّث خريطة الأعضاء المتضافين بعد أي تغيير في المجموعات
+  loadTakenMembersMap();
 }
 
 // ============================================================
