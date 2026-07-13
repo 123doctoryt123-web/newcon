@@ -794,78 +794,118 @@ document.addEventListener('DOMContentLoaded', function(){
 (function watchScoresTab(){
   var panel = document.getElementById('panel-scores');
   if(!panel) return;
-  var loaded = false;
   var observer = new MutationObserver(function(){
-    if(panel.classList.contains('active') && !loaded){
-      loaded = true;
+    if(panel.classList.contains('active')){
       loadRoomScores();
       loadProjectScores();
     }
-    if(!panel.classList.contains('active')) loaded = false;
   });
   observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
 })();
 
+function scoresTableWrap(html){
+  return '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' + html + '</div>';
+}
+
 async function loadRoomScores(){
   var box = document.getElementById('roomScoresList');
   if(!box) return;
+  box.innerHTML = '<div class="empty-state">بنحمّل...</div>';
 
-  // جيب الملخص
   var res = await supabase.rpc('admin_list_room_scores', { p_password: getAdminPass() });
-  // جيب التفاصيل الكاملة
-  var det = await supabase.rpc('admin_list_room_details', { p_password: getAdminPass() });
+  var det = await supabase.rpc('admin_list_room_details',  { p_password: getAdminPass() });
 
   if(res.error || !res.data || !res.data.length){
     box.innerHTML = '<div class="empty-state">لسه مفيش درجات غرف</div>'; return;
   }
 
-  // ملخص
-  var html = '<table><thead><tr><th>الأمين/الغرفة</th><th>الفريق</th><th>نقاط الجلسة</th><th>الحاضرين</th><th>نصيب الفرد</th><th>التاريخ</th></tr></thead><tbody>' +
-    res.data.map(function(r){
-      return '<tr>' +
-        '<td style="font-weight:700">'+escHtml(r.room_name)+'</td>' +
-        '<td>'+escHtml(r.team_name)+'</td>' +
-        '<td style="color:var(--gold);font-weight:700">'+r.total_score+'</td>' +
-        '<td style="color:#a9e6c4">'+r.present_count+'</td>' +
-        '<td style="color:var(--pitch);font-weight:700">'+parseFloat(r.score_per_member).toFixed(1)+'</td>' +
-        '<td style="font-size:11px;color:var(--mist-dim)">'+r.session_date+'</td>' +
-        '</tr>';
-    }).join('') + '</tbody></table>';
+  // ── ملخص الجلسات ──
+  var totalPts = res.data.reduce(function(s,r){ return s + (r.total_score||0); }, 0);
 
-  // تفاصيل كل عضو
-  if(!det.error && det.data && det.data.length){
-    html += '<div style="margin-top:18px;font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:10px">📋 تفاصيل الأعضاء</div>';
-    html += '<table><thead><tr><th>الأمين</th><th>الفريق</th><th>العضو</th><th>الحضور</th><th>نقاط الجلسة</th><th>بونص</th><th>الإجمالي</th><th>التاريخ</th></tr></thead><tbody>' +
-      det.data.map(function(r){
-        var present = r.session_pts > 0 || r.bonus_pts > 0;
+  var summaryHtml =
+    '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:8px">📊 ملخص الجلسات</div>' +
+    scoresTableWrap(
+      '<table><thead><tr>' +
+        '<th>الأمين / الغرفة</th><th>الفريق</th><th>نقاط الجلسة</th><th>الحاضرين</th><th>نصيب الفرد</th><th>التاريخ</th>' +
+      '</tr></thead><tbody>' +
+      res.data.map(function(r){
         return '<tr>' +
-          '<td style="font-size:11px">'+escHtml(r.secretary_name)+'</td>' +
-          '<td>'+escHtml(r.team_name)+'</td>' +
-          '<td style="font-weight:700;color:var(--mist)">'+escHtml(r.member_name)+'</td>' +
-          '<td>'+(present?'<span style="color:#a9e6c4">✅ حاضر</span>':'<span style="color:#ffb3a6">❌ غائب</span>')+'</td>' +
-          '<td style="color:var(--gold);font-weight:700">'+r.session_pts+'</td>' +
-          '<td style="color:var(--pitch);font-weight:700">'+(r.bonus_pts>0?'+'+r.bonus_pts:'—')+'</td>' +
-          '<td style="color:var(--gold);font-weight:800">'+(r.session_pts+r.bonus_pts)+'</td>' +
-          '<td style="font-size:11px;color:var(--mist-dim)">'+r.session_date+'</td>' +
+          '<td style="font-weight:700;white-space:nowrap">'+escHtml(r.room_name)+'</td>' +
+          '<td style="white-space:nowrap">'+escHtml(r.team_name)+'</td>' +
+          '<td style="color:var(--gold);font-weight:700">'+r.total_score+'</td>' +
+          '<td style="color:#a9e6c4">'+r.present_count+'</td>' +
+          '<td style="color:var(--pitch);font-weight:700">'+parseFloat(r.score_per_member).toFixed(1)+'</td>' +
+          '<td style="font-size:11px;color:var(--mist-dim);white-space:nowrap">'+r.session_date+'</td>' +
+        '</tr>';
+      }).join('') +
+      '<tr style="border-top:2px solid var(--line)">' +
+        '<td colspan="2" style="font-weight:800;color:var(--mist)">الإجمالي</td>' +
+        '<td style="color:var(--gold);font-weight:800">'+totalPts+'</td>' +
+        '<td colspan="3"></td>' +
+      '</tr>' +
+      '</tbody></table>'
+    );
+
+  // ── تفاصيل الأعضاء ──
+  var detailHtml = '';
+  if(!det.error && det.data && det.data.length){
+    detailHtml =
+      '<hr style="border:none;border-top:1px solid var(--line);margin:18px 0">' +
+      '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:8px">📋 تفاصيل الأعضاء</div>' +
+      scoresTableWrap(
+        '<table><thead><tr>' +
+          '<th>الأمين</th><th>الفريق</th><th>العضو</th><th>الحضور</th><th>جلسة</th><th>بونص</th><th>الإجمالي</th><th>التاريخ</th>' +
+        '</tr></thead><tbody>' +
+        det.data.map(function(r){
+          var present = r.session_pts > 0 || r.bonus_pts > 0;
+          return '<tr>' +
+            '<td style="font-size:11px;white-space:nowrap">'+escHtml(r.secretary_name)+'</td>' +
+            '<td style="white-space:nowrap">'+escHtml(r.team_name)+'</td>' +
+            '<td style="font-weight:700;color:var(--mist);white-space:nowrap">'+escHtml(r.member_name)+'</td>' +
+            '<td>'+(present?'<span style="color:#a9e6c4">✅</span>':'<span style="color:#ffb3a6">❌</span>')+'</td>' +
+            '<td style="color:var(--gold);font-weight:700">'+r.session_pts+'</td>' +
+            '<td style="color:var(--pitch);font-weight:700">'+(r.bonus_pts>0?'+'+r.bonus_pts:'—')+'</td>' +
+            '<td style="color:var(--gold);font-weight:800">'+(r.session_pts+r.bonus_pts)+'</td>' +
+            '<td style="font-size:11px;color:var(--mist-dim);white-space:nowrap">'+r.session_date+'</td>' +
           '</tr>';
-      }).join('') + '</tbody></table>';
+        }).join('') +
+        '</tbody></table>'
+      );
   }
 
-  box.innerHTML = html;
+  box.innerHTML = summaryHtml + detailHtml;
 }
 
 async function loadProjectScores(){
   var box = document.getElementById('projectScoresList');
   if(!box) return;
+  box.innerHTML = '<div class="empty-state">بنحمّل...</div>';
+
   var res = await supabase.rpc('admin_list_project_scores', { p_password: getAdminPass() });
   if(res.error || !res.data || !res.data.length){
     box.innerHTML = '<div class="empty-state">لسه مفيش درجات مشروع</div>'; return;
   }
-  box.innerHTML = '<table><thead><tr><th>المجموعة</th><th>الفريق</th><th>الدرجة</th><th>ملاحظة</th><th>المصحح</th></tr></thead><tbody>' +
+
+  var totalScore = res.data.reduce(function(s,r){ return s + (r.score||0); }, 0);
+
+  box.innerHTML = scoresTableWrap(
+    '<table><thead><tr>' +
+      '<th>المجموعة</th><th>الفريق</th><th>الدرجة</th><th>ملاحظة</th><th>المصحح</th>' +
+    '</tr></thead><tbody>' +
     res.data.map(function(r){
-      return '<tr><td>'+escHtml(r.group_name)+'</td><td>'+escHtml(r.team_name)+'</td>' +
+      return '<tr>' +
+        '<td style="white-space:nowrap">'+escHtml(r.group_name)+'</td>' +
+        '<td style="white-space:nowrap">'+escHtml(r.team_name)+'</td>' +
         '<td style="color:var(--gold);font-weight:700">'+r.score+'</td>' +
         '<td style="font-size:11px;color:var(--mist-dim)">'+escHtml(r.note||'—')+'</td>' +
-        '<td style="font-size:11px">'+escHtml(r.reviewer_name)+'</td></tr>';
-    }).join('') + '</tbody></table>';
+        '<td style="font-size:11px;white-space:nowrap">'+escHtml(r.reviewer_name)+'</td>' +
+      '</tr>';
+    }).join('') +
+    '<tr style="border-top:2px solid var(--line)">' +
+      '<td colspan="2" style="font-weight:800;color:var(--mist)">الإجمالي</td>' +
+      '<td style="color:var(--gold);font-weight:800">'+totalScore+'</td>' +
+      '<td colspan="2"></td>' +
+    '</tr>' +
+    '</tbody></table>'
+  );
 }
