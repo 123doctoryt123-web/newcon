@@ -247,23 +247,20 @@ async function loadLeadersAdmin(){
   var pass = getAdminPass();
   if(!pass){ console.warn('loadLeadersAdmin: no admin pass yet'); return; }
 
-  // نجيب الشباب من admin_list_members (الموجودة دايماً) أو admin_list_members_teams
-  var res = await supabase.rpc("admin_list_members_teams", {p_password: pass});
-
-  // لو فشلت بسبب missing role column، نجرب admin_list_members كـ fallback
-  if(res.error){
-    console.warn('admin_list_members_teams error:', res.error.message);
-    var fallback = await supabase.rpc("admin_list_members", {p_password: pass});
-    if(fallback.error || !fallback.data){ 
-      console.error('fallback also failed:', fallback.error);
-      return; 
-    }
-    // نحوّل البيانات للشكل المتوقع
-    leadersMembersCache = fallback.data.map(function(m){
-      return { id: m.id, name: m.name, username: m.username, team_name: m.team_name||'', points: m.points||0, role: m.role||'member' };
-    });
+  // نستخدم teamsMembersCache مباشرةً لو موجود — عشان نتجنب تعبئة leadersMembersCache مرتين
+  if(teamsMembersCache.length){
+    leadersMembersCache = teamsMembersCache;
   } else {
-    leadersMembersCache = res.data || [];
+    var res = await supabase.rpc("admin_list_members_teams", {p_password: pass});
+    if(res.error){
+      var fallback = await supabase.rpc("admin_list_members", {p_password: pass});
+      if(fallback.error || !fallback.data){ return; }
+      leadersMembersCache = fallback.data.map(function(m){
+        return { id: m.id, name: m.name, username: m.username, team_name: m.team_name||'', points: m.points||0, role: m.role||'member' };
+      });
+    } else {
+      leadersMembersCache = res.data || [];
+    }
   }
 
   if(!leadersMembersCache.length){
@@ -351,10 +348,12 @@ var _takenMembersMap = {};
 function renderGroupFilterChips(){
   var bar = document.getElementById('groupFilterBar');
   if(!bar) return;
-  // اجمع أسماء الفرق الفريدة
+  var src = leadersMembersCache.length ? leadersMembersCache : teamsMembersCache;
+  // dedup الفرق
   var teams = [];
-  leadersMembersCache.forEach(function(m){
-    if(m.team_name && teams.indexOf(m.team_name) === -1) teams.push(m.team_name);
+  var seenTeams = {};
+  src.forEach(function(m){
+    if(m.team_name && !seenTeams[m.team_name]){ seenTeams[m.team_name]=true; teams.push(m.team_name); }
   });
   if(!teams.length){ bar.innerHTML=''; return; }
   var html = '<button class="filter-chip'+(_groupFilterTeam===''?' active':'')+'" onclick="setGroupFilter(\'\')">الكل</button>';
@@ -373,18 +372,22 @@ function setGroupFilter(team){
 function renderGroupMembersCheckList(){
   var box = document.getElementById('groupMembersCheckList');
   if(!box) return;
-  // اجمع الشباب من أي من الـ cache المتاح
   var src = leadersMembersCache.length ? leadersMembersCache : teamsMembersCache;
   if(!src.length){
     box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">لسه مفيش شباب — ضيف شباب من تاب الشباب الأول</span>';
     return;
   }
-  // رندر الـ chips لو مش موجودة
+  // dedup بالـ id — نحذف أي تكرار
+  var seen = {};
+  var unique = src.filter(function(m){
+    if(seen[m.id]) return false;
+    seen[m.id] = true;
+    return true;
+  });
   renderGroupFilterChips();
-  // filter بالفريق
   var filtered = _groupFilterTeam
-    ? src.filter(function(m){ return m.team_name === _groupFilterTeam; })
-    : src;
+    ? unique.filter(function(m){ return m.team_name === _groupFilterTeam; })
+    : unique;
   if(!filtered.length){
     box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">مفيش شباب في الفريق دا</span>';
     return;
@@ -704,7 +707,14 @@ async function saveMemberModal(){
   var cached = teamsMembersCache.find(function(x){ return x.id===_modalMemberId; })
             || leadersMembersCache.find(function(x){ return x.id===_modalMemberId; });
   var roleChanged  = cached && cached.role !== role;
-  var roleLabel    = role === 'leader' ? '👑 قائد فريق' : 'عضو عادي';
+  var roleLabelMap = {
+    'leader':           '👑 قائد فريق',
+    'room_admin':       '🏠 أمين غرفة',
+    'retreat_servant':  '🕊️ خادم الخلوة',
+    'project_reviewer': '📝 مصحح مشروع',
+    'member':           'عضو عادي'
+  };
+  var roleLabel = roleLabelMap[role] || 'عضو عادي';
 
   if(roleChanged){
     var name = cached ? cached.name : 'هذا الشاب';
