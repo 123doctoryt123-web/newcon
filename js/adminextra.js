@@ -313,8 +313,9 @@ async function loadLeadersAdmin(){
     }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب مضافين</td></tr>';
   }
 
-  // ملأ اختيار أعضاء المجموعة مع تحميل الأعضاء المتضافين
-  loadTakenMembersMap();
+  // ملأ اختيار أعضاء المجموعة — نحمّل الـ map الأول وبعدين نرسم مرة واحدة
+  await loadTakenMembersMap(false);
+  renderGroupMembersCheckList();
 }
 
 async function setMemberRole(memberId, role){
@@ -421,7 +422,8 @@ function renderGroupMembersCheckList(){
 }
 
 // تحميل خريطة الأعضاء المتضافين في مجموعات { member_id: group_name }
-async function loadTakenMembersMap(){
+// andRender=true لو عايز ترسم بعد التحميل (زي بعد حذف/إنشاء مجموعة)
+async function loadTakenMembersMap(andRender){
   var res = await supabase.rpc('admin_list_project_groups', { p_password: getAdminPass() });
   _takenMembersMap = {};
   if(!res.error && res.data){
@@ -429,7 +431,7 @@ async function loadTakenMembersMap(){
       _takenMembersMap[row.member_id] = row.group_name;
     });
   }
-  renderGroupMembersCheckList();
+  if(andRender) renderGroupMembersCheckList();
 }
 
 async function createProjectGroup(){
@@ -528,8 +530,8 @@ async function loadProjectGroups(){
       loadProjectGroups();
     });
   });
-  // حدّث خريطة الأعضاء المتضافين بعد أي تغيير في المجموعات
-  loadTakenMembersMap();
+  // حدّث خريطة الأعضاء المتضافين وأعد الرسم بعد أي تغيير في المجموعات
+  loadTakenMembersMap(true);
 }
 
 // ============================================================
