@@ -645,6 +645,7 @@ function openMemberModal(memberId){
   _modalMemberId = memberId;
 
   document.getElementById('modalMemberName').textContent = m.name;
+  document.getElementById('modalMemberNameInput').value  = m.name || '';
   document.getElementById('modalTeamName').value  = m.team_name || '';
   document.getElementById('modalPoints').value    = m.points    || 0;
   document.getElementById('modalRole').value      = m.role      || 'member';
@@ -667,6 +668,7 @@ async function saveMemberModal(){
   if(!_modalMemberId) return;
 
   var team   = document.getElementById('modalTeamName').value.trim();
+  var newName= document.getElementById('modalMemberNameInput').value.trim();
   var points = parseInt(document.getElementById('modalPoints').value) || 0;
   var role   = document.getElementById('modalRole').value;
   var msg    = document.getElementById('modalMsg');
@@ -683,6 +685,11 @@ async function saveMemberModal(){
     if(!confirm('هتعيّن "' + name + '" كـ ' + roleLabel + '؟')){ return; }
   }
 
+  if(!newName){
+    showModalMsg('❌ الاسم مش ممكن يكون فاضي', 'error');
+    return;
+  }
+
   btn.disabled = true; btn.textContent = 'بنحفظ...';
 
   // 1) حفظ الفريق والنقاط
@@ -690,6 +697,15 @@ async function saveMemberModal(){
     p_password: getAdminPass(), p_member_id: _modalMemberId,
     p_team_name: team, p_points: points
   });
+
+  // 2) حفظ الاسم (لو اتغير)
+  var rName = { error: null };
+  if(cached && cached.name !== newName){
+    rName = await supabase.rpc('admin_update_member_name', {
+      p_password: getAdminPass(), p_member_id: _modalMemberId, p_name: newName
+    });
+    if(!rName.error) rName.error = rName.data === 'unauthorized' ? { message: 'غير مصرح' } : null;
+  }
 
   // 2) حفظ الدور (لو اتغير أو مختلف)
   var r2 = { error: null };
@@ -715,13 +731,19 @@ async function saveMemberModal(){
 
   btn.disabled = false; btn.textContent = '💾 حفظ';
 
-  if(r1.error || r2.error){
-    var errMsg = (r1.error||r2.error).message;
+  if(r1.error || r2.error || rName.error){
+    var errMsg = (r1.error || r2.error || rName.error).message;
     showModalMsg('❌ حصل خطأ: ' + errMsg, 'error');
     return;
   }
 
   showModalMsg('✅ تم الحفظ' + (roleChanged ? ' — الدور: ' + roleLabel : ''), 'success');
+
+  // تحديث الاسم في الـ cache محلياً
+  if(cached && cached.name !== newName){
+    cached.name = newName;
+    document.getElementById('modalMemberName').textContent = newName;
+  }
 
   // ريفرش الجداول
   await loadTeamsAdmin();
