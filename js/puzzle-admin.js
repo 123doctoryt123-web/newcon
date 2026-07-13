@@ -1,10 +1,9 @@
 // ═══════════════════════════════════════════════════════════
-// 🧩 اللغز — puzzle-admin.js (نسخة الفرقتين A/B)
+// 🧩 اللغز — puzzle-admin.js (نسخة التيمات المتعددة)
 // ═══════════════════════════════════════════════════════════
 
 var _currentPuzzleId = null;
-var _puzzleMembers   = [];          // كل الأعضاء
-var _activePuzTab    = 'A';         // التاب الحالي
+var _puzzleMembers   = [];   // كل الأعضاء
 
 // ── مراقبة تاب اللغز ──
 document.addEventListener('DOMContentLoaded', function() {
@@ -17,26 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// ── تبديل تاب الفريق ──
-function switchPuzTab(team) {
-  _activePuzTab = team;
-  document.getElementById('puzTabA').style.display = team === 'A' ? '' : 'none';
-  document.getElementById('puzTabB').style.display = team === 'B' ? '' : 'none';
-
-  var btnA = document.getElementById('puzTabBtnA');
-  var btnB = document.getElementById('puzTabBtnB');
-  if (team === 'A') {
-    btnA.style.cssText = 'flex:1;background:rgba(200,150,90,0.2);border-color:var(--gold);color:var(--gold)';
-    btnB.style.cssText = 'flex:1';
-    btnB.className = 'btn small outline';
-  } else {
-    btnB.style.cssText = 'flex:1;background:rgba(74,124,111,0.2);border-color:#a9e6c4;color:#a9e6c4';
-    btnA.style.cssText = 'flex:1';
-    btnA.className = 'btn small outline';
-  }
-}
-
-// ── جلب الأعضاء وبناء القوائم ──
+// ── جلب الأعضاء وبناء القائمة ──
 async function loadPuzzleMembersSelect() {
   var pass = sessionStorage.getItem('adminPass');
   if (!pass) return;
@@ -44,63 +24,62 @@ async function loadPuzzleMembersSelect() {
   var res = await supabase.rpc('admin_list_members', { p_password: pass });
   if (res.error || !res.data) return;
   _puzzleMembers = res.data;
-  renderPuzTeamList('A', _puzzleMembers);
-  renderPuzTeamList('B', _puzzleMembers);
+  renderPuzCheckList(_puzzleMembers);
 }
 
-// ── بناء قائمة فريق واحد ──
-function renderPuzTeamList(team, members) {
-  var listId = 'puzList' + team;
-  var list = document.getElementById(listId);
+// كل عضو فيه راديو: A أو B أو مش في التيم ده
+function renderPuzCheckList(members) {
+  var list = document.getElementById('puzCheckList');
   if (!list) return;
-
   if (!members.length) {
     list.innerHTML = '<p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">مفيش شباب</p>';
     return;
   }
-
-  var colorTeam = team === 'A' ? 'var(--gold)' : '#a9e6c4';
   list.innerHTML = members.map(function(m) {
-    return '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 6px;border-radius:6px;border:1px solid transparent" ' +
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-radius:6px;border:1px solid transparent;transition:.15s" ' +
       'onmouseover="this.style.background=\'var(--ink-3)\'" onmouseout="this.style.background=\'\'">' +
-      '<input type="checkbox" value="' + m.id + '" class="puz-chk-' + team + '" ' +
-        'onchange="updatePuzCountTeam(\'' + team + '\')" ' +
-        'style="width:18px;height:18px;flex-shrink:0;cursor:pointer;accent-color:' + colorTeam + '">' +
-      '<span style="font-size:13px;color:var(--mist)">' + esc(m.name) + '</span>' +
-      '</label>';
+      '<span style="font-size:13px;color:var(--mist);flex:1">' + esc(m.name) + '</span>' +
+      // راديو A
+      '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--gold);white-space:nowrap">' +
+        '<input type="radio" name="puz_slot_' + m.id + '" value="A" class="puz-radio" data-member="' + m.id + '" ' +
+          'onchange="updatePuzCount()" style="accent-color:var(--gold);cursor:pointer"> A' +
+      '</label>' +
+      // راديو B
+      '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#a9e6c4;white-space:nowrap">' +
+        '<input type="radio" name="puz_slot_' + m.id + '" value="B" class="puz-radio" data-member="' + m.id + '" ' +
+          'onchange="updatePuzCount()" style="accent-color:#a9e6c4;cursor:pointer"> B' +
+      '</label>' +
+      // راديو بدون (إلغاء)
+      '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--mist-dim);white-space:nowrap">' +
+        '<input type="radio" name="puz_slot_' + m.id + '" value="" class="puz-radio" data-member="' + m.id + '" ' +
+          'checked onchange="updatePuzCount()" style="cursor:pointer"> ✕' +
+      '</label>' +
+      '</div>';
   }).join('');
-  updatePuzCountTeam(team);
+  updatePuzCount();
 }
 
-// ── فلترة بحث لكل فريق ──
-function filterPuzTeam(team) {
-  var searchId = 'puzSearch' + team;
-  var q = (document.getElementById(searchId).value || '').trim().toLowerCase();
+function filterPuzMembers() {
+  var q = (document.getElementById('puzMemberSearch').value || '').trim().toLowerCase();
   var filtered = q ? _puzzleMembers.filter(function(m){ return m.name.toLowerCase().includes(q); }) : _puzzleMembers;
-  renderPuzTeamList(team, filtered);
+  renderPuzCheckList(filtered);
 }
 
-// ── تحديث عداد كل فريق ──
-function updatePuzCountTeam(team) {
-  var checked = document.querySelectorAll('.puz-chk-' + team + ':checked').length;
-  var el = document.getElementById('puzCount' + team);
-  if (el) el.textContent = checked + ' محدود';
-}
-
-function selectAllPuzTeam(team) {
-  document.querySelectorAll('.puz-chk-' + team).forEach(function(c){ c.checked = true; });
-  updatePuzCountTeam(team);
-}
-
-function deselectAllPuzTeam(team) {
-  document.querySelectorAll('.puz-chk-' + team).forEach(function(c){ c.checked = false; });
-  updatePuzCountTeam(team);
-}
-
-// ── للتوافق مع الكود القديم (لو في مكان بيستدعيها) ──
 function updatePuzCount() {
-  updatePuzCountTeam('A');
-  updatePuzCountTeam('B');
+  var a = document.querySelectorAll('.puz-radio[value="A"]:checked').length;
+  var b = document.querySelectorAll('.puz-radio[value="B"]:checked').length;
+  var el = document.getElementById('puzSelectedCount');
+  if (el) el.textContent = 'A: ' + a + ' | B: ' + b;
+}
+
+function selectAllPuzMembers() {
+  // مش منطقي هنا لأن كل واحد لازم يختار A أو B
+  // بس ممكن نعمل "تحديد الكل A" لو حبوا
+}
+
+function deselectAllPuzMembers() {
+  document.querySelectorAll('.puz-radio[value=""]').forEach(function(r){ r.checked = true; });
+  updatePuzCount();
 }
 
 // ── جلب اللغز النشط ──
@@ -128,8 +107,6 @@ async function createPuzzle() {
   var msg    = document.getElementById('puzCreateMsg');
   var btn    = document.getElementById('createPuzBtn');
   var title  = document.getElementById('puzTitle').value.trim() || 'اللغز 🧩';
-  var imgA   = document.getElementById('puzImgA').value.trim() || null;
-  var imgB   = document.getElementById('puzImgB').value.trim() || null;
   var hint   = document.getElementById('puzHint').value.trim() || null;
   var startV = document.getElementById('puzStart').value;
   var endV   = document.getElementById('puzEnd').value;
@@ -138,25 +115,18 @@ async function createPuzzle() {
   btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء…';
   msg.textContent = '';
 
-  // نحتاج نحفظ الصورتين — نبعت imgA كـ image_url افتراضي للجدول
-  // وnull هيتعامل معاها بالفرقة لما نضيف المشتركين
   try {
     var res = await supabase.rpc('admin_create_puzzle', {
       p_password:  pass,
       p_title:     title,
-      p_image_url: imgA,   // الصورة الافتراضية هي A
+      p_image_url: null,
       p_hint:      hint,
       p_starts_at: startV ? new Date(startV).toISOString() : null,
       p_ends_at:   endV   ? new Date(endV).toISOString()   : null
     });
     if (res.error) throw res.error;
     _currentPuzzleId = res.data;
-
-    // نحفظ الصورتين في sessionStorage لاستخدامها وقت إضافة المشتركين
-    sessionStorage.setItem('puzImgA_' + _currentPuzzleId, imgA || '');
-    sessionStorage.setItem('puzImgB_' + _currentPuzzleId, imgB || '');
-
-    msg.innerHTML = '✅ اتعمل اللغز! — دلوقتي اختار فرقة A وفرقة B وضيفهم';
+    msg.innerHTML = '✅ اتعمل اللغز! — دلوقتي أضف التيمات';
     document.getElementById('puzParticipantsCard').style.display = '';
     document.getElementById('puzStatusCard').style.display = '';
     await loadPuzzleMembersSelect();
@@ -167,112 +137,118 @@ async function createPuzzle() {
   btn.disabled = false; btn.textContent = '🚀 ابدأ اللغز';
 }
 
-// ── إضافة المشتركين بالفرقتين ──
-async function addParticipantsBulk() {
-  var pass  = sessionStorage.getItem('adminPass');
-  var msg   = document.getElementById('puzAddMsg');
+// ── إضافة تيم كامل للغز ──
+async function addTeamToPuzzle() {
+  var pass    = sessionStorage.getItem('adminPass');
+  var msg     = document.getElementById('puzAddMsg');
+  var teamName = document.getElementById('puzTeamName').value.trim();
+  var imgA    = document.getElementById('puzTeamImgA').value.trim() || null;
+  var imgB    = document.getElementById('puzTeamImgB').value.trim() || null;
 
   if (!_currentPuzzleId) { msg.textContent = '❌ ابدأ لغز الأول'; return; }
+  if (!teamName)         { msg.textContent = '❌ اكتب اسم التيم'; return; }
 
-  var checkedA = Array.from(document.querySelectorAll('.puz-chk-A:checked')).map(function(c){ return c.value; });
-  var checkedB = Array.from(document.querySelectorAll('.puz-chk-B:checked')).map(function(c){ return c.value; });
+  // اجمع A و B
+  var membersA = Array.from(document.querySelectorAll('.puz-radio[value="A"]:checked')).map(function(r){ return r.dataset.member; });
+  var membersB = Array.from(document.querySelectorAll('.puz-radio[value="B"]:checked')).map(function(r){ return r.dataset.member; });
 
-  if (!checkedA.length && !checkedB.length) {
-    msg.textContent = '❌ اختار شخص واحد على الأقل في أي فرقة'; return;
+  if (!membersA.length && !membersB.length) {
+    msg.textContent = '❌ اختار أعضاء التيم وحدد A أو B لكل واحد'; return;
   }
-
-  // اجلب الصورتين من sessionStorage أو من المدخلات
-  var imgA = sessionStorage.getItem('puzImgA_' + _currentPuzzleId)
-          || document.getElementById('puzImgA').value.trim()
-          || null;
-  var imgB = sessionStorage.getItem('puzImgB_' + _currentPuzzleId)
-          || document.getElementById('puzImgB').value.trim()
-          || null;
 
   msg.textContent = '⏳ جاري الإضافة…';
-  var errors = 0;
-  var added  = 0;
+  var errors = 0, added = 0;
 
-  // إضافة فرقة A
-  for (var i = 0; i < checkedA.length; i++) {
-    var res = await supabase.rpc('admin_add_puzzle_participant', {
+  for (var i = 0; i < membersA.length; i++) {
+    var r = await supabase.rpc('admin_add_puzzle_participant', {
       p_password:  pass,
       p_puzzle_id: _currentPuzzleId,
-      p_member_id: checkedA[i],
-      p_image_url: imgA
+      p_member_id: membersA[i],
+      p_image_url: imgA,
+      p_team_name: teamName
     });
-    if (res.error) errors++;
-    else added++;
+    if (r.error) errors++; else added++;
   }
 
-  // إضافة فرقة B
-  for (var j = 0; j < checkedB.length; j++) {
-    var resB = await supabase.rpc('admin_add_puzzle_participant', {
+  for (var j = 0; j < membersB.length; j++) {
+    var rB = await supabase.rpc('admin_add_puzzle_participant', {
       p_password:  pass,
       p_puzzle_id: _currentPuzzleId,
-      p_member_id: checkedB[j],
-      p_image_url: imgB
+      p_member_id: membersB[j],
+      p_image_url: imgB,
+      p_team_name: teamName
     });
-    if (resB.error) errors++;
-    else added++;
+    if (rB.error) errors++; else added++;
   }
 
   if (errors === 0) {
-    msg.innerHTML = '✅ اتضافوا كلهم — فرقة A: ' + checkedA.length + ' | فرقة B: ' + checkedB.length;
+    msg.innerHTML = '✅ ' + teamName + ' اتضاف — A: ' + membersA.length + ' | B: ' + membersB.length;
+    // reset فورم التيم
+    document.getElementById('puzTeamName').value  = '';
+    document.getElementById('puzTeamImgA').value  = '';
+    document.getElementById('puzTeamImgB').value  = '';
+    deselectAllPuzMembers();
   } else {
     msg.innerHTML = '⚠️ اتضاف ' + added + ' وفيه ' + errors + ' خطأ';
   }
 
-  deselectAllPuzTeam('A');
-  deselectAllPuzTeam('B');
   loadCurrentParticipants();
   loadPuzzleStatus();
 }
 
-// ── عرض المشتركين الحاليين ──
+// ── عرض التيمات المضافة ──
 async function loadCurrentParticipants() {
   if (!_currentPuzzleId) return;
   var res = await supabase
     .from('puzzle_participants')
-    .select('member_id, image_url, members(name)')
-    .eq('puzzle_id', _currentPuzzleId);
+    .select('member_id, image_url, team_name, members(name)')
+    .eq('puzzle_id', _currentPuzzleId)
+    .order('team_name', { ascending: true });
   if (res.error || !res.data) return;
+
   var list = document.getElementById('puzParticipantsList');
   if (!res.data.length) {
-    list.innerHTML = '<p style="font-size:12px;color:var(--mist-dim)">لسه مفيش مشتركين</p>';
+    list.innerHTML = '<p style="font-size:12px;color:var(--mist-dim)">لسه مفيش تيمات</p>';
     return;
   }
 
-  // نجمّع الأعضاء حسب الصورة (A أو B)
-  var imgA = sessionStorage.getItem('puzImgA_' + _currentPuzzleId) || '';
-  var imgB = sessionStorage.getItem('puzImgB_' + _currentPuzzleId) || '';
-  var teamA = [], teamB = [], noTeam = [];
-
+  // نجمّع حسب team_name
+  var teams = {};
   res.data.forEach(function(p) {
+    var t = p.team_name || '(بدون تيم)';
+    if (!teams[t]) teams[t] = { imgA: null, imgB: null, membersA: [], membersB: [] };
     var name = (p.members && p.members.name) || '—';
-    if (p.image_url && p.image_url === imgA) teamA.push(name);
-    else if (p.image_url && p.image_url === imgB) teamB.push(name);
-    else noTeam.push(name);
+    // نعرف صورة A هي الأولى اللي اتسجلت
+    if (!teams[t].imgA && p.image_url) teams[t].imgA = p.image_url;
+    if (p.image_url === teams[t].imgA) teams[t].membersA.push(name);
+    else teams[t].membersB.push(name);
+    if (p.image_url && p.image_url !== teams[t].imgA) teams[t].imgB = p.image_url;
   });
 
-  function teamBlock(label, color, names) {
-    if (!names.length) return '';
-    return '<div style="margin-bottom:10px">' +
-      '<p style="font-size:11px;font-weight:700;color:' + color + ';margin-bottom:6px">' + label + ' (' + names.length + ')</p>' +
-      names.map(function(n) {
-        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)">' +
-          '<div style="width:24px;height:24px;background:var(--ink-3);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">📍</div>' +
-          '<span style="font-size:13px;color:var(--mist)">' + esc(n) + '</span>' +
-          '</div>';
-      }).join('') +
-    '</div>';
-  }
+  var totalCount = res.data.length;
+  var html = '<p style="font-size:12px;color:var(--mist-dim);margin-bottom:10px">التيمات المضافة (' + Object.keys(teams).length + ' تيم — ' + totalCount + ' شخص):</p>';
 
-  list.innerHTML =
-    '<p style="font-size:12px;color:var(--mist-dim);margin-bottom:10px">المشتركين (' + res.data.length + '):</p>' +
-    teamBlock('📍 فرقة A', 'var(--gold)', teamA) +
-    teamBlock('📍 فرقة B', '#a9e6c4', teamB) +
-    teamBlock('بدون فريق', 'var(--mist-dim)', noTeam);
+  Object.keys(teams).forEach(function(tName) {
+    var t = teams[tName];
+    html += '<div style="border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<span style="font-size:13px;font-weight:700;color:var(--mist)">🏆 ' + esc(tName) + '</span>' +
+        '<span style="font-size:11px;color:var(--mist-dim)">' + (t.membersA.length + t.membersB.length) + ' عضو</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px">' +
+        '<div style="flex:1;background:rgba(200,150,90,0.07);border-radius:6px;padding:8px">' +
+          '<p style="font-size:11px;color:var(--gold);font-weight:700;margin:0 0 6px">📍 صورة A (' + t.membersA.length + ')</p>' +
+          t.membersA.map(function(n){ return '<div style="font-size:12px;color:var(--mist);padding:2px 0">' + esc(n) + '</div>'; }).join('') +
+        '</div>' +
+        '<div style="flex:1;background:rgba(74,124,111,0.07);border-radius:6px;padding:8px">' +
+          '<p style="font-size:11px;color:#a9e6c4;font-weight:700;margin:0 0 6px">📍 صورة B (' + t.membersB.length + ')</p>' +
+          t.membersB.map(function(n){ return '<div style="font-size:12px;color:var(--mist);padding:2px 0">' + esc(n) + '</div>'; }).join('') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  list.innerHTML = html;
 }
 
 // ── حالة المشتركين ──
@@ -309,6 +285,7 @@ async function loadPuzzleStatus() {
       : '—';
     return '<tr style="border-bottom:1px solid var(--line)">' +
       '<td style="padding:8px 4px"><span style="font-size:11px;color:var(--mist-dim);margin-left:4px">' + (i+1) + '</span>' + esc(r.member_name) + '</td>' +
+      '<td style="text-align:center;padding:8px 4px;font-size:12px;color:var(--mist-dim)">' + esc(r.team_name || '—') + '</td>' +
       '<td style="text-align:center;padding:8px 4px">' +
         (r.completed ? '<span style="color:#a9e6c4;font-size:12px">✅ وجب</span>' : '<span style="color:var(--mist-dim);font-size:12px">⏳ لسه</span>') +
       '</td>' +
