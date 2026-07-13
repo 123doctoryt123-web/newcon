@@ -177,42 +177,94 @@ async function loadMaterialsAdmin() {
 }
 
 async function addMaterial() {
-  var title = document.getElementById("matTitle").value.trim();
-  var type = document.getElementById("matType").value;
-  var url = document.getElementById("matUrl").value.trim();
-  var desc = document.getElementById("matDesc").value.trim();
+  var title   = document.getElementById("matTitle").value.trim();
+  var type    = document.getElementById("matType").value;
+  var url     = document.getElementById("matUrl").value.trim();
+  var desc    = document.getElementById("matDesc").value.trim();
   var content = document.getElementById("matContent").value.trim();
-  var matGroupEl = document.getElementById("matGroup");
-  var groupVal = matGroupEl ? matGroupEl.value : "";
   if (!title) return;
+
   var btn = document.getElementById("addMaterialBtn");
   btn.disabled = true; btn.textContent = "بنضيف...";
-  await supabase.rpc("admin_add_material", {
-    p_password: getAdminPass(), p_title: title, p_description: desc,
-    p_type: type, p_url: url || null, p_content: content || null,
-    p_group_id: groupVal ? groupVal : null,   // uuid — لا نحوّله لـ int
-  });
+
+  var groupIds = Array.from(_matSelectedGroups);
+
+  if (groupIds.length === 0) {
+    // بدون مجموعة — عامة للكل
+    await supabase.rpc("admin_add_material", {
+      p_password: getAdminPass(), p_title: title, p_description: desc,
+      p_type: type, p_url: url || null, p_content: content || null,
+      p_group_id: null,
+    });
+  } else {
+    // بعت نسخة لكل مجموعة محددة
+    for (var i = 0; i < groupIds.length; i++) {
+      await supabase.rpc("admin_add_material", {
+        p_password: getAdminPass(), p_title: title, p_description: desc,
+        p_type: type, p_url: url || null, p_content: content || null,
+        p_group_id: groupIds[i],
+      });
+    }
+  }
+
   btn.disabled = false; btn.textContent = "إضافة المادة";
-  ["matTitle", "matUrl", "matDesc", "matContent"].forEach(function (id) { document.getElementById(id).value = ""; });
-  if (matGroupEl) matGroupEl.value = "";
+  ["matTitle", "matUrl", "matDesc", "matContent"].forEach(function (id) {
+    document.getElementById(id).value = "";
+  });
+  _matSelectedGroups.clear();
+  loadMaterialGroupsDropdown(); // نعيد رسم الـ chips منظفة
   loadMaterialsAdmin();
 }
 
+// مجموعات المواد المحددة
+var _matSelectedGroups = new Set();
+
 async function loadMaterialGroupsDropdown() {
   var res = await supabase.rpc("admin_list_project_groups", { p_password: getAdminPass() });
-  if (res.error || !res.data) return;
-  var sel = document.getElementById("matGroup");
-  if (!sel) return;
-  var seen = {};
+  var box = document.getElementById("matGroupList");
+  if (!box) return;
+  if (res.error || !res.data || !res.data.length) {
+    box.innerHTML = '<span style="color:var(--mist-dim);font-size:12px">لسه مفيش مجموعات — أنشئ مجموعات الأول من تاب الشباب</span>';
+    return;
+  }
+  // نجمّع المجموعات الفريدة
+  var groups = {};
   res.data.forEach(function(r) {
-    if (!seen[r.group_id]) {
-      seen[r.group_id] = r.group_name;
-      var opt = document.createElement("option");
-      opt.value = r.group_id;
-      opt.textContent = "👥 " + r.group_name;
-      sel.appendChild(opt);
-    }
+    if (!groups[r.group_id]) groups[r.group_id] = r.group_name;
   });
+  _matSelectedGroups.clear();
+  renderMatGroupChips(groups);
+}
+
+function renderMatGroupChips(groups) {
+  var box = document.getElementById("matGroupList");
+  if (!box) return;
+  box.innerHTML = Object.keys(groups).map(function(gid) {
+    var sel = _matSelectedGroups.has(gid);
+    return '<button type="button" class="btn small ' + (sel ? '' : 'outline') + ' mat-grp-chip" ' +
+      'data-gid="' + gid + '" style="margin:2px">' +
+      (sel ? '✅ ' : '') + escapeHtml(groups[gid]) +
+      '</button>';
+  }).join('');
+  box.querySelectorAll('.mat-grp-chip').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var gid = btn.dataset.gid;
+      if (_matSelectedGroups.has(gid)) _matSelectedGroups.delete(gid);
+      else _matSelectedGroups.add(gid);
+      renderMatGroupChips(groups);
+      updateMatGroupCount();
+    });
+  });
+  updateMatGroupCount();
+}
+
+function updateMatGroupCount() {
+  var el = document.getElementById("matGroupCount");
+  if (!el) return;
+  var n = _matSelectedGroups.size;
+  el.textContent = n === 0
+    ? '0 مجموعة محددة — هترسل للكل'
+    : n + ' مجموعة محددة';
 }
 
 async function deleteMaterial(btn) {
@@ -535,4 +587,3 @@ async function clearAnnouncement() {
     card.style.display = "none";
   }
 }
-
