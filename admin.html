@@ -242,10 +242,11 @@
       <div class="wizard-step">
         <div class="wizard-step-header">
           <div class="wizard-step-num">🏠</div>
-          <div>
+          <div style="flex:1">
             <div class="wizard-step-title">درجات الغرف</div>
             <div class="wizard-step-sub">الدرجات اللي أمناء الغرف أعطوها للفرق</div>
           </div>
+          <button class="btn small outline" onclick="loadRoomScores()" style="flex-shrink:0">🔄 تحديث</button>
         </div>
         <div class="card" style="margin:0">
           <div id="roomScoresList"><div class="empty-state">بنحمّل...</div></div>
@@ -256,10 +257,11 @@
       <div class="wizard-step">
         <div class="wizard-step-header">
           <div class="wizard-step-num">📝</div>
-          <div>
+          <div style="flex:1">
             <div class="wizard-step-title">درجات المشروع</div>
             <div class="wizard-step-sub">الدرجات اللي المصححون أعطوها للمجموعات</div>
           </div>
+          <button class="btn small outline" onclick="loadProjectScores()" style="flex-shrink:0">🔄 تحديث</button>
         </div>
         <div class="card" style="margin:0">
           <div id="projectScoresList"><div class="empty-state">بنحمّل...</div></div>
