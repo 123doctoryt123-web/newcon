@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة الجاسوس | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.spy-card{ text-align:center; padding:40px 20px; }
+.spy-role{ font-family:var(--font-display); font-size:22px; font-weight:800; margin-bottom:16px; }
+.spy-word{ font-family:var(--font-display); font-size:52px; font-weight:800; color:var(--gold);
+  letter-spacing:2px; margin:20px 0; text-shadow:0 0 30px rgba(200,150,90,0.4); }
+.spy-badge{ font-family:var(--font-display); font-size:48px; font-weight:800; color:var(--coral);
+  margin:20px 0; text-shadow:0 0 30px rgba(192,83,58,0.5); }
+.spy-hint{ font-size:13px; color:var(--mist-dim); line-height:1.7; margin-top:16px; }
+.no-game{ text-align:center; padding:40px 20px; color:var(--mist-dim); }
+.tap-reveal{ background:rgba(200,150,90,0.08); border:2px dashed var(--gold);
+  border-radius:var(--radius); padding:40px 20px; text-align:center; cursor:pointer;
+  margin:10px 0; transition:background .2s; }
+.tap-reveal:hover{ background:rgba(200,150,90,0.15); }
+.tap-reveal p{ color:var(--mist-dim); font-size:14px; margin:8px 0 0; }
+
+/* ===== التصويت ===== */
+.vote-section{ margin-top:24px; }
+.vote-section h3{ font-size:16px; font-weight:700; margin-bottom:14px; }
+.vote-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.vote-btn{ padding:14px 10px; border-radius:var(--radius); border:2px solid var(--border);
+  background:var(--card); cursor:pointer; font-size:14px; font-weight:600;
+  transition:all .2s; text-align:center; }
+.vote-btn:hover{ border-color:var(--gold); background:rgba(200,150,90,0.08); }
+.vote-btn.selected{ border-color:var(--coral); background:rgba(192,83,58,0.12);
+  color:var(--coral); }
+.vote-btn:disabled{ opacity:.5; cursor:default; }
+.vote-confirm{ margin-top:14px; }
+.vote-confirm .btn{ width:100%; }
+.voted-badge{ text-align:center; padding:14px; border-radius:var(--radius);
+  background:rgba(200,150,90,0.1); color:var(--gold); font-weight:700;
+  font-size:14px; margin-top:14px; }
+
+/* ===== النتايج ===== */
+.results-section{ margin-top:24px; }
+.results-section h3{ font-size:16px; font-weight:700; margin-bottom:14px; }
+.result-row{ display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px; border-radius:var(--radius); border:1px solid var(--border);
+  margin-bottom:8px; font-size:14px; }
+.result-row.top{ border-color:var(--gold); background:rgba(200,150,90,0.06); }
+.result-row.is-spy-reveal{ border-color:var(--coral); background:rgba(192,83,58,0.08); }
+.vote-bar{ height:6px; border-radius:3px; background:var(--border); margin-top:6px; width:100%; }
+.vote-bar-fill{ height:6px; border-radius:3px; background:var(--gold); transition:width .4s; }
+.refresh-note{ font-size:12px; color:var(--mist-dim); text-align:center; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand">
+      <img src="logo.png" style="width:28px;height:28px;object-fit:contain;">
+      Connect Three
+    </a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:6px">🕵️ لعبة الجاسوس</h1>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">اضغط على البطاقة تشوف دورك</p>
+
+  <div id="gameArea">
+    <div class="card">
+      <div class="no-game">
+        <div style="font-size:48px;margin-bottom:12px">⏳</div>
+        <div>اللعبة مش بدأت لسه، استنى الأدمن يبدأها</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+var revealed   = false;
+var currentRole = null;    // { active, is_spy, word, game_id }
+var selectedVote = null;
+var alreadyVoted = false;
+var resultsInterval = null;
+
+// ===== تحميل اللعبة =====
+async function loadGame(){
+  var res = await supabase.rpc("get_my_spy_role", { p_member_id: member.id });
+  var area = document.getElementById("gameArea");
+
+  if(res.error || !res.data || res.data.length === 0 || !res.data[0].active){
+    area.innerHTML = '<div class="card"><div class="no-game"><div style="font-size:48px;margin-bottom:12px">⏳</div><div>اللعبة مش بدأت لسه، استنى الأدمن يبدأها</div></div></div>';
+    if(resultsInterval){ clearInterval(resultsInterval); resultsInterval = null; }
+    return;
+  }
+
+  currentRole = res.data[0];
+  revealed = false;
+  selectedVote = null;
+
+  var html = '<div class="card glow">';
+  html += '<div class="tap-reveal" id="revealBtn"><div style="font-size:48px">👆</div><p>اضغط هنا تشوف دورك</p></div>';
+  html += '</div>';
+
+  // قسم التصويت
+  html += '<div class="card" id="voteSection" style="display:none">';
+  html += '<div class="vote-section"><h3>🗳️ صوّت — مين برأيك الجاسوس؟</h3>';
+  html += '<div class="vote-grid" id="voteGrid"></div>';
+  html += '<div class="vote-confirm" id="voteConfirm" style="display:none"><button class="btn" id="confirmVoteBtn">✅ تأكيد التصويت</button></div>';
+  html += '<div class="voted-badge" id="votedBadge" style="display:none">✅ صوّتك اتسجل!</div>';
+  html += '</div></div>';
+
+  // قسم النتايج
+  html += '<div class="card" id="resultsSection" style="display:none">';
+  html += '<div class="results-section"><h3>📊 النتايج</h3>';
+  html += '<div id="resultsList"></div>';
+  html += '<div class="refresh-note">بيتحدث كل 5 ثواني</div></div></div>';
+
+  area.innerHTML = html;
+
+  document.getElementById("revealBtn").addEventListener("click", revealRole);
+
+  // حمّل الأعضاء للتصويت
+  loadVoteMembers();
+  // حمّل النتايج
+  loadResults();
+  if(!resultsInterval) resultsInterval = setInterval(loadResults, 5000);
+}
+
+// ===== اكشف الدور =====
+function revealRole(){
+  if(revealed) return;
+  revealed = true;
+
+  var btn = document.getElementById("revealBtn");
+  if(currentRole.is_spy === true || currentRole.is_spy === "true"){
+    btn.outerHTML = '<div class="spy-card"><div class="spy-role" style="color:var(--coral)">🕵️ أنت الجاسوس!</div><div class="spy-badge">SPY</div><div class="spy-hint">اسأل أسئلة ذكية عشان محدش يكتشفك!<br>حاول تخمّن الكلمة من كلام الناس.</div></div>';
+  } else {
+    btn.outerHTML = '<div class="spy-card"><div class="spy-role">✅ أنت من الفريق</div><div class="spy-word">' + escHtml(currentRole.word) + '</div><div class="spy-hint">الكلمة السرية هي ما فوق.<br>اسأل وأجب بحيث الجاسوس ميعرفش!</div></div>';
+  }
+
+  document.getElementById("voteSection").style.display = "block";
+  document.getElementById("resultsSection").style.display = "block";
+}
+
+// ===== تحميل أعضاء التصويت =====
+async function loadVoteMembers(){
+  var res = await supabase.rpc("get_spy_game_members", { p_game_id: currentRole.game_id });
+  if(res.error || !res.data) return;
+
+  var grid = document.getElementById("voteGrid");
+  if(!grid) return;
+
+  // شوف لو صوّت قبل كده
+  var voteRes = await supabase.rpc("get_spy_vote_results", { p_game_id: currentRole.game_id });
+  if(!voteRes.error && voteRes.data){
+    var me = voteRes.data.find(function(r){ return r.member_id === member.id; });
+    alreadyVoted = me && me.has_voted;
+  }
+
+  var members = res.data.filter(function(m){ return m.member_id !== member.id; });
+
+  grid.innerHTML = members.map(function(m){
+    var dis = alreadyVoted ? 'disabled' : '';
+    return '<button class="vote-btn" data-id="' + m.member_id + '" onclick="selectVote(this)" ' + dis + '>' + escHtml(m.member_name) + '</button>';
+  }).join("");
+
+  if(alreadyVoted){
+    document.getElementById("votedBadge").style.display = "block";
+    document.getElementById("voteConfirm").style.display = "none";
+  }
+}
+
+// ===== اختار تصويت =====
+function selectVote(btn){
+  if(alreadyVoted) return;
+  document.querySelectorAll(".vote-btn").forEach(function(b){ b.classList.remove("selected"); });
+  btn.classList.add("selected");
+  selectedVote = btn.dataset.id;
+  document.getElementById("voteConfirm").style.display = "block";
+
+  var confirmBtn = document.getElementById("confirmVoteBtn");
+  if(confirmBtn){ confirmBtn.replaceWith(confirmBtn.cloneNode(true)); }
+  var confirmBtn = document.getElementById("confirmVoteBtn");
+  if(confirmBtn) confirmBtn.addEventListener("click", submitVote);
+}
+
+// ===== إرسال التصويت =====
+async function submitVote(){
+  if(!selectedVote || alreadyVoted) return;
+  var btn = document.getElementById("confirmVoteBtn");
+  btn.disabled = true; btn.textContent = "بنسجل...";
+
+  var res = await supabase.rpc("cast_spy_vote", {
+    p_voter_id:     member.id,
+    p_voted_for_id: selectedVote,
+    p_game_id:      currentRole.game_id
+  });
+
+  if(res.error){
+    btn.disabled = false; btn.textContent = "✅ تأكيد التصويت";
+    alert("حصل خطأ، حاول تاني");
+    return;
+  }
+
+  alreadyVoted = true;
+  document.getElementById("voteConfirm").style.display = "none";
+  document.getElementById("votedBadge").style.display = "block";
+  document.querySelectorAll(".vote-btn").forEach(function(b){ b.disabled = true; });
+  loadResults();
+}
+
+// ===== تحميل النتايج =====
+async function loadResults(){
+  if(!currentRole) return;
+  var res = await supabase.rpc("get_spy_vote_results", { p_game_id: currentRole.game_id });
+  var box = document.getElementById("resultsList");
+  if(!box || res.error || !res.data) return;
+
+  var rows = res.data;
+  var maxVotes = Math.max.apply(null, rows.map(function(r){ return Number(r.vote_count); })) || 1;
+
+  box.innerHTML = rows.map(function(r, i){
+    var pct = maxVotes > 0 ? Math.round(Number(r.vote_count) / maxVotes * 100) : 0;
+    var cls = "result-row" + (i === 0 && r.vote_count > 0 ? " top" : "") + (r.is_spy ? " is-spy-reveal" : "");
+    var spyTag = r.is_spy ? ' <span style="color:var(--coral);font-size:11px">🕵️ جاسوس</span>' : "";
+    var votedTag = r.has_voted ? ' <span style="font-size:11px;color:var(--mist-dim)">✓</span>' : "";
+    return '<div class="' + cls + '">' +
+      '<div style="flex:1"><div>' + escHtml(r.member_name) + spyTag + votedTag + '</div>' +
+      '<div class="vote-bar"><div class="vote-bar-fill" style="width:' + pct + '%"></div></div></div>' +
+      '<div style="margin-right:12px;font-weight:700;min-width:28px;text-align:center">' + r.vote_count + '</div>' +
+      '</div>';
+  }).join("");
+}
+
+function escHtml(s){
+  return (s || "").toString().replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
+loadGame();
+// إعادة تحميل اللعبة كل 15 ثانية عشان لو الأدمن بدأ لعبة جديدة
+setInterval(function(){
+  if(currentRole && currentRole.active) return; // لو في لعبة شغالة خلّيها
+  loadGame();
+}, 15000);
+</script>
+<script src="js/realtime.js"></script>
+</body>
+</html>

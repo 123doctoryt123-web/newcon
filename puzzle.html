@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اللغز 🧩 | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ── حالة التحميل ── */
+#loadingState{
+  display:flex; flex-direction:column; align-items:center;
+  gap:12px; padding:48px 0; color:var(--mist-dim); font-size:14px;
+}
+.spinner{
+  width:32px; height:32px; border:3px solid var(--line);
+  border-top-color:var(--gold); border-radius:50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ── الكارت الرئيسي ── */
+.puzzle-card{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-glow);
+}
+
+/* ── صورة المكان ── */
+.puzzle-img-wrap{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  background: var(--ink-3);
+  overflow: hidden;
+}
+.puzzle-img-wrap img{
+  width:100%; height:100%; object-fit:cover;
+  display:block;
+}
+.puzzle-img-overlay{
+  position:absolute; inset:0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(13,27,42,0.85) 100%);
+}
+.puzzle-img-badge{
+  position:absolute; top:12px; right:12px;
+  background: rgba(13,27,42,0.75);
+  border:1px solid var(--line);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size:12px; font-weight:600; color:var(--gold);
+  backdrop-filter: blur(6px);
+}
+/* تأثير blur للصورة قبل الوقت */
+.puzzle-img-wrap.blurred img{
+  filter: blur(18px) brightness(0.5);
+}
+
+/* ── باقي الكارت ── */
+.puzzle-body{
+  padding: 18px;
+}
+.puzzle-title{
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--mist);
+  margin-bottom: 6px;
+}
+.puzzle-timer{
+  font-size: 13px;
+  color: var(--mist-dim);
+  margin-bottom: 14px;
+  display:flex; align-items:center; gap:6px;
+}
+.puzzle-timer .timer-val{
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight:700;
+}
+.puzzle-hint{
+  background: rgba(200,150,90,0.08);
+  border: 1px solid rgba(200,150,90,0.2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--mist-dim);
+  margin-bottom: 18px;
+  display:flex; gap:8px; align-items:flex-start;
+}
+.puzzle-hint .hint-icon{ font-size:18px; flex-shrink:0; margin-top:1px; }
+
+/* ── زر "وجبت الورقة" ── */
+.btn-found{
+  width:100%; padding:16px;
+  border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 17px; font-weight:800;
+  letter-spacing:.3px;
+  background: linear-gradient(135deg, var(--pitch), #3a6b5e);
+  color: #fff;
+  box-shadow: 0 4px 24px rgba(74,124,111,0.35);
+  transition: transform .15s, box-shadow .15s;
+  display: flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-found:active{ transform:scale(0.97); }
+.btn-found:disabled{
+  background: var(--ink-3);
+  color: var(--mist-dim);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* ── حالة "اتكملت" ── */
+.done-banner{
+  background: linear-gradient(135deg, rgba(74,124,111,0.2), rgba(74,124,111,0.08));
+  border: 1px solid var(--pitch);
+  border-radius: var(--radius);
+  padding: 22px 18px;
+  text-align:center;
+  margin-bottom:16px;
+}
+.done-banner .done-icon{ font-size:48px; margin-bottom:8px; display:block; }
+.done-banner h2{
+  font-family: var(--font-display);
+  font-size:20px; color: #a9e6c4;
+  margin-bottom:4px;
+}
+.done-banner p{ font-size:13px; color:var(--mist-dim); }
+
+/* ── حالة "مش في اللعبة" ── */
+.not-in-game{
+  text-align:center; padding:40px 0;
+  color:var(--mist-dim); font-size:14px;
+}
+.not-in-game .big-icon{ font-size:52px; margin-bottom:12px; display:block; }
+.not-in-game p{ max-width:260px; margin:0 auto; line-height:1.6; }
+
+/* ── قبل وقت البداية ── */
+.before-start{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:28px 18px;
+  text-align:center;
+  margin-bottom:16px;
+}
+.before-start .clock-icon{ font-size:44px; margin-bottom:12px; display:block; }
+.before-start h2{
+  font-family:var(--font-display); font-size:18px;
+  color:var(--gold); margin-bottom:6px;
+}
+.before-start p{ font-size:13px; color:var(--mist-dim); }
+.before-start .countdown{
+  font-family:var(--font-display); font-size:28px;
+  font-weight:800; color:var(--mist);
+  margin-top:14px; letter-spacing:2px;
+}
+
+/* ── بعد انتهاء الوقت ── */
+.after-end{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border:1px solid rgba(192,83,58,0.3);
+  border-radius:var(--radius);
+  padding:28px 18px;
+  text-align:center;
+  margin-bottom:16px;
+}
+.after-end .lock-icon{ font-size:44px; margin-bottom:12px; display:block; }
+.after-end h2{ font-family:var(--font-display); font-size:18px; color:var(--coral); margin-bottom:6px; }
+.after-end p{ font-size:13px; color:var(--mist-dim); }
+
+/* ── خطأ ── */
+.err-msg{ color:var(--coral); font-size:13px; text-align:center; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand"><span class="dot"></span> Connect Three</a>
+    <a href="dashboard.html" class="logout-link">رجوع</a>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:4px">🧩 اللغز</h1>
+  <p style="font-size:13px;color:var(--mist-dim);margin-bottom:22px">وصّل المكان وجبت الورقة</p>
+
+  <!-- حالات العرض -->
+  <div id="loadingState">
+    <div class="spinner"></div>
+    <span>جاري التحميل…</span>
+  </div>
+
+  <!-- لما ما يكونش مشترك في لغز نشط -->
+  <div id="notInGameState" style="display:none">
+    <div class="not-in-game">
+      <span class="big-icon">🔒</span>
+      <h2 style="font-family:var(--font-display);font-size:18px;color:var(--mist);margin-bottom:8px">مش في اللغز دلوقتي</h2>
+      <p>أنت مش من المشتركين في اللغز الحالي، ابعت للأدمن لو فيه غلطة</p>
+    </div>
+  </div>
+
+  <!-- قبل البداية -->
+  <div id="beforeStartState" style="display:none">
+    <div class="before-start">
+      <span class="clock-icon">⏳</span>
+      <h2>اللغز هيبدأ قريباً!</h2>
+      <p>الصورة هتظهر في الوقت المحدد</p>
+      <div class="countdown" id="countdownDisplay">--:--:--</div>
+    </div>
+  </div>
+
+  <!-- بعد انتهاء الوقت -->
+  <div id="afterEndState" style="display:none">
+    <div class="after-end">
+      <span class="lock-icon">🔐</span>
+      <h2>وقت اللغز انتهى</h2>
+      <p>اللغز اتقفل، ابعد لأدمن المؤتمر</p>
+    </div>
+  </div>
+
+  <!-- الكارت الرئيسي للغز -->
+  <div id="puzzleState" style="display:none">
+    <!-- صورة المكان -->
+    <div class="puzzle-card">
+      <div class="puzzle-img-wrap" id="imgWrap">
+        <img id="puzzleImg" src="" alt="صورة المكان">
+        <div class="puzzle-img-overlay"></div>
+        <div class="puzzle-img-badge">📍 مكان الورقة</div>
+      </div>
+      <div class="puzzle-body">
+        <div class="puzzle-title" id="puzzleTitle">اللغز</div>
+        <div class="puzzle-timer">
+          <span>⏰ الوقت المتبقي:</span>
+          <span class="timer-val" id="timerDisplay">--:--:--</span>
+        </div>
+        <!-- تلميح (لو موجود) -->
+        <div class="puzzle-hint" id="hintBox" style="display:none">
+          <span class="hint-icon">💡</span>
+          <span id="hintText"></span>
+        </div>
+        <!-- زر التأكيد -->
+        <button class="btn-found" id="foundBtn" onclick="markFound()">
+          ✅ وصلت ووجبت الورقة!
+        </button>
+        <div class="err-msg" id="errMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- تم التسجيل بنجاح -->
+  <div id="doneState" style="display:none">
+    <!-- صورة المكان فوق حتى بعد الإتمام -->
+    <div class="puzzle-card" id="doneImgCard" style="display:none">
+      <div class="puzzle-img-wrap" id="doneImgWrap">
+        <img id="doneImg" src="" alt="صورة المكان">
+        <div class="puzzle-img-overlay"></div>
+        <div class="puzzle-img-badge">📍 مكان الورقة</div>
+      </div>
+    </div>
+    <div class="done-banner">
+      <span class="done-icon">🎉</span>
+      <h2>تمام! اتسجلت عندنا</h2>
+      <p>الأدمن شايف إنك وجبت الورقة، البوينتس بتتوزع بعد اللغز</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+let memberId   = null;
+let puzzleId   = null;
+let endsAt     = null;
+let startsAt   = null;
+let timerInterval = null;
+let countdownInterval = null;
+
+// ── تحميل الصفحة ──
+window.addEventListener('DOMContentLoaded', async () => {
+  const raw = localStorage.getItem('member');
+  if (!raw) { location.href = 'index.html'; return; }
+  const member = JSON.parse(raw);
+  memberId = member.id;
+  await loadPuzzle();
+});
+
+async function loadPuzzle() {
+  show('loadingState');
+  try {
+    const { data, error } = await supabase.rpc('get_my_puzzle', { p_member_id: memberId });
+    if (error || !data || data.length === 0) {
+      show('notInGameState'); return;
+    }
+    const p = data[0];
+    puzzleId = p.puzzle_id;
+    endsAt   = p.ends_at   ? new Date(p.ends_at)   : null;
+    startsAt = p.starts_at ? new Date(p.starts_at) : null;
+    const now = new Date();
+
+    // قبل الوقت؟
+    if (startsAt && now < startsAt) {
+      show('beforeStartState');
+      startCountdown(startsAt);
+      return;
+    }
+    // بعد الوقت؟
+    if (endsAt && now > endsAt) {
+      show('afterEndState'); return;
+    }
+    // لو اتكمل قبل كده
+    if (p.completed) {
+      renderDone(p.image_url);
+      show('doneState'); return;
+    }
+    // عرض اللغز
+    renderPuzzle(p);
+    show('puzzleState');
+  } catch(e) {
+    show('notInGameState');
+  }
+}
+
+function renderPuzzle(p) {
+  document.getElementById('puzzleTitle').textContent = p.title || 'اللغز';
+  const img = document.getElementById('puzzleImg');
+  if (p.image_url) {
+    img.src = p.image_url;
+  } else {
+    document.getElementById('imgWrap').style.display = 'none';
+  }
+  if (p.hint) {
+    document.getElementById('hintText').textContent = p.hint;
+    document.getElementById('hintBox').style.display = 'flex';
+  }
+  if (endsAt) startTimer();
+  else document.getElementById('timerDisplay').textContent = 'مفيش وقت محدد';
+}
+
+function renderDone(imgUrl) {
+  const doneImgCard = document.getElementById('doneImgCard');
+  if (imgUrl) {
+    document.getElementById('doneImg').src = imgUrl;
+    doneImgCard.style.display = 'block';
+  }
+}
+
+// ── تسجيل الإيجاد ──
+async function markFound() {
+  const btn = document.getElementById('foundBtn');
+  const err = document.getElementById('errMsg');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري التسجيل…';
+  err.textContent = '';
+  try {
+    const { data, error } = await supabase.rpc('complete_puzzle', {
+      p_member_id: memberId,
+      p_puzzle_id: puzzleId
+    });
+    if (error) throw error;
+    if (data === 'ok' || data === null) {
+      clearInterval(timerInterval);
+      // عرض صورة المكان مع رسالة النجاح
+      const img = document.getElementById('puzzleImg');
+      renderDone(img.src);
+      show('doneState');
+    } else if (data === 'not_active') {
+      err.textContent = 'اللغز اتقفل، مش ممكن تسجل دلوقتي';
+      btn.disabled = false; btn.textContent = '✅ وصلت ووجبت الورقة!';
+    } else {
+      err.textContent = 'حصل خطأ، حاول تاني';
+      btn.disabled = false; btn.textContent = '✅ وصلت ووجبت الورقة!';
+    }
+  } catch(e) {
+    err.textContent = 'حصل خطأ في الاتصال';
+    btn.disabled = false; btn.textContent = '✅ وصلت ووجبت الورقة!';
+  }
+}
+
+// ── عداد تنازلي للوقت المتبقي ──
+function startTimer() {
+  function tick() {
+    const diff = endsAt - new Date();
+    if (diff <= 0) {
+      document.getElementById('timerDisplay').textContent = 'انتهى الوقت';
+      clearInterval(timerInterval);
+      setTimeout(loadPuzzle, 1500);
+      return;
+    }
+    document.getElementById('timerDisplay').textContent = formatDuration(diff);
+  }
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
+
+// ── عداد تصاعدي قبل البداية ──
+function startCountdown(start) {
+  function tick() {
+    const diff = start - new Date();
+    if (diff <= 0) {
+      clearInterval(countdownInterval);
+      loadPuzzle(); return;
+    }
+    document.getElementById('countdownDisplay').textContent = formatDuration(diff);
+  }
+  tick();
+  countdownInterval = setInterval(tick, 1000);
+}
+
+function formatDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return [h, m, sec].map(n => String(n).padStart(2, '0')).join(':');
+}
+
+function show(id) {
+  ['loadingState','notInGameState','beforeStartState','afterEndState','puzzleState','doneState']
+    .forEach(s => document.getElementById(s).style.display = s === id ? '' : 'none');
+}
+</script>
+<script src="js/realtime.js"></script>
+</body>
+</html>

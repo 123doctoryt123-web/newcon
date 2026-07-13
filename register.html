@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل جديد | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <img src="logo.png" alt="Connect Three" class="login-logo-img">
+    <div class="login-logo">CONNECT <span>THREE</span></div>
+    <div class="login-sub">سجّل بياناتك عشان تدخل على التطبيق</div>
+
+    <div class="card glow">
+      <div id="errorMsg"   class="error-msg"></div>
+      <div id="successMsg" class="success-msg"></div>
+
+      <label for="inviteInput">كود الدعوة</label>
+      <input type="text" id="inviteInput" placeholder="اكتب كود المؤتمر"
+             style="direction:ltr;text-align:left" autocomplete="off">
+      <p style="font-size:11px;color:var(--mist-dim);margin-top:-10px;margin-bottom:14px">
+        اسأل المسؤول عن الكود لو مش معاك
+      </p>
+
+      <label for="nameInput">اسمك الكامل</label>
+      <input type="text" id="nameInput" placeholder="مثال: يوسف ماهر" autocomplete="name">
+
+      <label for="usernameInput">اسم المستخدم (اليوزر)</label>
+      <input type="text" id="usernameInput" placeholder="مثال: youssef99" autocomplete="username"
+             style="direction:ltr;text-align:left">
+      <p style="font-size:11px;color:var(--mist-dim);margin-top:-10px;margin-bottom:14px">
+        حروف إنجليزية وأرقام بس، مفيش مسافات
+      </p>
+
+      <label for="passwordInput">كلمة السر</label>
+      <input type="password" id="passwordInput" placeholder="اختار كلمة سر" autocomplete="new-password">
+
+      <label for="password2Input">تأكيد كلمة السر</label>
+      <input type="password" id="password2Input" placeholder="كررها هنا" autocomplete="new-password">
+
+      <button class="btn" id="registerBtn">تسجيل ✅</button>
+      <p style="text-align:center;font-size:13px;margin-top:14px;color:var(--mist-dim)">
+        عندك حساب؟ <a href="index.html">دخول</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+// لو مسجّل دخول روح الداشبورد
+if (getSession()) window.location.href = "dashboard.html";
+
+async function doRegister() {
+  var invite   = document.getElementById("inviteInput").value.trim();
+  var name     = document.getElementById("nameInput").value.trim();
+  var username = document.getElementById("usernameInput").value.trim().toLowerCase();
+  var password = document.getElementById("passwordInput").value;
+  var password2= document.getElementById("password2Input").value;
+  var errBox   = document.getElementById("errorMsg");
+  var okBox    = document.getElementById("successMsg");
+  var btn      = document.getElementById("registerBtn");
+
+  errBox.style.display = "none";
+  okBox.style.display  = "none";
+
+  // تحقق من الـ invite code
+  if (!invite) {
+    errBox.textContent = "اكتب كود الدعوة";
+    errBox.style.display = "block";
+    return;
+  }
+
+  // تحقق من باقي الحقول
+  if (!name || !username || !password) {
+    errBox.textContent = "اكمل كل الخانات";
+    errBox.style.display = "block";
+    return;
+  }
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+    errBox.textContent = "اليوزر: حروف إنجليزية صغيرة وأرقام و _ فقط (3-30 حرف)";
+    errBox.style.display = "block";
+    return;
+  }
+  if (password.length < 4) {
+    errBox.textContent = "كلمة السر لازم تكون 4 حروف على الأقل";
+    errBox.style.display = "block";
+    return;
+  }
+  if (password !== password2) {
+    errBox.textContent = "كلمة السر مش متطابقة";
+    errBox.style.display = "block";
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "بنسجّل...";
+
+  var res = await supabase.rpc("self_register", {
+    p_name:        name,
+    p_username:    username,
+    p_password:    password,
+    p_invite_code: invite,
+  });
+
+  btn.disabled = false; btn.textContent = "تسجيل ✅";
+
+  if (res.error) {
+    var msg = "حصل خطأ، حاول تاني";
+    if (res.error.message && res.error.message.includes("invalid_invite_code")) {
+      msg = "❌ كود الدعوة غلط";
+    } else if (res.error.message && res.error.message.includes("username_taken")) {
+      msg = "اليوزر ده موجود بالفعل، اختار اسم تاني";
+    } else if (res.error.message && res.error.message.includes("empty_fields")) {
+      msg = "اكمل كل الخانات";
+    } else if (res.error.message && res.error.message.includes("password_too_short")) {
+      msg = "كلمة السر لازم تكون 6 حروف على الأقل";
+    } else if (res.error.message && res.error.message.includes("name_too_long")) {
+      msg = "الاسم طويل جداً";
+    }
+    errBox.textContent = msg;
+    errBox.style.display = "block";
+    return;
+  }
+
+  var d = res.data && res.data[0];
+  if (!d) {
+    errBox.textContent = "حصل خطأ غير متوقع";
+    errBox.style.display = "block";
+    return;
+  }
+
+  // سجّل الدخول تلقائياً
+  saveSession({ id: d.id, name: d.name, username: d.username });
+  okBox.textContent = "✅ تم التسجيل! بنجهّز موعد خلوتك...";
+  okBox.style.display = "block";
+  setTimeout(function () { window.location.href = "retreat.html"; }, 1200);
+}
+
+document.getElementById("registerBtn").addEventListener("click", doRegister);
+document.getElementById("password2Input").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") doRegister();
+});
+</script>
+</body>
+</html>

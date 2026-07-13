@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>استفتاء سريع | مؤتمر الشباب</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.poll-card{
+  background: linear-gradient(160deg, var(--ink-2), var(--ink-3));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  margin-bottom: 16px;
+}
+.poll-question{
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--mist);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.poll-empty{
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--mist-dim);
+}
+.poll-empty .emoji{ font-size: 48px; margin-bottom: 12px; }
+.poll-empty p{ font-size: 14px; }
+
+/* --- خيارات قبل التصويت --- */
+.option-btn{
+  width: 100%;
+  background: rgba(200,150,90,0.08);
+  border: 1.5px solid rgba(200,150,90,0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  color: var(--mist);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: right;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.option-btn:hover{
+  background: rgba(200,150,90,0.18);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+.option-btn .opt-letter{
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: rgba(200,150,90,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+/* --- شريط النتائج بعد التصويت --- */
+.result-row{
+  margin-bottom: 12px;
+}
+.result-label{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mist);
+}
+.result-label .opt-text{ display: flex; align-items: center; gap: 8px; }
+.result-label .opt-letter-sm{
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: rgba(200,150,90,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.result-label .pct{
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--gold);
+  font-weight: 800;
+  min-width: 40px;
+  text-align: left;
+}
+.bar-bg{
+  height: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bar-fill{
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  min-width: 4px;
+}
+.bar-fill.my-choice{
+  background: linear-gradient(90deg, var(--pitch-dim), var(--pitch));
+  box-shadow: 0 0 8px var(--pitch);
+}
+.voted-badge{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pitch);
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: rgba(74,124,111,0.12);
+  border: 1px solid rgba(74,124,111,0.3);
+  border-radius: 10px;
+}
+.total-votes{
+  text-align: center;
+  font-size: 12px;
+  color: var(--mist-dim);
+  margin-top: 14px;
+}
+.live-dot{
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--coral);
+  animation: pulse-dot 1.4s infinite;
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+@keyframes pulse-dot{
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:.4; transform:scale(0.7); }
+}
+.closed-banner{
+  text-align:center; padding:10px 14px;
+  background: rgba(192,83,58,0.12);
+  border: 1px solid rgba(192,83,58,0.3);
+  border-radius: 10px;
+  color: #ffb3a6;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand"><span class="dot"></span> مؤتمر الشباب</a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <span style="font-size:28px">🗳️</span>
+    <div>
+      <h1 class="display" style="font-size:20px">استفتاء سريع</h1>
+      <p style="font-size:12px;color:var(--mist-dim);margin:0">شوف رأي الكل لحظة بلحظة</p>
+    </div>
+    <span class="live-dot" style="margin-right:auto"></span>
+  </div>
+
+  <div id="mainContent">
+    <!-- يتحمل جوا هنا -->
+    <div class="poll-empty">
+      <div class="emoji">⏳</div>
+      <p>بيتحمل...</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+var currentPollId = null;
+var myVote = null;      // null = لسه ماصوتش
+var votesMap = {};      // option_idx -> count
+var totalVotes = 0;
+var pollOptions = [];
+var pollActive = true;
+
+// ============================================================
+// تحميل البيانات
+// ============================================================
+async function loadPoll(){
+  var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
+  if(res.error){ showEmpty("حصل خطأ في التحميل 😕"); return; }
+  if(!res.data || res.data.length === 0){ showEmpty(); return; }
+
+  var rows = res.data;
+  var first = rows[0];
+  currentPollId = first.poll_id;
+  pollOptions   = first.options;
+  pollActive    = first.active;
+  myVote        = first.my_vote !== undefined ? first.my_vote : null;
+
+  // اجمع الأصوات
+  votesMap = {}; totalVotes = 0;
+  rows.forEach(function(r){
+    if(r.option_idx !== null){
+      votesMap[r.option_idx] = parseInt(r.vote_count) || 0;
+      totalVotes += votesMap[r.option_idx];
+    }
+  });
+
+  renderPoll();
+}
+
+// ============================================================
+// Render
+// ============================================================
+function renderPoll(){
+  var html = "";
+
+  if(!pollActive){
+    html += '<div class="closed-banner">🔒 الاستفتاء دا انتهى</div>';
+  }
+
+  html += '<div class="poll-card">';
+  html += '<div id="questionBox"></div>';
+
+  if(myVote !== null){
+    // صوّت بالفعل → شوف النتائج
+    html += '<div class="voted-badge">✅ صوّتك اتسجل — النتائج بتتحدث لحظة بلحظة</div>';
+    html += renderResults();
+  } else if(pollActive){
+    // لسه ماصوتش
+    html += renderOptions();
+  } else {
+    html += '<p style="color:var(--mist-dim);font-size:14px;text-align:center">الاستفتاء انتهى قبل ما تصوت.</p>';
+  }
+
+  html += '</div>'; // end poll-card
+  document.getElementById("mainContent").innerHTML = html;
+
+  // اكتب السؤال (المتغير اتحفظ في var قبل render)
+  var qBox = document.getElementById("questionBox");
+  if(qBox) qBox.innerHTML = '<div class="poll-question">' + escHtml(currentQuestion) + '</div>';
+
+  // ربط أزرار الخيارات
+  pollOptions.forEach(function(_, idx){
+    var btn = document.getElementById("opt_" + idx);
+    if(btn) btn.addEventListener("click", function(){ vote(idx); });
+  });
+}
+
+var currentQuestion = "";
+
+function renderOptions(){
+  var letters = ["A","B","C","D","E","F","G","H"];
+  var html = "";
+  pollOptions.forEach(function(opt, idx){
+    html += '<button class="option-btn" id="opt_' + idx + '">';
+    html += '<span class="opt-letter">' + (letters[idx] || idx+1) + '</span>';
+    html += escHtml(opt);
+    html += '</button>';
+  });
+  return html;
+}
+
+function renderResults(){
+  var letters = ["A","B","C","D","E","F","G","H"];
+  var html = "";
+  pollOptions.forEach(function(opt, idx){
+    var count = votesMap[idx] || 0;
+    var pct   = totalVotes > 0 ? Math.round(count / totalVotes * 100) : 0;
+    var isMe  = (myVote === idx);
+    html += '<div class="result-row">';
+    html += '<div class="result-label">';
+    html += '<span class="opt-text"><span class="opt-letter-sm">' + (letters[idx] || idx+1) + '</span>' + escHtml(opt) + (isMe ? ' ✓' : '') + '</span>';
+    html += '<span class="pct">' + pct + '%</span>';
+    html += '</div>';
+    html += '<div class="bar-bg"><div class="bar-fill' + (isMe ? ' my-choice' : '') + '" style="width:' + pct + '%"></div></div>';
+    html += '</div>';
+  });
+  html += '<div class="total-votes">إجمالي الأصوات: <strong>' + totalVotes + '</strong></div>';
+  return html;
+}
+
+function showEmpty(msg){
+  document.getElementById("mainContent").innerHTML =
+    '<div class="poll-empty"><div class="emoji">🗳️</div><p>' +
+    (msg || "مفيش استفتاء نشط دلوقتي<br>استنى الأدمن يبدأ واحد 😄") +
+    '</p></div>';
+}
+
+// ============================================================
+// تصويت
+// ============================================================
+async function vote(optIdx){
+  if(myVote !== null || !currentPollId || !pollActive) return;
+
+  // disable الأزرار فوراً
+  pollOptions.forEach(function(_, i){
+    var b = document.getElementById("opt_" + i);
+    if(b){ b.disabled = true; b.style.opacity = "0.5"; }
+  });
+
+  var res = await supabase.rpc("cast_poll_vote", {
+    p_member_id: member.id,
+    p_poll_id:   currentPollId,
+    p_option:    optIdx
+  });
+
+  if(res.error || res.data === "closed"){
+    await loadPoll(); return;
+  }
+
+  myVote = optIdx;
+  votesMap[optIdx] = (votesMap[optIdx] || 0) + 1;
+  totalVotes++;
+  renderPoll();
+}
+
+// ============================================================
+// Realtime — بيستمع للتغييرات في poll_votes
+// ============================================================
+function setupRealtime(){
+  // التحديث التلقائي يتم عبر js/realtime.js (مع إعادة المحاولة تلقائياً)
+  // هذه الدالة تُبقى هنا فقط للتوافق مع الكود القديم
+}
+
+async function reloadVotesOnly(){
+  if(!currentPollId) return;
+  var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
+  if(res.error || !res.data || res.data.length === 0) return;
+
+  var rows   = res.data;
+  var first  = rows[0];
+  if(first.poll_id !== currentPollId){ loadPoll(); return; }
+
+  pollActive = first.active;
+  votesMap = {}; totalVotes = 0;
+  rows.forEach(function(r){
+    if(r.option_idx !== null){
+      votesMap[r.option_idx] = parseInt(r.vote_count) || 0;
+      totalVotes += votesMap[r.option_idx];
+    }
+  });
+
+  // لو صوّت → حدّث الأشرطة بدون إعادة رسم كاملة
+  if(myVote !== null){
+    pollOptions.forEach(function(_, idx){
+      var count = votesMap[idx] || 0;
+      var pct   = totalVotes > 0 ? Math.round(count / totalVotes * 100) : 0;
+      var barEl = document.querySelector(".result-row:nth-child(" + (idx+1) + ") .bar-fill");
+      var pctEl = document.querySelectorAll(".pct")[idx];
+      if(barEl) barEl.style.width = pct + "%";
+      if(pctEl) pctEl.textContent = pct + "%";
+    });
+    var totalEl = document.querySelector(".total-votes strong");
+    if(totalEl) totalEl.textContent = totalVotes;
+  }
+}
+
+function escHtml(s){
+  return (s||"").replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
+// ============================================================
+// Init
+// ============================================================
+async function init(){
+  // جيب السؤال الأول عشان تحفظه
+  var res = await supabase.rpc("get_active_poll", { p_member_id: member.id });
+  if(res.data && res.data.length){
+    currentQuestion = res.data[0].question || "";
+  }
+  await loadPoll();
+  setupRealtime();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سكان الحضور | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+.scan-type-row{ display:flex; gap:10px; margin-bottom:20px; }
+.scan-type-btn{
+  flex:1; padding:18px 10px; border-radius:var(--radius);
+  border:2px solid var(--line); background: var(--ink-2);
+  color:var(--mist-dim); font-family:var(--font-display); font-weight:700;
+  font-size:16px; cursor:pointer; text-align:center; transition: all .15s;
+}
+.scan-type-btn.active{ border-color:var(--coral); background:rgba(192,83,58,0.15); color:var(--mist); }
+.scan-type-btn.book.active{ border-color:var(--gold); background:rgba(200,150,90,0.12); }
+
+#reader{ width:100%; border-radius:var(--radius); overflow:hidden; margin-bottom:16px; }
+
+.result-banner{
+  padding:18px; border-radius:var(--radius); text-align:center;
+  font-family:var(--font-display); font-weight:700; font-size:18px;
+  margin-bottom:16px; display:none;
+}
+.result-banner.ok  { background:rgba(74,124,111,0.2);  border:1px solid var(--pitch); color:#a9e6c4; }
+.result-banner.dup { background:rgba(200,150,90,0.15); border:1px solid var(--gold);  color:var(--gold); }
+.result-banner.err { background:rgba(192,83,58,0.15);  border:1px solid var(--coral); color:#ffb3a6; }
+
+.manual-section{ margin-top:10px; }
+.scan-log-item{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;
+}
+.scan-log-item:last-child{ border-bottom:none; }
+
+.leader-bar{
+  display:flex; align-items:center; gap:10px;
+  background:rgba(200,150,90,0.1); border:1px solid rgba(200,150,90,0.3);
+  border-radius:var(--radius); padding:10px 14px; margin-bottom:16px;
+  font-size:13px; color:var(--mist-dim);
+}
+.leader-bar strong{ color:var(--gold); font-family:var(--font-display); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand"><span class="dot"></span> Connect Three</a>
+    <span id="scanTypeLabel" style="font-size:13px;color:var(--gold);font-weight:700"></span>
+  </div>
+
+  <!-- شاشة دخول الـ Leader -->
+  <div id="loginSection">
+    <div class="card glow" style="margin-top:20px">
+      <h2 style="font-size:17px;margin-bottom:6px">👑 دخول قائد الفريق</h2>
+      <p style="font-size:12px;color:var(--mist-dim);margin-bottom:16px">
+        الصفحة دي بس للـ Leaders عشان يسكانوا أعضاء فرقهم
+      </p>
+      <div id="loginErr" class="error-msg"></div>
+      <label>اليوزر</label>
+      <input type="text" id="leaderUser" placeholder="يوزرك" autocomplete="username">
+      <label>الباسورد</label>
+      <input type="password" id="leaderPass" placeholder="••••••" autocomplete="current-password">
+      <button class="btn" id="loginScanBtn">دخول</button>
+    </div>
+  </div>
+
+  <!-- لوحة السكان -->
+  <div id="scanSection" style="display:none">
+
+    <div class="leader-bar">
+      <span>👑</span>
+      <span>مرحباً <strong id="leaderNameLabel"></strong> — فريق <strong id="leaderTeamLabel"></strong></span>
+    </div>
+
+    <h1 class="display" style="font-size:18px;margin-bottom:14px">📷 سكان الحضور</h1>
+
+    <div class="scan-type-row">
+      <button class="scan-type-btn book active" id="btnBook" onclick="setScanType('book')">📖 درس الكتاب</button>
+      <button class="scan-type-btn"             id="btnProject" onclick="setScanType('project')">🗂️ المشروع</button>
+    </div>
+
+    <div class="result-banner" id="resultBanner"></div>
+
+    <div class="card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <strong style="font-size:14px">📷 سكان بالكاميرا</strong>
+        <div style="display:flex;gap:8px">
+          <button class="btn small outline" id="startCamBtn">تشغيل</button>
+          <button class="btn small outline" id="stopCamBtn" style="display:none">إيقاف</button>
+        </div>
+      </div>
+      <div id="reader"></div>
+    </div>
+
+    <div class="card manual-section">
+      <strong style="font-size:14px">⌨️ إدخال يدوي</strong>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <input type="text" id="manualId" placeholder="اليوزر أو الـ ID" style="margin-bottom:0;flex:1">
+        <button class="btn small" id="manualScanBtn" style="width:auto">سكان</button>
+      </div>
+      <p style="font-size:11px;color:var(--mist-dim);margin-top:6px">
+        بس أعضاء فريقك — من فرق تانية مش هيشتغل
+      </p>
+    </div>
+
+    <div class="card" style="margin-top:4px">
+      <strong style="font-size:14px">📋 سجل اليوم (<span id="logCount">0</span>)</strong>
+      <div id="scanLogList" style="margin-top:10px">
+        <div class="empty-state">لسه مفيش سجل</div>
+      </div>
+    </div>
+
+    <button class="btn outline" id="logoutBtn" style="margin-top:8px">تسجيل خروج</button>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script>
+var leaderId   = sessionStorage.getItem("scan_leaderId")   || "";
+var leaderName = sessionStorage.getItem("scan_leaderName") || "";
+var leaderTeam = sessionStorage.getItem("scan_leaderTeam") || "";
+var currentScanType = "book";
+var html5QrCode = null;
+var scanCooldown = false;
+var sessionLog = [];
+
+// ============================================================
+// دخول
+// ============================================================
+document.getElementById("loginScanBtn").addEventListener("click", doLogin);
+document.getElementById("leaderPass").addEventListener("keydown", function(e){
+  if(e.key==="Enter") doLogin();
+});
+
+async function doLogin(){
+  var username = document.getElementById("leaderUser").value.trim();
+  var password = document.getElementById("leaderPass").value.trim();
+  var errEl    = document.getElementById("loginErr");
+  errEl.style.display = "none";
+  if(!username||!password){
+    errEl.textContent="اكتب اليوزر والباسورد"; errEl.style.display="block"; return;
+  }
+  var btn = document.getElementById("loginScanBtn");
+  btn.disabled=true; btn.textContent="بندخّل...";
+
+  var res = await supabase.rpc("verify_login",{p_username:username,p_password:password});
+  btn.disabled=false; btn.textContent="دخول";
+
+  if(res.error||!res.data||!res.data.length){
+    errEl.textContent="اليوزر أو الباسورد غلط"; errEl.style.display="block"; return;
+  }
+
+  var uid = res.data[0].id;
+  var roleRes = await supabase.from("members").select("role,team_name,name").eq("id",uid).single();
+
+  if(roleRes.error||!roleRes.data||roleRes.data.role!=="leader"){
+    errEl.textContent="حسابك مش قائد فريق — الصفحة دي للـ Leaders بس";
+    errEl.style.display="block"; return;
+  }
+
+  leaderId   = uid;
+  leaderName = roleRes.data.name;
+  leaderTeam = roleRes.data.team_name||"—";
+  sessionStorage.setItem("scan_leaderId",   leaderId);
+  sessionStorage.setItem("scan_leaderName", leaderName);
+  sessionStorage.setItem("scan_leaderTeam", leaderTeam);
+  showPanel();
+  loadTodayLog();
+}
+
+// لو مسجّل دخول بالفعل
+if(leaderId){
+  supabase.from("members").select("role,team_name,name").eq("id",leaderId).single().then(function(r){
+    if(!r.error&&r.data&&r.data.role==="leader"){
+      leaderName=r.data.name; leaderTeam=r.data.team_name||"—";
+      showPanel(); loadTodayLog();
+    } else { clearSession(); }
+  });
+}
+
+function clearSession(){
+  ["scan_leaderId","scan_leaderName","scan_leaderTeam"].forEach(function(k){ sessionStorage.removeItem(k); });
+  leaderId=leaderName=leaderTeam="";
+}
+
+function showPanel(){
+  document.getElementById("loginSection").style.display="none";
+  document.getElementById("scanSection").style.display="block";
+  document.getElementById("leaderNameLabel").textContent=leaderName;
+  document.getElementById("leaderTeamLabel").textContent=leaderTeam;
+  updateTypeLabel();
+}
+
+document.getElementById("logoutBtn").addEventListener("click",function(){ clearSession(); location.reload(); });
+
+// ============================================================
+// نوع السكان
+// ============================================================
+function setScanType(t){
+  currentScanType=t;
+  document.getElementById("btnBook").classList.toggle("active",t==="book");
+  document.getElementById("btnProject").classList.toggle("active",t==="project");
+  updateTypeLabel();
+}
+function updateTypeLabel(){
+  document.getElementById("scanTypeLabel").textContent=
+    currentScanType==="book"?"📖 درس الكتاب":"🗂️ المشروع";
+}
+
+// ============================================================
+// الكاميرا
+// ============================================================
+document.getElementById("startCamBtn").addEventListener("click",startCamera);
+document.getElementById("stopCamBtn").addEventListener("click",stopCamera);
+
+function startCamera(){
+  if(html5QrCode) return;
+  html5QrCode=new Html5Qrcode("reader");
+  html5QrCode.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},
+    onQrSuccess,function(){})
+  .then(function(){
+    document.getElementById("startCamBtn").style.display="none";
+    document.getElementById("stopCamBtn").style.display="inline-flex";
+  }).catch(function(err){
+    showResult("err","❌ مش قادر يفتح الكاميرا"); html5QrCode=null;
+  });
+}
+function stopCamera(){
+  if(!html5QrCode) return;
+  html5QrCode.stop().then(function(){
+    html5QrCode.clear(); html5QrCode=null;
+    document.getElementById("startCamBtn").style.display="inline-flex";
+    document.getElementById("stopCamBtn").style.display="none";
+    document.getElementById("reader").innerHTML="";
+  });
+}
+async function onQrSuccess(text){
+  if(scanCooldown) return;
+  scanCooldown=true; setTimeout(function(){ scanCooldown=false; },3000);
+  await processScan(text.trim());
+}
+
+// ============================================================
+// إدخال يدوي
+// ============================================================
+document.getElementById("manualScanBtn").addEventListener("click",async function(){
+  var v=document.getElementById("manualId").value.trim();
+  if(!v) return;
+  await processScan(v);
+  document.getElementById("manualId").value="";
+});
+document.getElementById("manualId").addEventListener("keydown",function(e){
+  if(e.key==="Enter") document.getElementById("manualScanBtn").click();
+});
+
+// ============================================================
+// معالجة السكان
+// ============================================================
+async function processScan(raw){
+  var memberId=null;
+  var uuidRx=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if(uuidRx.test(raw)){
+    memberId=raw;
+  } else {
+    var r=await supabase.from("members").select("id").ilike("username",raw).maybeSingle();
+    if(r.error||!r.data){ showResult("err","❌ مش لاقي العضو: "+raw); return; }
+    memberId=r.data.id;
+  }
+
+  var res=await supabase.rpc("leader_scan_qr",{
+    p_leader_id: leaderId,
+    p_member_id: memberId,
+    p_scan_type: currentScanType
+  });
+
+  if(res.error){ showResult("err","❌ خطأ: "+res.error.message); return; }
+  var d=res.data&&res.data[0];
+  if(!d){ showResult("err","❌ حصل خطأ غير متوقع"); return; }
+
+  if(d.status==="ok"){
+    showResult("ok","✅ "+d.member_name+"\n+"+d.points_added+" نقطة");
+    addToLog(d.member_name,currentScanType,d.points_added);
+  } else if(d.status==="already_scanned"){
+    showResult("dup","⚠️ "+d.member_name+"\nسكان قبل كده النهارده");
+  } else if(d.status==="wrong_team"){
+    showResult("err","❌ "+d.member_name+"\nمش من فريقك");
+  } else if(d.status==="not_found"){
+    showResult("err","❌ العضو مش موجود");
+  } else {
+    showResult("err","❌ "+d.status);
+  }
+}
+
+// ============================================================
+// UI
+// ============================================================
+function showResult(type,text){
+  var el=document.getElementById("resultBanner");
+  el.className="result-banner "+type; el.style.display="block"; el.innerText=text;
+  setTimeout(function(){ el.style.display="none"; },4000);
+}
+function addToLog(name,type,pts){
+  var t=new Date().toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+  sessionLog.unshift({name:name,label:type==="book"?"📖 الكتاب":"🗂️ المشروع",pts:pts,time:t});
+  renderLog();
+}
+async function loadTodayLog(){
+  var today=new Date().toISOString().split("T")[0];
+  var res=await supabase
+    .from("attendance")
+    .select("scan_type,scanned_at,members(name)")
+    .eq("scanned_by",leaderId)
+    .gte("scanned_at",today);
+  if(res.error||!res.data) return;
+  sessionLog=res.data.map(function(a){
+    var d=new Date(a.scanned_at);
+    return{
+      name:a.members?a.members.name:"؟",
+      label:a.scan_type==="book"?"📖 الكتاب":"🗂️ المشروع",
+      pts:null,
+      time:d.toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})
+    };
+  });
+  renderLog();
+}
+function renderLog(){
+  document.getElementById("logCount").textContent=sessionLog.length;
+  var box=document.getElementById("scanLogList");
+  if(!sessionLog.length){ box.innerHTML='<div class="empty-state">لسه مفيش سجل</div>'; return; }
+  box.innerHTML=sessionLog.map(function(i){
+    return'<div class="scan-log-item"><div><strong>'+esc(i.name)+'</strong> — '+i.label+'</div>'+
+      '<div style="color:var(--mist-dim)">'+i.time+(i.pts?' <span style="color:var(--gold)">+'+i.pts+'</span>':'')+
+      '</div></div>';
+  }).join("");
+}
+function esc(s){
+  return(s||"").toString().replace(/[&<>"']/g,function(c){
+    return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+</script>
+</body>
+</html>

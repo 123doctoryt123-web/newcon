@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مشروعي | مؤتمر الشباب</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="topbar">
+    <a href="dashboard.html" class="brand"><span class="dot"></span> مؤتمر الشباب</a>
+    <a href="#" class="logout-link" id="logoutBtn">خروج</a>
+  </div>
+
+
+  <!-- مجموعة المشروع -->
+  <div class="card" id="projectGroupCard" style="margin-bottom:20px;display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#a07840);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🗂️</div>
+      <div>
+        <div style="font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--mist)" id="groupNameLabel">مجموعتي في المشروع</div>
+        <div style="font-size:11px;color:var(--mist-dim)" id="groupTeamLabel"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--mist-dim);margin-bottom:10px">زملائي في المجموعة 👥</div>
+    <div id="groupMembersList"></div>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:6px">المواد والمراجع</h1>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">كل اللي ممكن يساعدك في مشروعك</p>
+
+  <div class="card" id="materialsCard">
+    <div id="materialsList"><div class="empty-state">بنحمّل المواد...</div></div>
+  </div>
+
+  <h1 class="display" style="font-size:20px;margin-bottom:6px">ارفع شغلك</h1>
+  <p style="color:var(--mist-dim);font-size:13px;margin-bottom:18px">
+    حمّل الصورة أو الفيديو على جوجل درايڤ، خليه "Anyone with the link"، وحط الرابط هنا
+  </p>
+
+  <div class="card">
+    <div id="submitError" class="error-msg"></div>
+    <div id="submitSuccess" class="success-msg"></div>
+    <label for="linkType">نوع الملف</label>
+    <select id="linkType">
+      <option value="photo">صورة</option>
+      <option value="video">فيديو</option>
+      <option value="document">ملف / مستند</option>
+      <option value="other">حاجة تانية</option>
+    </select>
+    <label for="driveLink">رابط جوجل درايڤ</label>
+    <input type="url" id="driveLink" placeholder="https://drive.google.com/...">
+    <label for="noteText">ملاحظة (اختياري)</label>
+    <textarea id="noteText" placeholder="مثلاً: ده الجزء الأول من المشروع"></textarea>
+    <button class="btn" id="submitBtn">رفع الرابط</button>
+  </div>
+
+  <h1 class="display" style="font-size:18px;margin-bottom:6px">مشاركاتي</h1>
+  <div class="card">
+    <div id="mySubmissions"><div class="empty-state">لسه مرفعتش حاجة</div></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+var typeLabels = { photo: "صورة", video: "فيديو", document: "ملف", other: "تانى", link: "رابط", pdf: "PDF", text: "نص" };
+
+function escapeHtml(s){
+  return (s || "").toString().replace(/[&<>"']/g, function(c){
+    return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
+  });
+}
+
+
+async function loadMyProjectGroup(){
+  if(!member) return;
+  var res = await supabase.rpc("get_my_project_group", { p_member_id: member.id });
+  var card = document.getElementById("projectGroupCard");
+  if(res.error || !res.data || res.data.length === 0){
+    if(card) card.style.display = "none";
+    return;
+  }
+  // أول صف فيه بيانات المجموعة
+  var first = res.data[0];
+  document.getElementById("groupNameLabel").textContent = first.group_name || "مجموعتي في المشروع";
+  document.getElementById("groupTeamLabel").textContent = "فريق " + (first.team_name || "");
+  // عرض الأعضاء ما عدا نفسي
+  var others = res.data.filter(function(r){ return r.member_id !== member.id; });
+  var myRow  = res.data.find(function(r){ return r.member_id === member.id; });
+  var membersHtml = res.data.map(function(r){
+    var isMe = r.member_id === member.id;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">' +
+      '<div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;' +
+      (isMe ? 'background:linear-gradient(135deg,var(--gold),var(--coral));color:#fff;box-shadow:0 0 12px rgba(200,150,90,0.3)' : 'background:var(--ink-3);border:1px solid var(--line);color:var(--mist-dim)') +
+      '">' + escapeHtml((r.member_name||'?').trim().charAt(0)) + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-size:14px;color:' + (isMe ? 'var(--gold)' : 'var(--mist)') + ';font-weight:' + (isMe ? '700' : '400') + '">' +
+          escapeHtml(r.member_name) + (isMe ? ' <small style="font-size:11px;opacity:.7">(أنا)</small>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById("groupMembersList").innerHTML = membersHtml || '<div class="empty-state">مفيش أعضاء</div>';
+  if(card) card.style.display = "block";
+}
+
+async function loadmaterials(){
+  var box = document.getElementById("materialsList");
+  // نستخدم get_my_materials لو الدالة موجودة (تجيب مواد مجموعته + العامة)
+  var res = await supabase.rpc("get_my_materials", { p_member_id: member.id });
+  if(res.error){
+    // fallback للمواد العامة لو الدالة مش موجودة
+    res = await supabase.from("materials").select("*").order("created_at", { ascending: true });
+  }
+  if(!res.data || res.data.length === 0){
+    box.innerHTML = '<div class="empty-state">لسه مفيش مواد متاحة، تابع بعدين</div>';
+    return;
+  }
+  // نفصل المواد الخاصة بالمجموعة عن العامة
+  var grouped = res.data.filter(function(m){ return m.group_id; });
+  var general = res.data.filter(function(m){ return !m.group_id; });
+  
+  function renderMat(mat){
+    return '<div class="material-item">' +
+      (mat.group_id ? '<div style="font-size:11px;color:var(--gold);margin-bottom:4px">👥 خاص بمجموعتك</div>' : '') +
+      '<span class="badge">' + escapeHtml(typeLabels[mat.type] || mat.type) + '</span>' +
+      '<h3>' + escapeHtml(mat.title) + '</h3>' +
+      (mat.description ? '<p>' + escapeHtml(mat.description) + '</p>' : '') +
+      (mat.content ? '<p>' + escapeHtml(mat.content) + '</p>' : '') +
+      (mat.url ? '<a class="btn outline" href="' + escapeHtml(mat.url) + '" target="_blank">فتح</a>' : '') +
+      '</div>';
+  }
+
+  var html = '';
+  if(grouped.length > 0){
+    html += '<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)">📌 مواد مجموعتك</div>';
+    html += grouped.map(renderMat).join('');
+  }
+  if(general.length > 0){
+    if(grouped.length > 0) html += '<div style="font-size:12px;color:var(--mist-dim);font-weight:700;margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)">🌐 المواد العامة</div>';
+    html += general.map(renderMat).join('');
+  }
+  box.innerHTML = html;
+}
+
+async function loadmysubmissions(){
+  var res = await supabase.rpc("get_my_submissions", { p_member_id: member.id });
+  var box = document.getElementById("mySubmissions");
+  if(!res.data || res.data.length === 0){
+    box.innerHTML = '<div class="empty-state">لسه مرفعتش حاجة</div>';
+    return;
+  }
+  box.innerHTML = res.data.map(function(s){
+    return '<div class="submission-item"><div><span class="badge">' + escapeHtml(typeLabels[s.type] || s.type) + '</span><br><a href="' + escapeHtml(s.link) + '" target="_blank">' + escapeHtml(s.link) + '</a>' +
+      (s.note ? '<div class="meta">' + escapeHtml(s.note) + '</div>' : '') +
+      '</div><button class="btn danger small" data-id="' + s.id + '">حذف</button></div>';
+  }).join("");
+
+  box.querySelectorAll("button[data-id]").forEach(function(btn){
+    btn.addEventListener("click", async function(){
+      await supabase.rpc("delete_my_submission", { p_member_id: member.id, p_id: btn.dataset.id });
+      loadmysubmissions();
+    });
+  });
+}
+
+document.getElementById("submitBtn").addEventListener("click", async function(){
+  var link = document.getElementById("driveLink").value.trim();
+  var note = document.getElementById("noteText").value.trim();
+  var type = document.getElementById("linkType").value;
+  var errBox = document.getElementById("submitError");
+  var okBox = document.getElementById("submitSuccess");
+  errBox.style.display = "none"; okBox.style.display = "none";
+
+  if(!link.startsWith("http")){
+    errBox.textContent = "حط رابط صحيح يبدأ بـ http";
+    errBox.style.display = "block";
+    return;
+  }
+
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true; btn.textContent = "بنرفع...";
+
+  var res = await supabase.rpc("submit_project_link", { p_member_id: member.id, p_link: link, p_note: note, p_type: type });
+  btn.disabled = false; btn.textContent = "رفع الرابط";
+
+  if(res.error){
+    errBox.textContent = "حصل خطأ، حاول تاني";
+    errBox.style.display = "block";
+    return;
+  }
+
+  okBox.textContent = "تم رفع الرابط ✅";
+  okBox.style.display = "block";
+  document.getElementById("driveLink").value = "";
+  document.getElementById("noteText").value = "";
+  loadmysubmissions();
+});
+
+loadmaterials();
+loadmysubmissions();
+loadMyProjectGroup();
+</script>
+<script src="js/realtime.js"></script>
+</body>
+</html>

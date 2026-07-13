@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>موعد خلوتك | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.retreat-wrap{
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.retreat-card{
+  width: 100%; max-width: 400px;
+  text-align: center;
+}
+.retreat-logo{
+  font-family: var(--font-display); font-size: 22px; font-weight: 800;
+  color: var(--mist); margin-bottom: 6px; letter-spacing: 1px;
+}
+.retreat-logo span{ color: var(--gold); }
+
+.slot-card{
+  background: linear-gradient(150deg, #16273d, var(--ink-2) 60%, var(--ink-3));
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 32px 24px 28px;
+  margin: 22px 0;
+  position: relative; overflow: hidden;
+}
+.slot-card::before{
+  content: ""; position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(200,150,90,0.2), transparent 70%);
+  pointer-events: none;
+}
+.slot-icon{ font-size: 52px; margin-bottom: 16px; }
+.slot-title{
+  font-size: 13px; color: var(--mist-dim); letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 20px;
+}
+.slot-day{
+  font-family: var(--font-display); font-size: 15px;
+  color: var(--gold); font-weight: 700; margin-bottom: 6px;
+}
+.slot-time{
+  font-family: var(--font-display); font-size: 52px; font-weight: 800;
+  color: var(--mist); line-height: 1;
+  text-shadow: 0 0 30px rgba(200,150,90,0.3);
+  margin-bottom: 6px;
+}
+.slot-location{
+  font-size: 16px; color: var(--mist-dim); margin-top: 14px;
+  padding-top: 14px; border-top: 1px solid var(--line);
+}
+.slot-location span{ color: var(--coral); font-weight: 700; }
+
+.name-greet{
+  font-family: var(--font-display); font-size: 18px; font-weight: 700;
+  color: var(--mist); margin-bottom: 4px;
+}
+.sub-greet{ font-size: 13px; color: var(--mist-dim); margin-bottom: 0; }
+
+.hint-box{
+  background: rgba(200,150,90,0.06); border: 1px solid rgba(200,150,90,0.2);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  font-size: 12px; color: var(--mist-dim); line-height: 1.8;
+  margin-bottom: 20px; text-align: right;
+}
+.hint-box strong{ color: var(--gold); }
+
+.loading-state{
+  padding: 60px 20px; text-align: center; color: var(--mist-dim);
+}
+.loading-state .spin{
+  width: 36px; height: 36px; border: 3px solid var(--line);
+  border-top-color: var(--gold); border-radius: 50%;
+  animation: spin .8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin{ to{ transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="retreat-wrap">
+  <div class="retreat-card">
+
+    <img src="logo.png" alt="Connect Three" class="login-logo-img" style="margin-bottom:8px">
+    <div class="retreat-logo">CONNECT <span>THREE</span></div>
+    <p style="font-size:12px;color:var(--mist-dim);margin-bottom:0;letter-spacing:1px">WAY · TRUTH · LIFE</p>
+
+    <!-- حالة التحميل -->
+    <div id="loadingState" class="slot-card">
+      <div class="loading-state">
+        <div class="spin"></div>
+        <div>بنجهّز موعدك...</div>
+      </div>
+    </div>
+
+    <!-- الموعد -->
+    <div id="slotContent" style="display:none">
+      <div class="slot-card">
+        <div class="slot-icon">🕊️</div>
+        <div class="slot-title">موعد خلوتك</div>
+        <div class="name-greet" id="memberGreet"></div>
+        <p class="sub-greet">ربنا بيستناك 🙏</p>
+        <div style="margin: 22px 0 0">
+          <div class="slot-day" id="slotDay"></div>
+          <div class="slot-time" id="slotTime"></div>
+          <div class="slot-location">📍 <span id="slotLocation"></span></div>
+        </div>
+      </div>
+
+      <div class="hint-box">
+        <strong>⚠️ مهم:</strong> احفظ الموعد ده كويس.<br>
+        لو عايز تشوفه تاني، افتح الداشبورد وادخل على <strong>خلوتي</strong>.
+      </div>
+
+      <a href="dashboard.html" class="btn" style="display:block;text-align:center">
+        روح الداشبورد 🏠
+      </a>
+    </div>
+
+    <!-- خطأ -->
+    <div id="errorState" style="display:none">
+      <div class="slot-card">
+        <div class="slot-icon">😔</div>
+        <div class="slot-title">مش قادر يحجز موعد</div>
+        <p id="errorText" style="color:var(--mist-dim);font-size:14px;margin-top:10px"></p>
+      </div>
+      <a href="dashboard.html" class="btn outline" style="display:block;text-align:center;margin-top:16px">
+        روح الداشبورد
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+var member = requireSession();
+
+async function loadRetreatSlot() {
+  if (!member) return;
+
+  document.getElementById("memberGreet").textContent = member.name;
+
+  try {
+    // أول شيل حاول تجيب الموعد الموجود
+    var existing = await supabase.rpc("get_my_retreat_slot", { p_member_id: member.id });
+
+    var slot = null;
+    if (!existing.error && existing.data && existing.data.length > 0) {
+      slot = existing.data[0];
+    } else {
+      // لو مفيش، احجز جديد
+      var booked = await supabase.rpc("book_retreat_slot", { p_member_id: member.id });
+      if (booked.error) {
+        showError(booked.error.message);
+        return;
+      }
+      if (!booked.data || booked.data.length === 0) {
+        showError("مفيش مواعيد متاحة دلوقتي");
+        return;
+      }
+      slot = booked.data[0];
+    }
+
+    // اعرض الموعد
+    var dayNames = {1: "الأحد 19 يوليو", 2: "الاثنين 20 يوليو", 3: "الثلاثاء 21 يوليو"};
+    document.getElementById("slotDay").textContent = "📅 " + (dayNames[slot.day] || "يوم " + slot.day);
+    document.getElementById("slotTime").textContent = slot.time_label;
+    document.getElementById("slotLocation").textContent = slot.location;
+
+    document.getElementById("loadingState").style.display = "none";
+    document.getElementById("slotContent").style.display = "block";
+
+  } catch(e) {
+    showError("حصل خطأ غير متوقع");
+  }
+}
+
+function showError(msg) {
+  var text = msg || "حصل خطأ";
+  if (text.includes("no_slots_available")) {
+    text = "المواعيد اتملت للأيام الثلاثة 😔 — تواصل مع المسؤول";
+  }
+  document.getElementById("errorText").textContent = text;
+  document.getElementById("loadingState").style.display = "none";
+  document.getElementById("errorState").style.display = "block";
+}
+
+loadRetreatSlot();
+</script>
+<script src="js/realtime.js"></script>
+</body>
+</html>

@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.program-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.program-row input{ margin-bottom:0; flex:1; }
+.reg-link-box{
+  background: rgba(200,150,90,0.08); border:1px solid var(--gold);
+  border-radius: var(--radius-sm); padding:14px; margin-top:14px; font-size:13px;
+}
+.reg-link-box a{ color:var(--gold); word-break:break-all; }
+
+/* ── Wizard Steps ── */
+.wizard-step{
+  margin-bottom:20px;
+}
+.wizard-step-header{
+  display:flex; align-items:flex-start; gap:12px;
+  margin-bottom:10px;
+}
+.wizard-step-num{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),var(--gold-dim));
+  color:var(--ink); font-family:var(--font-display);
+  font-weight:800; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 12px rgba(200,150,90,.25);
+}
+.wizard-step-title{
+  font-family:var(--font-display); font-weight:700;
+  font-size:15px; color:var(--mist);
+}
+.wizard-step-sub{
+  font-size:12px; color:var(--mist-dim); margin-top:2px; line-height:1.5;
+}
+.wizard-connector{
+  width:2px; height:16px;
+  background:linear-gradient(to bottom,rgba(200,150,90,.4),transparent);
+  margin:0 16px 0; 
+}
+.filter-chip{
+  padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700;
+  border:1px solid var(--line); background:var(--ink-3);
+  color:var(--mist-dim); cursor:pointer; transition:all .15s;
+}
+.filter-chip.active{
+  background:rgba(200,150,90,.15); border-color:rgba(200,150,90,.4);
+  color:var(--gold);
+}
+
+/* ── Member Edit Modal ── */
+#memberModal{
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,0.65); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;
+}
+#memberModal.open{ display:flex; }
+#memberModalBox{
+  background:var(--ink-2,#1a1a2e); border:1px solid var(--line,rgba(255,255,255,.1));
+  border-radius:16px; padding:24px; width:100%; max-width:420px;
+  max-height:90vh; overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  animation:modalIn .2s ease;
+}
+@keyframes modalIn{
+  from{ opacity:0; transform:translateY(18px) scale(.97); }
+  to  { opacity:1; transform:translateY(0)   scale(1);    }
+}
+#memberModalBox h3{
+  margin:0 0 18px; font-size:16px; color:var(--gold,#c8965a);
+  display:flex; align-items:center; gap:8px;
+}
+#memberModalBox label{
+  display:block; font-size:12px; color:var(--mist-dim,#888);
+  margin:12px 0 4px; font-weight:600; text-transform:uppercase; letter-spacing:.5px;
+}
+#memberModalBox input,
+#memberModalBox select{
+  width:100%; box-sizing:border-box;
+}
+.modal-section-sep{
+  border:none; border-top:1px solid var(--line,rgba(255,255,255,.08));
+  margin:16px 0;
+}
+.modal-footer{
+  display:flex; gap:8px; margin-top:20px; justify-content:flex-end;
+}
+.modal-footer .btn{ min-width:90px; }
+.member-row-clickable{ cursor:pointer; transition:background .15s; }
+.member-row-clickable:hover{ background:rgba(200,150,90,0.07); }
+.badge-leader{
+  display:inline-block; font-size:10px; padding:2px 7px;
+  border-radius:20px; background:rgba(200,150,90,.15);
+  color:var(--gold,#c8965a); font-weight:700; margin-right:4px;
+}
+#memberModal .success-msg,
+#memberModal .error-msg{ margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="container wide">
+
+  <div id="adminLoginScreen">
+    <div class="login-wrap" style="min-height:80vh">
+      <div class="login-card">
+        <div class="login-logo">لوحة <span>التحكم</span></div>
+        <div class="card glow" style="text-align:right">
+          <div id="adminErrorMsg" class="error-msg"></div>
+          <label for="adminPassInput">كلمة سر الأدمن</label>
+          <input type="password" id="adminPassInput" placeholder="••••••">
+          <button class="btn" id="adminLoginBtn">دخول</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminPanel" style="display:none">
+    <div class="topbar no-print">
+      <div class="brand"><span class="dot"></span> لوحة التحكم</div>
+      <a href="#" class="logout-link" id="adminLogoutBtn">خروج</a>
+    </div>
+
+    <div class="tabs no-print" style="flex-wrap:wrap">
+      <div class="tab active" data-tab="members">الشباب</div>
+      <div class="tab" data-tab="teams">👥 الفرق والمشاريع</div>
+      <div class="tab" data-tab="materials">المواد</div>
+      <div class="tab" data-tab="predictions">التوقعات</div>
+      <div class="tab" data-tab="submissions">المشاركات</div>
+      <div class="tab" data-tab="program">البرنامج</div>
+      <div class="tab" data-tab="spy">الجاسوس</div>
+      <div class="tab" data-tab="book">درس الكتاب</div>
+      <div class="tab" data-tab="qr">QR الحضور</div>
+      <div class="tab" data-tab="notifications">الإشعارات</div>
+      <div class="tab" data-tab="retreat">الخلوة</div>
+      <div class="tab" data-tab="settings">الإعدادات</div>
+      <div class="tab" data-tab="scores">📊 الدرجات</div>
+      <div class="tab" data-tab="puzzle">🧩 اللغز</div>
+      <div class="tab" data-tab="poll">🗳️ الاستفتاء</div>
+      <div class="tab" data-tab="confpredict">🔮 التوقعات</div>
+      <div class="tab" data-tab="secretbox">📦 الأسرار</div>
+      <div class="tab" data-tab="gratitude">🧱 الامتنان</div>
+      <div class="tab" data-tab="wheel">🎡 عجلة الجوائز</div>
+      <div class="tab" data-tab="dailyq">❓ سؤال اليوم</div>
+      <!-- خطوة 1 — تاب تحدي الفريق -->
+      <div class="tab" data-tab="teamchallenge">🏆 تحدي الفريق</div>
+      <div class="tab" data-tab="online">🟢 الموجودين الآن</div>
+    </div>
+
+    <!-- الشباب -->
+    <div class="tab-panel active" id="panel-members">
+      <div class="card no-print">
+        <label for="newMemberName">إضافة شاب جديد (الأدمن يضيفه)</label>
+        <input type="text" id="newMemberName" placeholder="اسم الشاب">
+        <button class="btn" id="addMemberBtn">إضافة وتوليد بيانات الدخول</button>
+        <div id="newMemberResult" style="margin-top:14px"></div>
+        <div class="reg-link-box">
+          <strong>🔗 لينك التسجيل الذاتي</strong><br>
+          أرسله للشاب عشان يسجّل بنفسه:<br>
+          <a id="regLinkEl" href="register.html" target="_blank"></a>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px" class="no-print">
+          <strong>كل الشباب (<span id="memberCount">0</span>)</strong>
+          <button class="btn small outline" id="printMembersBtn">طباعة / تحميل</button>
+        </div>
+        <table id="membersTable">
+          <thead><tr><th>الاسم</th><th>اليوزر</th><th class="no-print"></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- الفرق والمشاريع — wizard واحد -->
+    <div class="tab-panel" id="panel-teams">
+
+      <!-- ══ خطوة ١: الشباب وفرقهم ══ -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">١</div>
+          <div>
+            <div class="wizard-step-title">توزيع الفرق والنقاط</div>
+            <div class="wizard-step-sub">اضغط على أي شاب لتعديل فريقه ونقاطه ودوره دفعة واحدة</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <table>
+            <thead><tr><th>الاسم</th><th>الفريق</th><th>الدور</th><th>النقاط</th></tr></thead>
+            <tbody id="teamsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══ خطوة ٢: مجموعات المشروع ══ -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">٢</div>
+          <div>
+            <div class="wizard-step-title">إنشاء مجموعة مشروع</div>
+            <div class="wizard-step-sub">اختار 2–5 شباب من نفس الفريق — هيشوفوا بعض في صفحة المشروع</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <label>اسم المجموعة</label>
+          <input type="text" id="groupNameInput" placeholder="مثال: مجموعة ١ — فريق مارمرقس">
+          <label style="margin-top:12px">اختار الأعضاء</label>
+          <div id="groupFilterBar" style="margin:8px 0 10px;display:flex;gap:6px;flex-wrap:wrap"></div>
+          <div id="groupMembersCheckList" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px">
+            <span style="color:var(--mist-dim);font-size:13px">بنحمّل الشباب...</span>
+          </div>
+          <p id="groupSelCount" style="font-size:12px;color:var(--mist-dim);margin:8px 0 0">تم اختيار: 0</p>
+          <button class="btn" id="createGroupBtn" style="margin-top:12px">✅ إنشاء المجموعة</button>
+          <div id="groupMsg" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <!-- ══ المجموعات الحالية ══ -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num" style="background:var(--ink-3);color:var(--mist-dim)">📋</div>
+          <div>
+            <div class="wizard-step-title">المجموعات الحالية (<span id="groupCount">0</span>)</div>
+            <div class="wizard-step-sub">المجموعات المُنشأة — يمكن حذفها وإعادة إنشائها</div>
+          </div>
+        </div>
+        <div class="card" style="margin:0">
+          <div id="groupsList"><div class="empty-state">لسه مفيش مجموعات</div></div>
+        </div>
+      </div>
+
+    </div><!-- /panel-teams -->
+
+    <!-- ══ تاب الدرجات ══ -->
+    <div class="tab-panel" id="panel-scores">
+
+      <!-- درجات الغرف -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">🏠</div>
+          <div style="flex:1">
+            <div class="wizard-step-title">درجات الغرف</div>
+            <div class="wizard-step-sub">الدرجات اللي أمناء الغرف أعطوها للفرق</div>
+          </div>
+          <button class="btn small outline" onclick="loadRoomScores()" style="flex-shrink:0">🔄 تحديث</button>
+        </div>
+        <div class="card" style="margin:0">
+          <div id="roomScoresList"><div class="empty-state">بنحمّل...</div></div>
+        </div>
+      </div>
+
+      <!-- درجات المشروع -->
+      <div class="wizard-step">
+        <div class="wizard-step-header">
+          <div class="wizard-step-num">📝</div>
+          <div style="flex:1">
+            <div class="wizard-step-title">درجات المشروع</div>
+            <div class="wizard-step-sub">الدرجات اللي المصححون أعطوها للمجموعات</div>
+          </div>
+          <button class="btn small outline" onclick="loadProjectScores()" style="flex-shrink:0">🔄 تحديث</button>
+        </div>
+        <div class="card" style="margin:0">
+          <div id="projectScoresList"><div class="empty-state">بنحمّل...</div></div>
+        </div>
+      </div>
+
+    </div><!-- /panel-scores -->
+
+    <!-- hidden compat elements -->
+    <select id="teamMemberSelect"  style="display:none"></select>
+    <input  id="teamNameInput"     style="display:none" type="text">
+    <input  id="teamPointsInput"   style="display:none" type="number">
+    <button id="saveTeamStatsBtn"  style="display:none"></button>
+    <div    id="teamStatsMsg"      style="display:none"></div>
+    <select id="leaderMemberSelect" style="display:none"><option value="">— اختار شاب —</option></select>
+    <select id="leaderRoleSelect"   style="display:none">
+      <option value="leader">👑 قائد فريق</option>
+      <option value="member">عضو عادي</option>
+    </select>
+    <button id="setLeaderBtn"  style="display:none"></button>
+    <div    id="leaderMsg"     style="display:none"></div>
+    <!-- leaders table kept hidden for JS compat -->
+    <div style="display:none"><table><tbody id="leadersTableBody"></tbody></table></div>
+
+
+    <!-- المواد -->
+    <div class="tab-panel" id="panel-materials">
+      <div class="card no-print">
+        <label for="matTitle">عنوان المادة</label>
+        <input type="text" id="matTitle" placeholder="مثال: مرجع عن الموضوع">
+        <label for="matType">النوع</label>
+        <select id="matType">
+          <option value="link">رابط</option>
+          <option value="pdf">PDF</option>
+          <option value="video">فيديو</option>
+          <option value="text">نص فقط</option>
+        </select>
+        <label for="matUrl">رابط (لو فيه)</label>
+        <input type="url" id="matUrl" placeholder="https://...">
+        <label for="matDesc">وصف مختصر</label>
+        <textarea id="matDesc" placeholder="وصف بسيط للمادة"></textarea>
+        <label for="matContent">نص إضافي (اختياري)</label>
+        <textarea id="matContent" placeholder="ممكن تحط هنا نص كامل لو مش رابط"></textarea>
+        <label for="matGroup">خاصة بمجموعة؟ (اتركها "للكل" لو عامة)</label>
+        <select id="matGroup">
+          <option value="">🌐 للكل (عامة)</option>
+        </select>
+        <button class="btn" id="addMaterialBtn">إضافة المادة</button>
+      </div>
+      <div class="card">
+        <strong>المواد الحالية</strong>
+        <div id="materialsAdminList" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- التوقعات -->
+    <div class="tab-panel" id="panel-predictions">
+      <div class="card no-print">
+        <label>اسم الفريق الأول</label>
+        <input type="text" id="team1Input" placeholder="مثال: الأرجنتين">
+        <label>اسم الفريق الثاني</label>
+        <input type="text" id="team2Input" placeholder="مثال: فرنسا">
+        <button class="btn outline" id="saveTeamsBtn">حفظ أسماء الفريقين</button>
+        <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between">
+          <span id="lockStatusText">حالة التوقعات: ...</span>
+          <button class="btn small" id="toggleLockBtn">تغيير</button>
+        </div>
+      </div>
+      <div class="card">
+        <strong>توقعات الشباب (<span id="predCount">0</span>)</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>الاسم</th><th>اليوزر</th><th>التوقع</th><th>آخر تحديث</th></tr></thead>
+          <tbody id="predTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- المشاركات -->
+    <div class="tab-panel" id="panel-submissions">
+      <div class="card">
+        <strong>مشاركات المشروع (<span id="subCount">0</span>)</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>الاسم</th><th>النوع</th><th>الرابط</th><th>ملاحظة</th></tr></thead>
+          <tbody id="subTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- البرنامج -->
+    <div class="tab-panel" id="panel-program">
+      <div class="card no-print">
+        <strong>إضافة نشاط للبرنامج</strong>
+        <div style="margin-top:14px">
+          <label>اليوم</label>
+          <select id="progDay">
+            <option value="1">اليوم الأول — 19 يوليو</option>
+            <option value="2">اليوم الثاني — 20 يوليو</option>
+            <option value="3">اليوم الثالث — 21 يوليو</option>
+          </select>
+          <label>الوقت</label>
+          <input type="text" id="progTime" placeholder="مثال: 7:00 ص">
+          <label>اسم النشاط</label>
+          <input type="text" id="progTitle" placeholder="مثال: صلاة الصباح">
+          <label>الترتيب (رقم)</label>
+          <input type="number" id="progOrder" placeholder="1" value="1">
+          <button class="btn" id="addProgBtn">إضافة للبرنامج</button>
+        </div>
+      </div>
+      <div class="card">
+        <strong>البرنامج الحالي</strong>
+        <div id="programAdminList" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- الجاسوس -->
+    <div class="tab-panel" id="panel-spy">
+      <div class="card">
+        <strong>🕵️ لعبة الجاسوس</strong>
+        <label>الكلمة السرية</label>
+        <input type="text" id="spyWord" placeholder="مثال: بطاطس">
+        <label>عدد الجواسيس</label>
+        <input type="number" id="spyCount" value="1" min="1">
+        <label>اختار اللاعبين</label>
+        <div id="spyMembersList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn small outline" id="selectAllSpyBtn">تحديد الكل</button>
+          <button class="btn small outline" id="deselectAllSpyBtn">إلغاء الكل</button>
+        </div>
+        <button class="btn" id="startSpyBtn" style="margin-top:14px">🎮 ابدأ لعبة جديدة</button>
+        <button class="btn danger" id="stopSpyBtn" style="margin-top:10px">⏹️ إيقاف اللعبة</button>
+        <div id="spyMsg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+   <!-- درس الكتاب -->
+<div class="tab-panel" id="panel-book">
+  <div class="card">
+    <strong>📖 أسئلة درس الكتاب</strong>
+    <p style="font-size:13px;color:var(--mist-dim);margin:8px 0 14px">
+      الأسئلة اللي بعتها الشباب بشكل مجهول — بتتحدث تلقائياً
+    </p>
+    <button class="btn outline" id="refreshBookQBtn" onclick="loadBookQuestions()">🔄 تحديث</button>
+    <button class="btn" id="clearBookQBtn" style="background:#c0533a;margin-right:8px" onclick="clearBookQuestions()">🗑️ مسح الكل</button>
+    <div id="bookQList" style="margin-top:16px">
+      <div class="empty-state">بنحمّل...</div>
+    </div>
+  </div>
+</div>
+    <!-- QR الحضور -->
+    <div class="tab-panel" id="panel-qr">
+      <div class="card">
+        <strong>📷 تسجيل الحضور بالـ QR</strong>
+        <p style="font-size:13px;color:var(--mist-dim);margin:10px 0">
+          افتح صفحة السكان على تليفونك أو أي جهاز عندك، وامسح الـ QR بتاع كل شاب.
+        </p>
+        <a href="scan.html" target="_blank" class="btn" style="margin-bottom:14px">
+          📷 فتح صفحة السكان
+        </a>
+
+        <div style="margin-top:6px">
+          <strong style="font-size:14px">إعدادات النقاط</strong>
+          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>نقاط درس الكتاب</label>
+              <input type="number" id="bookScanPts" value="5" min="0">
+            </div>
+            <div>
+              <label>نقاط المشروع</label>
+              <input type="number" id="projectScanPts" value="10" min="0">
+            </div>
+          </div>
+          <button class="btn outline" id="saveScanPointsBtn">حفظ النقاط</button>
+          <div id="scanPointsMsg" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:4px">
+        <strong>📋 سجل الحضور الكامل</strong>
+        <div id="attendanceLog" style="margin-top:10px">
+          <div class="empty-state">بنحمّل...</div>
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- الإشعارات -->
+    <div class="tab-panel" id="panel-notifications">
+
+      <!-- كارت النشر على الموقع -->
+      <div class="card" style="margin-bottom:14px">
+        <strong>📢 نشر إعلان على الموقع</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">يظهر للشباب فور ما يفتحوا الداشبورد — حتى لو الإشعار ما وصلش</p>
+        <label>عنوان الإعلان</label>
+        <input type="text" id="annTitle" placeholder="مثال: موعد الأكل جاهز! 🍽️">
+        <label>نص الإعلان</label>
+        <textarea id="annBody" placeholder="مثال: الأكل جاهز في قاعة الطعام دلوقتي"></textarea>
+        <button class="btn" id="postAnnBtn">📌 نشر على الموقع</button>
+        <div id="annMsg" style="margin-top:10px"></div>
+      </div>
+
+      <!-- آخر إعلان منشور -->
+      <div class="card" id="currentAnnCard" style="margin-bottom:14px;display:none">
+        <strong style="font-size:13px;color:var(--mist-dim)">📋 الإعلان الحالي على الموقع</strong>
+        <div id="currentAnnPreview" style="margin-top:10px;padding:12px;background:rgba(200,150,90,0.08);border:1px solid var(--line);border-radius:10px"></div>
+        <button class="btn danger" id="clearAnnBtn" style="margin-top:10px;font-size:13px">🗑️ مسح الإعلان من الموقع</button>
+      </div>
+
+      <!-- كارت الإشعار Push -->
+      <div class="card">
+        <strong>🔔 إرسال إشعار Push للشباب</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">بيبعت notification للأجهزة — وبينشر الإعلان على الموقع تلقائياً كمان</p>
+        <label>عنوان الإشعار</label>
+        <input type="text" id="notifTitle" placeholder="مثال: موعد الأكل جاهز! 🍽️">
+        <label>نص الإشعار</label>
+        <textarea id="notifBody" placeholder="مثال: الأكل جاهز في قاعة الطعام دلوقتي"></textarea>
+        <button class="btn" id="sendNotifBtn">🔔 إرسال إشعار</button>
+        <div style="margin-top:10px">
+          <button class="btn danger" id="sendAlarmBtn">⏰ إرسال منبه (بصوت عالي)</button>
+        </div>
+        <div id="notifMsg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- الخلوة -->
+    <div class="tab-panel" id="panel-retreat">
+      <!-- حجز يدوي -->
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong>📌 تعيين موعد يدوي</strong>
+        <div style="margin-top:14px;display:grid;gap:10px">
+          <div>
+            <label>اختار الشاب</label>
+            <select id="manualMemberSelect" style="margin-bottom:0">
+              <option value="">— اختار شاب —</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>اليوم</label>
+              <select id="manualDaySelect" style="margin-bottom:0" onchange="loadManualSlots()">
+                <option value="1">19 يوليو</option>
+                <option value="2">20 يوليو</option>
+                <option value="3">21 يوليو</option>
+              </select>
+            </div>
+            <div>
+              <label>الموعد</label>
+              <select id="manualSlotSelect" style="margin-bottom:0">
+                <option value="">— اختار وقت —</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn" onclick="adminBookManual()">📌 حجز الموعد</button>
+          <div id="manualBookMsg" style="font-size:13px"></div>
+        </div>
+      </div>
+
+      <!-- إعدادات المكان -->
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong>📍 تعديل مكان كل يوم</strong>
+        <div style="margin-top:14px;display:grid;gap:10px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="min-width:80px;margin:0">19 يوليو</label>
+            <input type="text" id="loc1Input" placeholder="مثال: الكنيسة فوق" style="margin:0;flex:1">
+            <button class="btn small outline" onclick="updateLocation(1)">حفظ</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="min-width:80px;margin:0">20 يوليو</label>
+            <input type="text" id="loc2Input" placeholder="المكان" style="margin:0;flex:1">
+            <button class="btn small outline" onclick="updateLocation(2)">حفظ</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="min-width:80px;margin:0">21 يوليو</label>
+            <input type="text" id="loc3Input" placeholder="المكان" style="margin:0;flex:1">
+            <button class="btn small outline" onclick="updateLocation(3)">حفظ</button>
+          </div>
+        </div>
+        <div id="retreatLocMsg" style="margin-top:10px;font-size:13px"></div>
+      </div>
+
+      <!-- إحصائيات سريعة -->
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(200,150,90,0.08);border-radius:10px">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--gold)" id="retreatBookedCount">—</div>
+            <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">محجوز</div>
+          </div>
+          <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(192,83,58,0.08);border-radius:10px">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--coral)" id="retreatFreeCount">—</div>
+            <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">متاح</div>
+          </div>
+          <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(74,124,111,0.08);border-radius:10px">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:#a9e6c4" id="retreatTotalCount">—</div>
+            <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">إجمالي</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- جدول المواعيد -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong>جدول المواعيد</strong>
+          <div style="display:flex;gap:6px">
+            <button class="btn small outline" onclick="filterRetreatDay(0)" id="retreatFilterAll" style="border-color:var(--gold);color:var(--gold)">الكل</button>
+            <button class="btn small outline" onclick="filterRetreatDay(1)" id="retreatFilter1">يوم 1</button>
+            <button class="btn small outline" onclick="filterRetreatDay(2)" id="retreatFilter2">يوم 2</button>
+            <button class="btn small outline" onclick="filterRetreatDay(3)" id="retreatFilter3">يوم 3</button>
+          </div>
+        </div>
+        <div id="retreatTableWrap" style="overflow-x:auto">
+          <table id="retreatTable">
+            <thead>
+              <tr>
+                <th>اليوم</th>
+                <th>الوقت</th>
+                <th>المكان</th>
+                <th>الشاب</th>
+                <th class="no-print"></th>
+              </tr>
+            </thead>
+            <tbody id="retreatTableBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--mist-dim)">بنحمّل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- الإعدادات -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+          <strong id="siteLockStatusText">حالة الموقع: ...</strong>
+          <button class="btn small" id="toggleSiteLockBtn">تغيير</button>
+        </div>
+        <p style="font-size:12.5px;color:var(--mist-dim);margin-bottom:12px;line-height:1.7">
+          لما الموقع "مقفول"، أي حد يسجّل ويدخل الداشبورد هيلاقي كل حاجة مبلورة ومقفولة، ومش هيقدر يعمل حاجة غير إنه يسجّل حسابه بس.
+          افتح الموقع لما تكون جاهز تظهر المحتوى للكل.
+        </p>
+        <label for="siteLockMsgInput">رسالة الانتظار (تظهر للشباب وهم مستنيين)</label>
+        <textarea id="siteLockMsgInput" placeholder="قريبًا هيتفتح كل حاجة... استنى شوية 👀"></textarea>
+        <button class="btn outline" id="saveSiteLockMsgBtn">حفظ الرسالة</button>
+        <div id="siteLockMsg" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <label for="newAdminPass">تغيير كلمة سر الأدمن</label>
+        <input type="password" id="newAdminPass" placeholder="كلمة سر جديدة">
+        <button class="btn outline" id="changePassBtn">تغيير</button>
+        <div id="settingsMsg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- تاب 🧩 اللغز                                        -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-puzzle">
+
+      <!-- ① إنشاء لغز جديد -->
+      <div class="card">
+        <strong style="font-size:15px">➕ إنشاء لغز جديد</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">
+          إنشاء لغز جديد هيوقف أي لغز شغال تلقائياً
+        </p>
+
+        <label>عنوان اللغز</label>
+        <input type="text" id="puzTitle" placeholder="مثال: اللغز الأول" value="اللغز 🧩">
+
+        <label style="margin-top:10px">رابط الصورة الافتراضية (لو فيه مكان واحد للكل)</label>
+        <input type="url" id="puzImgUrl" placeholder="https://... (اختياري)">
+
+        <label style="margin-top:10px">تلميح (اختياري)</label>
+        <input type="text" id="puzHint" placeholder="مثال: قريب من المدخل الرئيسي">
+
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <div style="flex:1">
+            <label>وقت البداية</label>
+            <input type="datetime-local" id="puzStart">
+          </div>
+          <div style="flex:1">
+            <label>وقت النهاية</label>
+            <input type="datetime-local" id="puzEnd">
+          </div>
+        </div>
+
+        <button class="btn" id="createPuzBtn" style="margin-top:14px" onclick="createPuzzle()">
+          🚀 ابدأ اللغز
+        </button>
+        <div id="puzCreateMsg" style="margin-top:10px;font-size:13px"></div>
+      </div>
+
+      <!-- ② إضافة المشتركين -->
+      <div class="card" id="puzParticipantsCard" style="display:none">
+        <strong style="font-size:15px">👥 إضافة المشتركين</strong>
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">
+          اختار الشباب دفعة واحدة وضغط زر واحد بس
+        </p>
+
+        <input type="text" id="puzMemberSearch" placeholder="🔍 ابحث باسم الشخص…"
+          oninput="filterPuzMembers()"
+          style="margin-bottom:10px">
+
+        <div id="puzCheckList"
+          style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px;display:flex;flex-direction:column;gap:6px">
+          <p style="font-size:12px;color:var(--mist-dim);text-align:center;padding:12px 0">
+            ⏳ جاري تحميل القائمة…
+          </p>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <button class="btn small outline" onclick="selectAllPuzMembers()">تحديد الكل</button>
+          <button class="btn small outline" onclick="deselectAllPuzMembers()">إلغاء الكل</button>
+          <span id="puzSelectedCount" style="font-size:12px;color:var(--mist-dim);margin-right:auto">0 محدود</span>
+        </div>
+
+        <button class="btn" style="margin-top:12px;width:100%" onclick="addParticipantsBulk()">
+          ➕ أضف المحددين للغز
+        </button>
+        <div id="puzAddMsg" style="margin-top:8px;font-size:13px"></div>
+
+        <div id="puzParticipantsList" style="margin-top:14px"></div>
+      </div>
+
+      <!-- ③ متابعة مين وجب ومين لسه -->
+      <div class="card" id="puzStatusCard" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <strong style="font-size:15px">📊 حالة المشتركين</strong>
+          <div style="display:flex;gap:8px">
+            <button class="btn small outline" onclick="loadPuzzleStatus()">🔄 تحديث</button>
+            <button class="btn small" style="background:var(--coral);border-color:var(--coral)" onclick="stopPuzzle()">⏹ إيقاف اللغز</button>
+          </div>
+        </div>
+
+        <div id="puzStatusSummary" style="display:flex;gap:12px;margin-bottom:14px"></div>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="color:var(--mist-dim)">
+              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)">الاسم</th>
+              <th style="text-align:center;padding:6px 4px;border-bottom:1px solid var(--line)">الحالة</th>
+              <th style="text-align:center;padding:6px 4px;border-bottom:1px solid var(--line)">وقت الإيجاد</th>
+            </tr>
+          </thead>
+          <tbody id="puzStatusBody"></tbody>
+        </table>
+      </div>
+
+    </div><!-- /panel-puzzle -->
+
+    <!-- ==================== استفتاء سريع ==================== -->
+    <div class="tab-panel" id="panel-poll">
+      <h2 style="margin-bottom:16px">🗳️ استفتاء سريع</h2>
+
+      <!-- إنشاء استفتاء جديد -->
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="margin-bottom:14px;font-size:15px">استفتاء جديد</h3>
+        <label style="font-size:13px;color:var(--mist-dim);display:block;margin-bottom:6px">السؤال</label>
+        <input id="pollQuestion" type="text" placeholder="اكتب السؤال هنا..." style="width:100%;margin-bottom:12px">
+
+        <label style="font-size:13px;color:var(--mist-dim);display:block;margin-bottom:8px">الخيارات (2 على الأقل)</label>
+        <div id="pollOptionsContainer">
+          <input class="poll-opt-input" type="text" placeholder="خيار A" style="width:100%;margin-bottom:8px">
+          <input class="poll-opt-input" type="text" placeholder="خيار B" style="width:100%;margin-bottom:8px">
+        </div>
+        <button onclick="addPollOptionField()" class="btn" style="background:rgba(200,150,90,0.1);border:1px solid var(--line);color:var(--gold);margin-bottom:14px;font-size:13px">+ أضف خيار</button>
+
+        <div style="display:flex;gap:10px">
+          <button id="createPollBtn" onclick="adminCreatePoll()" class="btn" style="flex:1">🚀 ابدأ الاستفتاء</button>
+          <button id="stopPollBtn"   onclick="adminStopPoll()"   class="btn" style="flex:1;background:rgba(192,83,58,0.15);border-color:var(--coral);color:#ffb3a6">⛔ أوقف الحالي</button>
+        </div>
+        <div id="pollAdminMsg" style="margin-top:10px"></div>
+      </div>
+
+      <!-- النتائج الحالية -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:15px">📊 النتائج الحالية</h3>
+          <button onclick="loadPollResults()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:13px">🔄 تحديث</button>
+        </div>
+        <div id="pollResultsBox">
+          <p style="color:var(--mist-dim);font-size:13px">اضغط تحديث لتحميل النتائج</p>
+        </div>
+      </div>
+    </div><!-- /panel-poll -->
+
+    <!-- ==================== 🔮 توقعات المؤتمر ==================== -->
+    <div class="tab-panel" id="panel-confpredict">
+      <h2 style="margin-bottom:16px">🔮 توقعات المؤتمر</h2>
+
+      <!-- الإعدادات -->
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="font-size:15px;margin-bottom:14px">⚙️ الإعدادات</h3>
+        <label>سؤال التوقع:</label>
+        <input type="text" id="cpQuestion" placeholder="إيه أكتر حاجة هتحصل في المؤتمر؟">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <label style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="cpOpen" checked> التوقعات مفتوحة
+          </label>
+        </div>
+        <button class="btn small" onclick="saveCpSettings()">💾 حفظ الإعدادات</button>
+        <div id="cpSettingsMsg" style="margin-top:8px;font-size:13px"></div>
+      </div>
+
+      <!-- اختيار الفائز -->
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="font-size:15px;margin-bottom:14px">🏆 اختار الفائز</h3>
+        <div style="display:flex;gap:10px;align-items:flex-end">
+          <div style="flex:1">
+            <label>العضو الفائز:</label>
+            <select id="cpWinnerSelect" style="margin-bottom:0">
+              <option value="">— اختار —</option>
+            </select>
+          </div>
+          <div style="width:100px">
+            <label>بوينتس:</label>
+            <input type="number" id="cpWinnerPts" value="20" min="1" style="margin-bottom:0">
+          </div>
+        </div>
+        <button class="btn" style="margin-top:12px" onclick="setCpWinner()">🏆 احدد الفائز وأضف البوينتس</button>
+        <div id="cpWinnerMsg" style="margin-top:8px;font-size:13px"></div>
+      </div>
+
+      <!-- قائمة التوقعات -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="font-size:15px">📋 كل التوقعات (<span id="cpCount">0</span>)</h3>
+          <button onclick="loadCpPredictions()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:13px">🔄 تحديث</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr>
+              <th style="text-align:right;padding:8px 6px;color:var(--mist-dim)">الاسم</th>
+              <th style="text-align:right;padding:8px 6px;color:var(--mist-dim)">التوقع</th>
+              <th style="text-align:right;padding:8px 6px;color:var(--mist-dim)">الوقت</th>
+              <th style="padding:8px 6px"></th>
+            </tr></thead>
+            <tbody id="cpTableBody">
+              <tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:20px">اضغط تحديث</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /panel-confpredict -->
+
+    <!-- ==================== 📦 صندوق الأسرار ==================== -->
+    <div class="tab-panel" id="panel-secretbox">
+      <h2 style="margin-bottom:16px">📦 صندوق الأسرار</h2>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="font-size:15px">كل الأسرار (<span id="sbCount">0</span>)</h3>
+          <button onclick="loadSecrets()" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:13px">🔄 تحديث</button>
+        </div>
+        <div id="sbMsg" style="font-size:13px;margin-bottom:10px"></div>
+        <div id="sbList">
+          <p style="color:var(--mist-dim);font-size:13px">اضغط تحديث لتحميل الأسرار</p>
+        </div>
+      </div>
+    </div><!-- /panel-secretbox -->
+
+    <!-- ==================== 🧱 جدار الامتنان ==================== -->
+    <div class="tab-panel" id="panel-gratitude">
+      <h2 style="margin-bottom:16px">🧱 جدار الامتنان</h2>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <a href="gratitude.html" target="_blank" class="btn" style="flex:1;background:rgba(200,150,90,0.1);border:1px solid var(--line);color:var(--gold);font-size:13px">
+          🖥️ افتح العرض الكبير
+        </a>
+        <button onclick="loadGratitude()" style="background:none;border:1px solid var(--line);color:var(--mist-dim);border-radius:99px;padding:10px 16px;cursor:pointer;font-size:13px">🔄 تحديث</button>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:12px">كل الرسائل (<span id="gwCount">0</span>)</h3>
+        <div id="gwMsg" style="font-size:13px;margin-bottom:10px"></div>
+        <div id="gwList">
+          <p style="color:var(--mist-dim);font-size:13px">اضغط تحديث لتحميل الرسائل</p>
+        </div>
+      </div>
+    </div><!-- /panel-gratitude -->
+
+    <!-- ==================== 🎡 عجلة الجوائز ==================== -->
+    <div class="tab-panel" id="panel-wheel">
+      <h2 style="margin-bottom:16px">🎡 عجلة الجوائز</h2>
+
+      <div class="card no-print" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <strong style="font-size:15px">حالة العجلة</strong>
+            <p style="font-size:12px;color:var(--mist-dim);margin-top:4px">لما تكون مقفولة الشباب مش هيقدروا يلفوا</p>
+          </div>
+          <button class="btn small" id="wheelToggleBtn" onclick="toggleWheelActive()">...</button>
+        </div>
+      </div>
+
+      <div class="card no-print" style="margin-bottom:14px">
+        <strong style="font-size:15px">📊 إحصائيات</strong>
+        <div id="wheelStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px" class="no-print">
+          <strong>كل اللفّات (<span id="wheelCount">0</span>)</strong>
+          <div style="display:flex;gap:8px">
+            <button class="btn small outline" onclick="loadWheelSpins()">🔄 تحديث</button>
+            <button class="btn small" style="background:var(--coral);border-color:var(--coral)" onclick="resetWheelAll()">⚠️ تصفير الكل</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>الاسم</th><th>الفريق</th><th>الجايزة</th><th>الوقت</th><th class="no-print"></th></tr></thead>
+          <tbody id="wheelTableBody"></tbody>
+        </table>
+      </div>
+    </div><!-- /panel-wheel -->
+
+    <!-- ❓ سؤال اليوم -->
+    <div class="tab-panel" id="panel-dailyq">
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="font-family:var(--font-display);font-size:15px;color:var(--gold);margin-bottom:16px">❓ إنشاء سؤال اليوم</h3>
+
+        <label style="font-size:13px;color:var(--mist-dim);display:block;margin-bottom:6px">السؤال</label>
+        <input id="dqQuestion" type="text" placeholder="اكتب السؤال هنا..." style="width:100%;margin-bottom:12px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">أ — الخيار الأول</label>
+            <input id="dqOptA" type="text" placeholder="الخيار أ" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">ب — الخيار الثاني</label>
+            <input id="dqOptB" type="text" placeholder="الخيار ب" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">ج — الخيار الثالث</label>
+            <input id="dqOptC" type="text" placeholder="الخيار ج" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">د — الخيار الرابع</label>
+            <input id="dqOptD" type="text" placeholder="الخيار د" style="width:100%">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">الإجابة الصح</label>
+            <select id="dqCorrect" style="width:100%;padding:10px 12px;background:var(--ink-3);border:1px solid var(--line);border-radius:10px;color:var(--mist);font-size:13px">
+              <option value="a">أ — الخيار الأول</option>
+              <option value="b">ب — الخيار الثاني</option>
+              <option value="c">ج — الخيار الثالث</option>
+              <option value="d">د — الخيار الرابع</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:120px">
+            <label style="font-size:12px;color:var(--mist-dim);display:block;margin-bottom:4px">البوينتس</label>
+            <input id="dqPoints" type="number" value="10" min="1" max="100" style="width:100%">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn" id="dqPublishBtn" onclick="publishDailyQuestion()" style="flex:2;background:linear-gradient(135deg,var(--pitch),var(--pitch-dim));border-color:var(--pitch)">
+            ✅ نشر السؤال
+          </button>
+          <button class="btn small" id="dqStopBtn" onclick="stopDailyQuestion()" style="flex:1;background:rgba(192,83,58,0.15);border-color:var(--coral);color:var(--coral)">
+            🛑 إيقاف
+          </button>
+        </div>
+        <div id="dqMsg" style="margin-top:10px;font-size:13px;text-align:center"></div>
+      </div>
+
+      <!-- إجابات الشباب -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="font-family:var(--font-display);font-size:14px;color:var(--mist);margin:0">
+            إجابات الشباب <span id="dqAnswerCount" style="color:var(--gold)"></span>
+          </h3>
+          <button class="btn small" onclick="loadDQAnswers()" style="font-size:12px">تحديث</button>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr>
+              <th style="text-align:right;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">الاسم</th>
+              <th style="text-align:right;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">الفريق</th>
+              <th style="text-align:right;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">الإجابة</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--mist-dim);font-weight:600;border-bottom:1px solid var(--line)">النتيجة</th>
+            </tr>
+          </thead>
+          <tbody id="dqAnswersBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:20px">اضغط تحديث لتحميل الإجابات</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /panel-dailyq -->
+
+    <!-- خطوة 2 — بانل تحدي الفريق -->
+    <div class="tab-panel" id="panel-teamchallenge">
+
+      <!-- فورم إضافة تحدي جديد -->
+      <div class="card" style="margin-bottom:16px">
+        <strong style="font-size:15px;display:block;margin-bottom:14px">➕ تحدي جديد</strong>
+
+        <label for="challengeTitle">عنوان المهمة</label>
+        <input type="text" id="challengeTitle" placeholder="مثال: صوّروا فريقكم وهم بيصلّوا">
+
+        <label for="challengeDesc">وصف / تفاصيل (اختياري)</label>
+        <textarea id="challengeDesc" placeholder="اشرح المهمة بالتفصيل لو محتاج" style="min-height:70px"></textarea>
+
+        <label for="challengePoints">النقاط (لكل عضو)</label>
+        <input type="number" id="challengePoints" value="10" min="1" max="999">
+
+        <label for="challengeTeam">خاص بفريق معين؟ (اتركها فاضي للكل)</label>
+        <input type="text" id="challengeTeam" placeholder="اسم الفريق أو فاضي للكل">
+
+        <button class="btn" id="createChallengeBtn">🏆 نشر التحدي</button>
+        <div id="challengeMsg" style="margin-top:10px;font-size:13px"></div>
+      </div>
+
+      <!-- قايمة التحديات الحالية -->
+      <div class="card">
+        <strong style="font-size:15px;display:block;margin-bottom:12px">
+          التحديات الحالية (<span id="challengeCount">0</span>)
+        </strong>
+        <div id="challengesAdminList">
+          <div class="empty-state">بنحمّل...</div>
+        </div>
+      </div>
+
+    </div><!-- /panel-teamchallenge -->
+
+    <!-- الموجودين الآن -->
+    <div class="tab-panel" id="panel-online">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <strong>🟢 فاتحين الموقع دلوقتي (<span id="onlineCount">0</span>)</strong>
+        </div>
+        <p style="font-size:12.5px;color:var(--mist-dim);margin-bottom:14px">
+          بتتحدث كل 10 ثواني — أي حد يقفل الموقع أو يبعد عنه هيتشال من القايمة تلقائيًا بعد نص دقيقة.
+        </p>
+        <div id="onlineList">
+          <div class="empty-state">بنحمّل...</div>
+        </div>
+      </div>
+    </div><!-- /panel-online -->
+
+  </div><!-- /adminPanel -->
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/adminextra.js"></script>
+<script>
+// اعرض لينك التسجيل الذاتي
+window.addEventListener("DOMContentLoaded", function () {
+  var el = document.getElementById("regLinkEl");
+  if (el) {
+    var url = window.location.origin + window.location.pathname.replace("admin.html", "") + "register.html";
+    el.href = url;
+    el.textContent = url;
+  }
+});
+</script>
+<script>
+// ============================================================
+// الحجز اليدوي
+// ============================================================
+async function loadManualMembers() {
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if (!pass) return;
+  var res = await supabase.rpc("admin_list_members", { p_password: pass });
+  if (res.error || !res.data) return;
+  var sel = document.getElementById("manualMemberSelect");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— اختار شاب —</option>' +
+    res.data.map(function(m){
+      return '<option value="' + m.id + '">' + esc(m.name) + ' (' + esc(m.username) + ')</option>';
+    }).join("");
+}
+
+function loadManualSlots() {
+  var day = parseInt(document.getElementById("manualDaySelect").value);
+  var slots = retreatAllSlots.filter(function(s){ return s.day === day && !s.member_name; });
+  var sel = document.getElementById("manualSlotSelect");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— اختار وقت —</option>' +
+    slots.map(function(s){
+      return '<option value="' + s.id + '">' + esc(s.time_label) + '</option>';
+    }).join("");
+}
+
+async function adminBookManual() {
+  var pass     = sessionStorage.getItem("adminPass") || window._adminPass;
+  var memberId = document.getElementById("manualMemberSelect").value;
+  var slotId   = document.getElementById("manualSlotSelect").value;
+  var msg      = document.getElementById("manualBookMsg");
+
+  if (!memberId) { msg.textContent = "اختار شاب الأول"; msg.style.color = "var(--coral)"; return; }
+  if (!slotId)   { msg.textContent = "اختار موعد"; msg.style.color = "var(--coral)"; return; }
+
+  var res = await supabase.rpc("admin_book_retreat_for_member", {
+    p_password: pass, p_member_id: memberId, p_slot_id: slotId
+  });
+
+  if (res.error) {
+    var errText = res.error.message.includes("slot_already_booked")
+      ? "❌ الموعد ده محجوز بالفعل"
+      : "❌ " + res.error.message;
+    msg.textContent = errText; msg.style.color = "var(--coral)";
+  } else {
+    msg.textContent = "✅ تم الحجز!"; msg.style.color = "var(--pitch)";
+    document.getElementById("manualMemberSelect").value = "";
+    document.getElementById("manualSlotSelect").value = "";
+    loadRetreatSlots();
+    setTimeout(function(){ msg.textContent = ""; }, 3000);
+  }
+}
+
+
+var retreatAllSlots = [];
+var retreatCurrentFilter = 0;
+var retreatDayNames = { 1: '19 يوليو', 2: '20 يوليو', 3: '21 يوليو' };
+
+// تحميل المواعيد لما يفتح التاب
+document.addEventListener("tabChanged", function(e) {
+  if (e.detail === "retreat") loadRetreatSlots();
+  // خطوة 4 — ربط التاب بالتحميل عند إطلاق الحدث المخصص إن وُجد
+  if (e.detail === "teamchallenge") loadChallengesAdmin();
+});
+
+// hook على نظام التابات الموجود
+(function patchTabSystem(){
+  var observer = new MutationObserver(function(){
+    var panel = document.getElementById("panel-retreat");
+    if (panel && panel.classList.contains("active")) {
+      loadRetreatSlots();
+    }
+    // تفعيل التاب لـ teamchallenge ومراقبته
+    var tcPanel = document.getElementById("panel-teamchallenge");
+    if (tcPanel && tcPanel.classList.contains("active")) {
+      loadChallengesAdmin();
+    }
+  });
+  var panelEl = document.getElementById("panel-retreat");
+  if (panelEl) observer.observe(panelEl, { attributes: true, attributeFilter: ["class"] });
+  
+  var tcPanelEl = document.getElementById("panel-teamchallenge");
+  if (tcPanelEl) observer.observe(tcPanelEl, { attributes: true, attributeFilter: ["class"] });
+})();
+
+async function loadRetreatSlots() {
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if (!pass) return;
+
+  var res = await supabase.rpc("admin_list_retreat_slots", { p_password: pass });
+  if (res.error) {
+    document.getElementById("retreatTableBody").innerHTML =
+      '<tr><td colspan="5" style="color:var(--coral)">خطأ: ' + res.error.message + '</td></tr>';
+    return;
+  }
+
+  retreatAllSlots = res.data || [];
+  updateRetreatStats();
+  renderRetreatTable(retreatCurrentFilter);
+  loadManualMembers();
+  loadManualSlots();
+
+  // حط المكان الحالي في الـ inputs (أول slot من كل يوم)
+  [1,2,3].forEach(function(d){
+    var s = retreatAllSlots.find(function(x){ return x.day === d; });
+    if (s) {
+      var el = document.getElementById("loc" + d + "Input");
+      if (el && !el.value) el.value = s.location;
+    }
+  });
+}
+
+function updateRetreatStats() {
+  var booked = retreatAllSlots.filter(function(s){ return s.member_name; }).length;
+  var free   = retreatAllSlots.length - booked;
+  document.getElementById("retreatBookedCount").textContent = booked;
+  document.getElementById("retreatFreeCount").textContent   = free;
+  document.getElementById("retreatTotalCount").textContent  = retreatAllSlots.length;
+}
+
+function filterRetreatDay(day) {
+  retreatCurrentFilter = day;
+  // تلوين الأزرار
+  [0,1,2,3].forEach(function(d){
+    var id = d === 0 ? "retreatFilterAll" : "retreatFilter" + d;
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    btn.style.borderColor = (d === day) ? "var(--gold)" : "";
+    btn.style.color       = (d === day) ? "var(--gold)"  : "";
+  });
+  renderRetreatTable(day);
+}
+
+function renderRetreatTable(day) {
+  var slots = day === 0 ? retreatAllSlots : retreatAllSlots.filter(function(s){ return s.day === day; });
+  var tbody = document.getElementById("retreatTableBody");
+  if (!slots.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--mist-dim)">لا توجد مواعيد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = slots.map(function(s) {
+    var nameCell = s.member_name
+      ? '<strong>' + esc(s.member_name) + '</strong><br><small style="color:var(--mist-dim)">' + esc(s.member_username) + '</small>'
+      : '<span style="color:var(--line)">— فاضي —</span>';
+    var cancelBtn = s.member_name && s.id
+      ? '<button class="btn small danger" onclick="cancelRetreatSlot(\'' + s.id + '\')">إلغاء</button>'
+      : '';
+    return '<tr>' +
+      '<td>' + retreatDayNames[s.day] + '</td>' +
+      '<td style="font-family:var(--font-display);font-weight:700;color:var(--gold)">' + esc(s.time_label) + '</td>' +
+      '<td>' + esc(s.location) + '</td>' +
+      '<td>' + nameCell + '</td>' +
+      '<td class="no-print">' + cancelBtn + '</td>' +
+      '</tr>';
+  }).join("");
+}
+
+async function updateLocation(day) {
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  var loc  = document.getElementById("loc" + day + "Input").value.trim();
+  var msg  = document.getElementById("retreatLocMsg");
+  if (!loc) { msg.textContent = "اكتب المكان الأول"; msg.style.color = "var(--coral)"; return; }
+
+  var res = await supabase.rpc("admin_update_retreat_location", {
+    p_password: pass, p_day: day, p_location: loc
+  });
+  if (res.error) {
+    msg.textContent = "❌ " + res.error.message; msg.style.color = "var(--coral)";
+  } else {
+    msg.textContent = "✅ اتحدّث مكان يوم " + retreatDayNames[day];
+    msg.style.color = "var(--pitch)";
+    loadRetreatSlots();
+    setTimeout(function(){ msg.textContent = ""; }, 3000);
+  }
+}
+
+async function cancelRetreatSlot(slotId) {
+  if (!confirm("هتلغي الحجز ده؟")) return;
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  var res = await supabase.rpc("admin_cancel_retreat_slot", {
+    p_password: pass, p_slot_id: slotId
+  });
+  if (res.error) { alert("خطأ: " + res.error.message); return; }
+  loadRetreatSlots();
+}
+
+function esc(s) {
+  return (s || "").toString().replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+</script>
+<script src="js/realtime.js"></script>
+<script src="js/puzzle-admin.js"></script>
+<script src="js/wheel-admin.js"></script>
+
+<script>
+// ============================================================
+// 🔮 توقعات المؤتمر
+// ============================================================
+var _cpMembers = [];
+
+async function loadCpInit(){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+
+  // جيب الإعدادات الحالية
+  var res = await supabase.rpc("get_conf_predict_info", { p_member_id: "00000000-0000-0000-0000-000000000000" });
+  if(!res.error && res.data && res.data.length){
+    var d = res.data[0];
+    document.getElementById("cpQuestion").value = d.question || "";
+    document.getElementById("cpOpen").checked = !!d.is_open;
+  }
+
+  // جيب أسماء الشباب للـ select
+  var mr = await supabase.rpc("admin_list_members", { p_password: pass });
+  if(!mr.error && mr.data){
+    _cpMembers = mr.data;
+    var sel = document.getElementById("cpWinnerSelect");
+    sel.innerHTML = '<option value="">— اختار —</option>' +
+      mr.data.map(function(m){ return '<option value="'+m.id+'">'+esc(m.name)+' ('+esc(m.username)+')</option>'; }).join("");
+  }
+}
+
+async function saveCpSettings(){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var q = document.getElementById("cpQuestion").value.trim();
+  var o = document.getElementById("cpOpen").checked;
+  if(!q){ alert("اكتب السؤال الأول"); return; }
+
+  var res = await supabase.rpc("admin_set_conf_predict_settings",{
+    p_password: pass, p_question: q, p_open: o
+  });
+  var msg = document.getElementById("cpSettingsMsg");
+  if(res.error){ msg.textContent = "❌ " + res.error.message; msg.style.color="var(--coral)"; }
+  else { msg.textContent = "✅ اتحفظ!"; msg.style.color="var(--pitch)"; setTimeout(function(){msg.textContent="";},3000); }
+}
+
+async function setCpWinner(){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var mid = document.getElementById("cpWinnerSelect").value;
+  var pts = parseInt(document.getElementById("cpWinnerPts").value)||20;
+  if(!mid){ alert("اختار عضو الأول"); return; }
+  if(!confirm("هتضيف " + pts + " بوينتس للفائز؟")) return;
+
+  var res = await supabase.rpc("admin_set_conf_predict_winner",{
+    p_password: pass, p_member_id: mid, p_points: pts
+  });
+  var msg = document.getElementById("cpWinnerMsg");
+  if(res.error){ msg.textContent = "❌ " + res.error.message; msg.style.color="var(--coral)"; }
+  else { msg.textContent = "✅ تم! البوينتس اتضافت"; msg.style.color="var(--pitch)"; }
+}
+
+async function loadCpPredictions(){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_list_conf_predictions", { p_password: pass });
+  if(res.error){
+    document.getElementById("cpTableBody").innerHTML='<tr><td colspan="4" style="color:var(--coral)">خطأ: '+esc(res.error.message)+'</td></tr>';
+    return;
+  }
+  var rows = res.data || [];
+  document.getElementById("cpCount").textContent = rows.length;
+  if(!rows.length){
+    document.getElementById("cpTableBody").innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:20px">لسه مفيش توقعات</td></tr>';
+    return;
+  }
+  document.getElementById("cpTableBody").innerHTML = rows.map(function(r){
+    var d = new Date(r.submitted_at);
+    var t = d.toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+    return '<tr style="'+(r.is_winner?"background:rgba(200,150,90,0.1)":"")+'">'+
+      '<td style="padding:8px 6px;font-weight:700;color:var(--gold)">'+(r.is_winner?"🏆 ":"")+esc(r.member_name)+'</td>'+
+      '<td style="padding:8px 6px">'+esc(r.prediction)+'</td>'+
+      '<td style="padding:8px 6px;color:var(--mist-dim);font-size:12px;white-space:nowrap">'+t+'</td>'+
+      '<td style="padding:8px 6px">'+
+        '<button onclick="quickCpWinner(\''+r.member_id+'\')" style="background:none;border:1px solid var(--line);color:var(--gold);padding:4px 10px;border-radius:99px;cursor:pointer;font-size:12px">🏆 اختاره</button>'+
+      '</td>'+
+      '</tr>';
+  }).join("");
+}
+
+async function quickCpWinner(mid){
+  document.getElementById("cpWinnerSelect").value = mid;
+  var panel = document.getElementById("panel-confpredict");
+  panel.querySelector("select").value = mid;
+}
+
+// hook على تغيير التاب
+(function(){
+  var observer = new MutationObserver(function(){
+    var panel = document.getElementById("panel-confpredict");
+    if(panel && panel.classList.contains("active")){ loadCpInit(); loadCpPredictions(); }
+    var sb = document.getElementById("panel-secretbox");
+    if(sb && sb.classList.contains("active")){ loadSecrets(); }
+    var gw = document.getElementById("panel-gratitude");
+    if(gw && gw.classList.contains("active")){ loadGratitude(); }
+  });
+  ["panel-confpredict","panel-secretbox","panel-gratitude"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) observer.observe(el, {attributes:true, attributeFilter:["class"]});
+  });
+})();
+
+// ============================================================
+// 📦 صندوق الأسرار
+// ============================================================
+async function loadSecrets(){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_list_secrets", { p_password: pass });
+  if(res.error){
+    document.getElementById("sbList").innerHTML='<p style="color:var(--coral)">خطأ: '+esc(res.error.message)+'</p>';
+    return;
+  }
+  var rows = res.data || [];
+  document.getElementById("sbCount").textContent = rows.length;
+  if(!rows.length){
+    document.getElementById("sbList").innerHTML='<p style="color:var(--mist-dim)">لسه مفيش أسرار</p>';
+    return;
+  }
+  document.getElementById("sbList").innerHTML = rows.map(function(s){
+    var d = new Date(s.created_at);
+    var t = d.toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+    return '<div style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;'+(s.published?"border-color:var(--pitch)":"")+'">'+
+      '<div style="font-size:15px;color:var(--mist);margin-bottom:8px">'+esc(s.secret)+'</div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+        '<span style="font-size:11px;color:var(--mist-dim)">'+t+'</span>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button onclick="toggleSecret(\''+s.id+'\','+(!s.published)+')" style="background:none;border:1px solid '+(s.published?'var(--coral)':'var(--pitch)')+';color:'+(s.published?'#ffb3a6':'#a9e6c4')+';padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">'+(s.published?'⛔ إخفاء':'✅ نشر')+'</button>'+
+          '<button onclick="deleteSecret(\''+s.id+'\')" style="background:none;border:1px solid rgba(192,83,58,0.3);color:var(--coral);padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">🗑️</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
+
+async function toggleSecret(id, publish){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_toggle_secret",{ p_password:pass, p_secret_id:id, p_publish:publish });
+  if(res.error){ alert("خطأ: "+res.error.message); return; }
+  loadSecrets();
+}
+
+async function deleteSecret(id){
+  if(!confirm("هتحذف السر ده؟")) return;
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_delete_secret",{ p_password:pass, p_secret_id:id });
+  if(res.error){ alert("خطأ: "+res.error.message); return; }
+  loadSecrets();
+}
+
+// ============================================================
+// 🧱 جدار الامتنان
+// ============================================================
+async function loadGratitude(){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_list_gratitude", { p_password: pass });
+  if(res.error){
+    document.getElementById("gwList").innerHTML='<p style="color:var(--coral)">خطأ: '+esc(res.error.message)+'</p>';
+    return;
+  }
+  var rows = res.data || [];
+  document.getElementById("gwCount").textContent = rows.length;
+  if(!rows.length){
+    document.getElementById("gwList").innerHTML='<p style="color:var(--mist-dim)">لسه مفيش رسائل</p>';
+    return;
+  }
+  document.getElementById("gwList").innerHTML = rows.map(function(g){
+    var d = new Date(g.created_at);
+    var t = d.toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+    return '<div style="border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;'+(g.visible?"":"opacity:0.5;border-style:dashed")+'">'+
+      '<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px">✍️ '+esc(g.member_name)+' ('+esc(g.username)+')</div>'+
+      '<div style="font-size:14px;color:var(--mist);margin-bottom:8px">'+esc(g.message)+'</div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+        '<span style="font-size:11px;color:var(--mist-dim)">'+t+'</span>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button onclick="toggleGratitude(\''+g.id+'\','+(!g.visible)+')" style="background:none;border:1px solid '+(g.visible?'var(--coral)':'var(--pitch)')+';color:'+(g.visible?'#ffb3a6':'#a9e6c4')+';padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">'+(g.visible?'🙈 إخفاء':'👁️ إظهار')+'</button>'+
+          '<button onclick="deleteGratitude(\''+g.id+'\')" style="background:none;border:1px solid rgba(192,83,58,0.3);color:var(--coral);padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">🗑️</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
+
+async function toggleGratitude(id, visible){
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_toggle_gratitude",{ p_password:pass, p_msg_id:id, p_visible:visible });
+  if(res.error){ alert("خطأ: "+res.error.message); return; }
+  loadGratitude();
+}
+
+async function deleteGratitude(id){
+  if(!confirm("هتحذف الرسالة دي؟")) return;
+  var pass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!pass) return;
+  var res = await supabase.rpc("admin_delete_gratitude",{ p_password:pass, p_msg_id:id });
+  if(res.error){ alert("خطأ: "+res.error.message); return; }
+  loadGratitude();
+}
+
+// ============================================================
+// ❓ سؤال اليوم — Admin
+// ============================================================
+(function watchDailyQTab(){
+  var panel = document.getElementById('panel-dailyq');
+  if(!panel) return;
+  var loaded = false;
+  var observer = new MutationObserver(function(){
+    if(panel.classList.contains('active') && !loaded){
+      loaded = true;
+      loadDQAnswers();
+    }
+    if(!panel.classList.contains('active')) loaded = false;
+  });
+  observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+})();
+
+async function publishDailyQuestion(){
+  var pass = sessionStorage.getItem('adminPass') || window._adminPass;
+  if(!pass) return;
+
+  var q  = (document.getElementById('dqQuestion').value || '').trim();
+  var a  = (document.getElementById('dqOptA').value     || '').trim();
+  var b  = (document.getElementById('dqOptB').value     || '').trim();
+  var c  = (document.getElementById('dqOptC').value     || '').trim();
+  var d  = (document.getElementById('dqOptD').value     || '').trim();
+  var correct = document.getElementById('dqCorrect').value;
+  var pts     = parseInt(document.getElementById('dqPoints').value) || 10;
+  var msg     = document.getElementById('dqMsg');
+
+  if(!q || !a || !b || !c || !d){
+    msg.innerHTML = '<span style="color:var(--coral)">⚠️ اكتب السؤال وكل الخيارات الأربعة</span>';
+    return;
+  }
+
+  var btn = document.getElementById('dqPublishBtn');
+  btn.disabled = true; btn.textContent = '⏳ بننشر...';
+
+  var res = await supabase.rpc('admin_create_daily_question', {
+    p_password:    pass,
+    p_question:    q,
+    p_option_a:    a,
+    p_option_b:    b,
+    p_option_c:    c,
+    p_option_d:    d,
+    p_correct_opt: correct,
+    p_points:      pts
+  });
+
+  btn.disabled = false; btn.textContent = '✅ نشر السؤال';
+
+  if(res.error){
+    msg.innerHTML = '<span style="color:var(--coral)">❌ ' + res.error.message + '</span>';
+    return;
+  }
+  msg.innerHTML = '<span style="color:var(--pitch)">✅ السؤال اتنشر! الشباب هيشوفوه دلوقتي</span>';
+  setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+  loadDQAnswers();
+}
+
+async function stopDailyQuestion(){
+  var pass = sessionStorage.getItem('adminPass') || window._adminPass;
+  if(!pass) return;
+  var msg = document.getElementById('dqMsg');
+  var res = await supabase.rpc('admin_stop_daily_question', { p_password: pass });
+  if(res.error){
+    msg.innerHTML = '<span style="color:var(--coral)">❌ ' + res.error.message + '</span>';
+    return;
+  }
+  msg.innerHTML = '<span style="color:var(--mist-dim)">🛑 السؤال اتوقف</span>';
+  setTimeout(function(){ msg.innerHTML = ''; }, 2500);
+}
+
+async function loadDQAnswers(){
+  var pass = sessionStorage.getItem('adminPass') || window._adminPass;
+  if(!pass) return;
+  var body    = document.getElementById('dqAnswersBody');
+  var countEl = document.getElementById('dqAnswerCount');
+  body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:16px">⏳ بنحمّل...</td></tr>';
+
+  var res = await supabase.rpc('admin_get_daily_question_answers', { p_password: pass });
+  if(res.error || !res.data){
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--coral)">حصل خطأ أو مفيش سؤال نشط دلوقتي</td></tr>';
+    if(countEl) countEl.textContent = '';
+    return;
+  }
+
+  var rows = res.data;
+  if(countEl) countEl.textContent = '(' + rows.length + ')';
+
+  if(rows.length === 0){
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:16px">لسه مفيش إجابات</td></tr>';
+    return;
+  }
+
+  var letters = { a:'أ', b:'ب', c:'ج', d:'د' };
+  body.innerHTML = rows.map(function(r){
+    var badge = r.is_correct
+      ? '<span style="background:rgba(74,124,111,0.2);color:#a9e6c4;border:1px solid var(--pitch);border-radius:99px;padding:2px 10px;font-size:11px">✅ صح</span>'
+      : '<span style="background:rgba(192,83,58,0.15);color:#ffb3a6;border:1px solid var(--coral);border-radius:99px;padding:2px 10px;font-size:11px">❌ غلط</span>';
+    return '<tr>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line)">' + escapeHtml(r.member_name) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line);color:var(--mist-dim)">' + escapeHtml(r.team_name || '—') + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line);color:var(--gold);font-weight:700">' + (letters[r.chosen_opt] || r.chosen_opt) + '</td>'
+      + '<td style="padding:8px;border-bottom:1px solid var(--line);text-align:center">' + badge + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function escapeHtml(text) {
+  return (text || '').toString().replace(/[&<>"']/g, function(m) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+  });
+}
+</script>
+
+<!-- خطوة 3 — سكريبت تاب تحدي الفريق والتحميل التلقائي (خطوة 4 مدمجة داخلياً وعبر المُنصت العلوي) -->
+<script>
+// ── تحميل التحديات ──
+async function loadChallengesAdmin(){
+  var adminPass = sessionStorage.getItem("adminPass") || window._adminPass;
+  var list = document.getElementById("challengesAdminList");
+  var countEl = document.getElementById("challengeCount");
+  if(!list) return;
+  list.innerHTML = '<div class="empty-state">بنحمّل...</div>';
+
+  var res = await supabase.rpc("admin_list_challenges", { p_password: adminPass });
+  if(res.error){ list.innerHTML = '<div class="empty-state" style="color:var(--coral)">خطأ في التحميل</div>'; return; }
+
+  var data = res.data || [];
+  if(countEl) countEl.textContent = data.length;
+
+  if(!data.length){ list.innerHTML = '<div class="empty-state">مفيش تحديات لسه</div>'; return; }
+
+  list.innerHTML = data.map(function(c){
+    return '<div style="border-bottom:1px solid var(--line);padding:14px 0" id="chRow_' + c.id + '">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<strong style="font-size:14px;color:var(--mist)">' + escAdmin(c.title) + '</strong>' +
+          (c.target_team ? '<span style="font-size:11px;color:var(--gold);margin-right:8px">🎯 ' + escAdmin(c.target_team) + '</span>' : '') +
+        '</div>' +
+        '<span style="font-family:var(--font-display);font-weight:800;color:var(--gold);white-space:nowrap">⭐ ' + c.points + '</span>' +
+      '</div>' +
+      (c.description ? '<p style="font-size:12px;color:var(--mist-dim);margin:4px 0 8px;line-height:1.6">' + escAdmin(c.description) + '</p>' : '') +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:11px;color:var(--mist-dim)">✅ أتمّه ' + c.completions + ' فريق</span>' +
+          '<span style="font-size:11px;padding:2px 8px;border-radius:99px;' +
+            (c.active
+              ? 'background:rgba(74,124,111,0.15);color:#a9e6c4;border:1px solid var(--pitch)'
+              : 'background:rgba(192,83,58,0.12);color:#ffb3a6;border:1px solid var(--coral)') +
+            '">' + (c.active ? '🟢 نشط' : '🔴 موقوف') + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px">' +
+          '<button class="btn small outline" onclick="toggleChallenge(' + c.id + ',' + !c.active + ')">' + (c.active ? 'إيقاف' : 'تفعيل') + '</button>' +
+          '<button class="btn small danger" onclick="deleteChallenge(' + c.id + ')">حذف</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+// ── إنشاء تحدي ──
+document.getElementById("createChallengeBtn") && document.getElementById("createChallengeBtn").addEventListener("click", async function(){
+  var adminPass = sessionStorage.getItem("adminPass") || window._adminPass;
+  var btn = this;
+  var title = document.getElementById("challengeTitle").value.trim();
+  var desc  = document.getElementById("challengeDesc").value.trim();
+  var pts   = parseInt(document.getElementById("challengePoints").value) || 10;
+  var team  = document.getElementById("challengeTeam").value.trim();
+  var msg   = document.getElementById("challengeMsg");
+
+  if(!title){ msg.style.color="var(--coral)"; msg.textContent="⚠️ اكتب عنوان التحدي"; return; }
+
+  btn.disabled=true; btn.textContent="بننشر...";
+  var res = await supabase.rpc("admin_create_challenge", {
+    p_password:    adminPass,
+    p_title:       title,
+    p_description: desc,
+    p_points:      pts,
+    p_team:        team
+  });
+  btn.disabled=false; btn.textContent="🏆 نشر التحدي";
+
+  if(res.error){
+    msg.style.color="var(--coral)"; msg.textContent="❌ حصل خطأ — " + res.error.message; return;
+  }
+
+  msg.style.color="#a9e6c4"; msg.textContent="✅ التحدي اتنشر بنجاح!";
+  document.getElementById("challengeTitle").value="";
+  document.getElementById("challengeDesc").value="";
+  document.getElementById("challengePoints").value="10";
+  document.getElementById("challengeTeam").value="";
+  setTimeout(function(){ msg.textContent=""; }, 3000);
+  loadChallengesAdmin();
+});
+
+// ── إيقاف/تفعيل ──
+async function toggleChallenge(id, active){
+  var adminPass = sessionStorage.getItem("adminPass") || window._adminPass;
+  await supabase.rpc("admin_toggle_challenge", { p_password: adminPass, p_challenge_id: id, p_active: active });
+  loadChallengesAdmin();
+}
+
+// ── حذف ──
+async function deleteChallenge(id){
+  var adminPass = sessionStorage.getItem("adminPass") || window._adminPass;
+  if(!confirm("تحذف التحدي ده؟ مش هترجعه")) return;
+  await supabase.rpc("admin_delete_challenge", { p_password: adminPass, p_challenge_id: id });
+  loadChallengesAdmin();
+}
+
+function escAdmin(s){
+  return (s||"").toString().replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
+// خطوة 4 المباشرة - فحص فوري عند تحميل السكريبت لو كان التاب نشط مسبقاً
+window.addEventListener("DOMContentLoaded", function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var tab = urlParams.get('tab');
+  if(tab === "teamchallenge") {
+    loadChallengesAdmin();
+  }
+});
+</script>
+
+<!-- ══════════════════════════════════════════════
+     Member Edit Modal
+══════════════════════════════════════════════ -->
+<div id="memberModal" role="dialog" aria-modal="true" aria-labelledby="memberModalTitle">
+  <div id="memberModalBox">
+    <h3 id="memberModalTitle">✏️ <span id="modalMemberName">تعديل بيانات الشاب</span></h3>
+
+    <!-- الاسم -->
+    <label>الاسم</label>
+    <input type="text" id="modalMemberNameInput" placeholder="اسم الشاب">
+
+    <hr class="modal-section-sep">
+
+    <!-- الفريق والنقاط -->
+    <label>اسم الفريق</label>
+    <input type="text" id="modalTeamName" placeholder="مثال: فريق مارمرقس">
+
+    <label>النقاط</label>
+    <input type="number" id="modalPoints" value="0" min="0">
+
+    <hr class="modal-section-sep">
+
+    <!-- الدور -->
+    <label>الدور</label>
+    <select id="modalRole">
+      <option value="member">عضو عادي</option>
+      <option value="leader">👑 قائد فريق</option>
+      <option value="room_admin">🏠 أمين غرفة</option>
+      <option value="project_reviewer">📝 مصحح مشروع</option>
+    </select>
+
+    <!-- غرفة الأمين — تظهر بس لو الدور room_admin -->
+    <div id="modalRoomRow" style="display:none;margin-top:10px">
+      <label>الغرفة المخصصة</label>
+      <select id="modalRoomSelect">
+        <option value="">— اختار الغرفة —</option>
+        <option value="غرفة لعبة 1">غرفة لعبة 1</option>
+        <option value="غرفة لعبة 2">غرفة لعبة 2</option>
+        <option value="غرفة لعبة 3">غرفة لعبة 3</option>
+        <option value="غرفة لعبة 4">غرفة لعبة 4</option>
+        <option value="غرفة لعبة 5">غرفة لعبة 5</option>
+        <option value="درس الكتاب">درس الكتاب</option>
+        <option value="أعمال يدوية">أعمال يدوية</option>
+        <option value="تنمية">تنمية</option>
+      </select>
+    </div>
+
+    <div id="modalMsg" style="margin-top:10px"></div>
+
+    <div class="modal-footer">
+      <button class="btn outline" id="modalCancelBtn" type="button">إلغاء</button>
+      <button class="btn" id="modalSaveBtn" type="button">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
