@@ -290,7 +290,7 @@ async function sendGratitude(){
   btn.disabled=true; btn.textContent="بنحفظ...";
   var res = await supabase.rpc("submit_gratitude", { p_member_id: member.id, p_message: txt });
   btn.disabled=false; btn.textContent="🧱 حط في الجدار";
-  if(res.error){ msg.textContent="❌ مش قادر يحفظ، حاول تاني"; msg.style.color="var(--coral)"; return; }
+  if(res.error){ msg.textContent = res.error.message === "limit_reached" ? "⛔ وصلت الحد الأقصى (" + MAX_GRAT_MSGS + " رسايل) — انتظر الأدمن يعمل ريست" : "❌ مش قادر يحفظ، حاول تاني"; msg.style.color="var(--coral)"; return; }
   msg.textContent="✅ اتضافت للجدار!"; msg.style.color="var(--pitch)";
   document.getElementById("gratMsg").value=""; document.getElementById("gChar").textContent="0";
   setTimeout(function(){ msg.textContent=""; }, 3000);
