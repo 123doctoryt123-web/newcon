@@ -232,7 +232,7 @@ var _isAdminGrat = false;
 
 async function checkMyGratCount(){
   var res = await supabase
-    .from("gratitude_messages")
+    .from("gratitude_wall")
     .select("id", { count: "exact", head: true })
     .eq("member_id", member.id);
   return res.count || 0;
@@ -301,9 +301,9 @@ async function sendGratitude(){
 async function adminResetGratCounts(){
   if(!_isAdminGrat) return;
   if(!confirm("هتعمل ريست للعداد؟ الناس هتقدر تبعت رسايل تاني!")) return;
-  // نمسح كل الرسايل علشان العداد يرجع صفر
-  var res = await supabase.from("gratitude_messages").delete().neq("id", 0);
-  if(res.error){ alert("❌ مش قادر يعمل ريست"); return; }
+  // نمسح الرسايل غير المرئية بس (visible = false) — المنشور يفضل
+  var res = await supabase.from("gratitude_wall").delete().eq("visible", false);
+  if(res.error){ alert("❌ مش قادر يعمل ريست: " + res.error.message); return; }
   alert("✅ اتعمل الريست — الناس تقدر تبعت تاني");
   loadWall();
 }
