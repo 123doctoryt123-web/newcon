@@ -50,6 +50,11 @@
   text-shadow: 0 0 30px rgba(200,150,90,0.3);
   margin-bottom: 6px;
 }
+.slot-partner{
+  font-size: 14px; color: var(--mist-dim); margin-top: 10px;
+  padding-top: 10px; border-top: 1px solid var(--line);
+}
+.slot-partner span{ color: var(--gold); font-weight: 700; }
 .slot-location{
   font-size: 16px; color: var(--mist-dim); margin-top: 14px;
   padding-top: 14px; border-top: 1px solid var(--line);
@@ -108,6 +113,7 @@
         <div style="margin: 22px 0 0">
           <div class="slot-day" id="slotDay"></div>
           <div class="slot-time" id="slotTime"></div>
+          <div class="slot-partner">👤 معاك: <span id="slotPartner">—</span></div>
           <div class="slot-location">📍 <span id="slotLocation"></span></div>
         </div>
       </div>
@@ -143,25 +149,58 @@
 <script>
 var member = requireSession();
 
+// ── تعريف سلوتات الأيام الثلاثة (كل سلوت لاتنين) ──
+// اليوم 1: 5م → 10م  (17:00 → 22:00) فرق ربع ساعة
+// اليوم 2: 10ص → 2ظ  (10:00 → 14:00)
+// اليوم 3: 11ص → 1ظ  (11:00 → 13:00)
+var DAY_SLOTS = {
+  1: generateSlots(17, 0, 22, 0),   // 5م → 10م
+  2: generateSlots(10, 0, 14, 0),   // 10ص → 2ظ
+  3: generateSlots(11, 0, 13, 0)    // 11ص → 1ظ
+};
+
+var DAY_LABELS = {
+  1: "اليوم الأول (5م - 10م)",
+  2: "اليوم الثاني (10ص - 2ظ)",
+  3: "اليوم الثالث (11ص - 1ظ)"
+};
+
+// يولّد قائمة أوقات بفرق 15 دقيقة
+function generateSlots(startH, startM, endH, endM) {
+  var slots = [];
+  var cur = startH * 60 + startM;
+  var end = endH * 60 + endM;
+  while (cur < end) {
+    var h = Math.floor(cur / 60);
+    var m = cur % 60;
+    var label = formatTime(h, m);
+    slots.push({ index: slots.length, label: label });
+    cur += 15;
+  }
+  return slots;
+}
+
+function formatTime(h, m) {
+  var suffix = h < 12 ? "ص" : "م";
+  var h12 = h % 12; if (h12 === 0) h12 = 12;
+  return h12 + ":" + (m === 0 ? "00" : m) + " " + suffix;
+}
+
 async function loadRetreatSlot() {
   if (!member) return;
-
   document.getElementById("memberGreet").textContent = member.name;
 
   try {
-    // أول شيل حاول تجيب الموعد الموجود
+    // جرب تجيب موعده الموجود
     var existing = await supabase.rpc("get_my_retreat_slot", { p_member_id: member.id });
 
     var slot = null;
     if (!existing.error && existing.data && existing.data.length > 0) {
       slot = existing.data[0];
     } else {
-      // لو مفيش، احجز جديد
+      // احجز موعد جديد
       var booked = await supabase.rpc("book_retreat_slot", { p_member_id: member.id });
-      if (booked.error) {
-        showError(booked.error.message);
-        return;
-      }
+      if (booked.error) { showError(booked.error.message); return; }
       if (!booked.data || booked.data.length === 0) {
         showError("مفيش مواعيد متاحة دلوقتي");
         return;
@@ -169,11 +208,24 @@ async function loadRetreatSlot() {
       slot = booked.data[0];
     }
 
-    // اعرض الموعد
-    var dayNames = {1: "اليوم الأول (5م - 10م)", 2: "اليوم الثاني (10ص - 2ظ)", 3: "اليوم الثالث (11ص - 1ظ)"};
-    document.getElementById("slotDay").textContent = "📅 " + (dayNames[slot.day] || "يوم " + slot.day);
-    document.getElementById("slotTime").textContent = slot.time_label;
-    document.getElementById("slotLocation").textContent = slot.location;
+    // حوّل slot_index + day لـ time_label لو مش موجود
+    var dayNum = slot.day;
+    var timeLabel = slot.time_label;
+
+    // لو الـ DB بيرجع slot_index بدل time_label احسبه
+    if (!timeLabel && slot.slot_index !== undefined) {
+      var daySlots = DAY_SLOTS[dayNum] || [];
+      var s = daySlots[slot.slot_index];
+      timeLabel = s ? s.label : "—";
+    }
+
+    document.getElementById("slotDay").textContent = "📅 " + (DAY_LABELS[dayNum] || "يوم " + dayNum);
+    document.getElementById("slotTime").textContent = timeLabel || slot.time_label || "—";
+    document.getElementById("slotLocation").textContent = slot.location || "—";
+
+    // شريك الخلوة (لو الـ DB بيرجعه)
+    var partner = slot.partner_name || null;
+    document.getElementById("slotPartner").textContent = partner || "هيتحدد قريباً";
 
     document.getElementById("loadingState").style.display = "none";
     document.getElementById("slotContent").style.display = "block";
@@ -195,6 +247,22 @@ function showError(msg) {
 
 loadRetreatSlot();
 </script>
+
+<!-- SQL لازم تشغله في Supabase:
+
+-- جدول السلوتات (لو مش موجود)
+-- كل سلوت فيه capacity = 2 (اتنين بس)
+-- الـ function book_retreat_slot تحجز أول سلوت فيه أقل من 2
+
+-- مثال لإنشاء السلوتات:
+-- Day 1: 17:00 → 22:00 كل 15 دقيقة = 20 سلوت × 2 = 40 شخص
+-- Day 2: 10:00 → 14:00 كل 15 دقيقة = 16 سلوت × 2 = 32 شخص  
+-- Day 3: 11:00 → 13:00 كل 15 دقيقة = 8 سلوتات × 2 = 16 شخص
+
+-- شوف ملف retreat_slots.sql المرفق
+
+-->
+
 <script src="js/realtime.js"></script>
 </body>
 </html>
