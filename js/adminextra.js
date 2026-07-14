@@ -684,7 +684,7 @@ function openMemberModal(memberId){
 
   // إظهار/إخفاء صف الغرفة
   var roomRow = document.getElementById('modalRoomRow');
-  if(roomRow) roomRow.style.display = (m.role === 'room_admin') ? 'block' : 'none';
+  if(roomRow) roomRow.style.display = (m.role === 'room_admin' || m.role === 'retreat_servant') ? 'block' : 'none';
 
   document.getElementById('memberModal').classList.add('open');
   document.getElementById('modalTeamName').focus();
@@ -748,7 +748,7 @@ async function saveMemberModal(){
   // 2) حفظ الدور (لو اتغير أو مختلف)
   var r2 = { error: null };
   if(roleChanged){
-    if(role === 'room_admin'){
+    if(role === 'room_admin' || role === 'retreat_servant'){
       // تعيين أمين غرفة — محتاج اسم الغرفة
       var roomSel = document.getElementById('modalRoomSelect');
       var roomName = roomSel ? roomSel.value : '';
@@ -811,7 +811,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(modalRole){
     modalRole.addEventListener('change', function(){
       var roomRow = document.getElementById('modalRoomRow');
-      if(roomRow) roomRow.style.display = (modalRole.value === 'room_admin') ? 'block' : 'none';
+      if(roomRow) roomRow.style.display = (modalRole.value === 'room_admin' || modalRole.value === 'retreat_servant') ? 'block' : 'none';
     });
   }
 
