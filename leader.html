@@ -556,11 +556,11 @@ async function loadRoomsOverview(){
     rooms[r.room_name].rows.push(r);
   });
 
-  grid.innerHTML = Object.values(rooms).map(function(room){
+  var roomCards = Object.values(rooms).map(function(room){
     var present = room.rows.filter(function(r){ return r.session_pts > 0 || r.bonus_pts > 0; }).length;
     var absent  = room.rows.length - present;
     var totalPts = room.rows.reduce(function(s,r){ return s + (r.session_pts||0) + (r.bonus_pts||0); }, 0);
-    return '<div class="room-card" onclick="openRoomModal(''+esc(room.name)+'')">'+
+    return '<div class="room-card" data-room="'+esc(room.name)+'">'+
       '<div class="room-card-icon">'+roomIcon(room.name)+'</div>'+
       '<div class="room-card-name">'+esc(room.name)+'</div>'+
       '<div class="room-card-stats">'+
@@ -570,6 +570,10 @@ async function loadRoomsOverview(){
       '</div>'+
     '</div>';
   }).join('');
+  grid.innerHTML = roomCards;
+  grid.querySelectorAll('.room-card').forEach(function(card){
+    card.addEventListener('click', function(){ openRoomModal(card.dataset.room); });
+  });
 }
 
 function openRoomModal(roomName){
