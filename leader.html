@@ -83,6 +83,48 @@
   letter-spacing:2px;
 }
 
+/* ---- الغرف ---- */
+.rooms-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+.room-card{
+  background:var(--ink-2); border:1px solid var(--line);
+  border-radius:var(--radius); padding:14px 12px;
+  cursor:pointer; transition:border-color .2s, background .2s;
+  text-align:center;
+}
+.room-card:hover{ border-color:rgba(200,150,90,.4); background:rgba(200,150,90,.05); }
+.room-card-icon{ font-size:26px; margin-bottom:6px; }
+.room-card-name{ font-size:12px; font-weight:700; color:var(--mist); margin-bottom:8px; }
+.room-card-stats{ display:flex; justify-content:center; gap:10px; }
+.room-stat{ font-size:11px; color:var(--mist-dim); }
+.room-stat span{ font-family:var(--font-display); font-weight:700; font-size:14px; display:block; }
+.room-stat span.green{ color:#a9e6c4; }
+.room-stat span.red{ color:#ffb3a6; }
+.room-stat span.gold{ color:var(--gold); }
+
+/* ---- Modal الغرفة ---- */
+#roomModal{
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+  align-items:flex-end; justify-content:center; padding:0;
+}
+#roomModal.open{ display:flex; }
+#roomModalBox{
+  background:var(--ink-2); border:1px solid var(--line);
+  border-radius:20px 20px 0 0; padding:24px 20px;
+  width:100%; max-height:80vh; overflow-y:auto;
+}
+#roomModalBox h3{ font-size:16px; color:var(--gold); margin:0 0 16px; }
+.room-member-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid var(--line);
+}
+.room-member-row:last-child{ border-bottom:none; }
+.room-badge{
+  font-size:11px; padding:2px 9px; border-radius:99px; font-weight:700;
+}
+.badge-present{ background:rgba(74,124,111,.15); color:#a9e6c4; border:1px solid var(--pitch); }
+.badge-absent{  background:rgba(192,83,58,.12);  color:#ffb3a6; border:1px solid var(--coral); }
+
 /* ---- فاصل ---- */
 .section-label{
   font-size:11px; font-weight:700; color:var(--mist-dim); letter-spacing:1px;
@@ -149,6 +191,12 @@
       </div>
     </div>
 
+    <!-- الغرف -->
+    <div class="section-label">الغرف 🏠</div>
+    <div class="rooms-grid" id="roomsGrid">
+      <div class="empty-state" style="grid-column:1/-1">بنحمّل...</div>
+    </div>
+
     <!-- أعضاء الفريق -->
     <div class="section-label">أعضاء الفريق</div>
     <div class="card">
@@ -182,6 +230,19 @@
     </div>
 
   </div>
+
+  <!-- Modal تفاصيل الغرفة -->
+  <div id="roomModal">
+    <div id="roomModalBox">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 id="roomModalTitle">الغرفة</h3>
+        <button onclick="closeRoomModal()" style="background:none;border:none;color:var(--mist-dim);font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px" id="roomModalSummary"></div>
+      <div id="roomModalList"></div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
@@ -257,6 +318,7 @@ function showDashboard(){
   loadTeamPredictions();
   loadAllTeamsRank();
   loadTeamChallenges();
+  loadRoomsOverview();
 }
 
 // ============================================================
@@ -456,6 +518,116 @@ async function doComplete(){
   loadTeamChallenges();
   loadTeamMembers(); // تحديث النقاط
 }
+
+// ============================================================
+// الغرف — تفاصيل الحضور والنقاط
+// ============================================================
+var _roomsData = [];
+
+var ROOM_ICONS = {
+  'غرفة سيدنا':        '⛪',
+  'غرفة الآباء الكهنة': '✝️',
+  'درس الكتاب':         '📖',
+  'أعمال يدوية':        '🎨',
+  'تنمية':              '🌱',
+  'خلوة':               '🕊️',
+};
+
+function roomIcon(name){
+  for(var k in ROOM_ICONS){ if(name && name.indexOf(k) !== -1) return ROOM_ICONS[k]; }
+  return '🏠';
+}
+
+async function loadRoomsOverview(){
+  var grid = document.getElementById('roomsGrid');
+  // جيب تفاصيل الأعضاء من كل الغرف للفريق
+  var res = await supabase.rpc('get_team_room_details', { p_team_name: leaderTeam });
+  if(res.error || !res.data || !res.data.length){
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">مفيش بيانات غرف لسه</div>';
+    return;
+  }
+
+  _roomsData = res.data;
+
+  // جمّع الغرف
+  var rooms = {};
+  res.data.forEach(function(r){
+    if(!rooms[r.room_name]) rooms[r.room_name] = { name: r.room_name, rows: [] };
+    rooms[r.room_name].rows.push(r);
+  });
+
+  grid.innerHTML = Object.values(rooms).map(function(room){
+    var present = room.rows.filter(function(r){ return r.session_pts > 0 || r.bonus_pts > 0; }).length;
+    var absent  = room.rows.length - present;
+    var totalPts = room.rows.reduce(function(s,r){ return s + (r.session_pts||0) + (r.bonus_pts||0); }, 0);
+    return '<div class="room-card" onclick="openRoomModal(''+esc(room.name)+'')">'+
+      '<div class="room-card-icon">'+roomIcon(room.name)+'</div>'+
+      '<div class="room-card-name">'+esc(room.name)+'</div>'+
+      '<div class="room-card-stats">'+
+        '<div class="room-stat"><span class="green">'+present+'</span>حضر</div>'+
+        '<div class="room-stat"><span class="red">'+absent+'</span>غاب</div>'+
+        '<div class="room-stat"><span class="gold">'+totalPts+'</span>نقطة</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function openRoomModal(roomName){
+  var rows = _roomsData.filter(function(r){ return r.room_name === roomName; });
+  if(!rows.length) return;
+
+  var present  = rows.filter(function(r){ return r.session_pts > 0 || r.bonus_pts > 0; }).length;
+  var absent   = rows.length - present;
+  var totalPts = rows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); },0);
+  var totalBonus = rows.reduce(function(s,r){ return s+(r.bonus_pts||0); },0);
+
+  document.getElementById('roomModalTitle').textContent = roomIcon(roomName)+' '+roomName;
+  document.getElementById('roomModalSummary').innerHTML =
+    '<div style="flex:1;text-align:center;background:rgba(74,124,111,.1);border-radius:10px;padding:10px">'+
+      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#a9e6c4">'+present+'</div>'+
+      '<div style="font-size:11px;color:var(--mist-dim)">حضر</div>'+
+    '</div>'+
+    '<div style="flex:1;text-align:center;background:rgba(192,83,58,.1);border-radius:10px;padding:10px">'+
+      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#ffb3a6">'+absent+'</div>'+
+      '<div style="font-size:11px;color:var(--mist-dim)">غاب</div>'+
+    '</div>'+
+    '<div style="flex:1;text-align:center;background:rgba(200,150,90,.1);border-radius:10px;padding:10px">'+
+      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--gold)">'+totalPts+'</div>'+
+      '<div style="font-size:11px;color:var(--mist-dim)">نقطة</div>'+
+    '</div>'+
+    '<div style="flex:1;text-align:center;background:rgba(200,150,90,.07);border-radius:10px;padding:10px">'+
+      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--gold)">+'+totalBonus+'</div>'+
+      '<div style="font-size:11px;color:var(--mist-dim)">بونص</div>'+
+    '</div>';
+
+  document.getElementById('roomModalList').innerHTML = rows.map(function(r){
+    var isPresent = r.session_pts > 0 || r.bonus_pts > 0;
+    return '<div class="room-member-row">'+
+      '<span style="font-size:14px;color:var(--mist);font-weight:600">'+esc(r.member_name)+'</span>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        (r.bonus_pts > 0 ? '<span style="font-size:11px;color:var(--gold)">+'+r.bonus_pts+' بونص</span>' : '')+
+        '<span style="font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--gold)">'+
+          (r.session_pts+r.bonus_pts)+' نقطة</span>'+
+        '<span class="room-badge '+(isPresent?'badge-present':'badge-absent')+'">'+
+          (isPresent?'✅ حضر':'❌ غاب')+
+        '</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  document.getElementById('roomModal').classList.add('open');
+}
+
+function closeRoomModal(){
+  document.getElementById('roomModal').classList.remove('open');
+}
+
+// إغلاق بالضغط على الخلفية
+document.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('roomModal').addEventListener('click', function(e){
+    if(e.target === this) closeRoomModal();
+  });
+});
 
 function esc(s){
   return(s||"").toString().replace(/[&<>"']/g,function(c){
