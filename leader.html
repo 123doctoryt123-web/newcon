@@ -325,17 +325,16 @@ function showDashboard(){
 // أعضاء الفريق + إحصائيات الحضور
 // ============================================================
 async function loadTeamMembers(){
-  // جيب أعضاء الفريق
   var membersRes=await supabase
     .from("members")
     .select("id,name,username,points")
     .eq("team_name",leaderTeam)
+    .eq("role","member")
     .order("points",{ascending:false});
 
   if(membersRes.error||!membersRes.data){ return; }
   var members=membersRes.data;
 
-  // جيب حضور اليوم للفريق
   var today=new Date().toISOString().split("T")[0];
   var attendRes=await supabase
     .from("attendance")
@@ -343,14 +342,12 @@ async function loadTeamMembers(){
     .gte("scanned_at",today)
     .in("member_id",members.map(function(m){ return m.id; }));
 
-  // بنى map للحضور
   var attendMap={};
   (attendRes.data||[]).forEach(function(a){
     if(!attendMap[a.member_id]) attendMap[a.member_id]={book:false,project:false};
     attendMap[a.member_id][a.scan_type]=true;
   });
 
-  // إحصائيات
   var totalPts=members.reduce(function(s,m){ return s+(m.points||0); },0);
   var bookCount=Object.values(attendMap).filter(function(a){ return a.book; }).length;
   var projCount=Object.values(attendMap).filter(function(a){ return a.project; }).length;
@@ -360,7 +357,6 @@ async function loadTeamMembers(){
   document.getElementById("statBookToday").textContent=bookCount+"/"+members.length;
   document.getElementById("statProjectToday").textContent=projCount+"/"+members.length;
 
-  // عرض القائمة
   var box=document.getElementById("membersList");
   if(!members.length){ box.innerHTML='<div class="empty-state">مفيش أعضاء</div>'; return; }
   box.innerHTML=members.map(function(m){
@@ -384,20 +380,18 @@ async function loadTeamMembers(){
 // توقعات الفريق
 // ============================================================
 async function loadTeamPredictions(){
-  // جيب أعضاء الفريق الأول
   var membersRes=await supabase
     .from("members")
     .select("id,name")
-    .eq("team_name",leaderTeam);
+    .eq("team_name",leaderTeam)
+    .eq("role","member");
   if(membersRes.error||!membersRes.data) return;
 
-  // جيب بيانات المباراة
   var matchRes=await supabase.rpc("get_match_info");
   var matchData=matchRes.data&&matchRes.data[0];
   var team1=matchData?matchData.team1:"فريق 1";
   var team2=matchData?matchData.team2:"فريق 2";
 
-  // جيب التوقعات
   var ids=membersRes.data.map(function(m){ return m.id; });
   var predRes=await supabase
     .from("predictions")
@@ -516,7 +510,7 @@ async function doComplete(){
   else if(r.status === "already_done") alert("الفريق كمّل المهمة دي قبل كده");
   else if(r.status === "inactive")     alert("التحدي ده موقوف دلوقتي");
   loadTeamChallenges();
-  loadTeamMembers(); // تحديث النقاط
+  loadTeamMembers();
 }
 
 // ============================================================
@@ -540,7 +534,6 @@ function roomIcon(name){
 
 async function loadRoomsOverview(){
   var grid = document.getElementById('roomsGrid');
-  // جيب تفاصيل الأعضاء من كل الغرف للفريق
   var res = await supabase.rpc('get_team_room_details', { p_team_name: leaderTeam });
   if(res.error || !res.data || !res.data.length){
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">مفيش بيانات غرف لسه</div>';
@@ -549,16 +542,27 @@ async function loadRoomsOverview(){
 
   _roomsData = res.data;
 
-  // جمّع الغرف
+  // جمّع الغرف — بس اللي حضروا فعلاً (room_name != 'لم يحضر')
   var rooms = {};
   res.data.forEach(function(r){
-    if(!rooms[r.room_name]) rooms[r.room_name] = { name: r.room_name, rows: [] };
-    rooms[r.room_name].rows.push(r);
+    var key = r.room_name;
+    if(!rooms[key]) rooms[key] = { name: key, rows: [] };
+    rooms[key].rows.push(r);
   });
 
-  var roomCards = Object.values(rooms).map(function(room){
-    var present = room.rows.filter(function(r){ return r.session_pts > 0 || r.bonus_pts > 0; }).length;
-    var absent  = room.rows.length - present;
+  // شيل "لم يحضر" من الكروت لو مفيش غرف تانية
+  var roomKeys = Object.keys(rooms).filter(function(k){ return k !== 'لم يحضر'; });
+
+  if(!roomKeys.length){
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">مفيش بيانات غرف لسه</div>';
+    return;
+  }
+
+  var roomCards = roomKeys.map(function(key){
+    var room = rooms[key];
+    // ✅ التعديل 1: استخدام r.attended بدل session_pts > 0
+    var present  = room.rows.filter(function(r){ return r.attended; }).length;
+    var absent   = room.rows.length - present;
     var totalPts = room.rows.reduce(function(s,r){ return s + (r.session_pts||0) + (r.bonus_pts||0); }, 0);
     return '<div class="room-card" data-room="'+esc(room.name)+'">'+
       '<div class="room-card-icon">'+roomIcon(room.name)+'</div>'+
@@ -580,7 +584,8 @@ function openRoomModal(roomName){
   var rows = _roomsData.filter(function(r){ return r.room_name === roomName; });
   if(!rows.length) return;
 
-  var present  = rows.filter(function(r){ return r.session_pts > 0 || r.bonus_pts > 0; }).length;
+  // ✅ التعديل 2: استخدام r.attended في حساب present
+  var present  = rows.filter(function(r){ return r.attended; }).length;
   var absent   = rows.length - present;
   var totalPts = rows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); },0);
   var totalBonus = rows.reduce(function(s,r){ return s+(r.bonus_pts||0); },0);
@@ -605,7 +610,8 @@ function openRoomModal(roomName){
     '</div>';
 
   document.getElementById('roomModalList').innerHTML = rows.map(function(r){
-    var isPresent = r.session_pts > 0 || r.bonus_pts > 0;
+    // ✅ التعديل 3: استخدام r.attended بدل session_pts > 0
+    var isPresent = r.attended;
     return '<div class="room-member-row">'+
       '<span style="font-size:14px;color:var(--mist);font-weight:600">'+esc(r.member_name)+'</span>'+
       '<div style="display:flex;align-items:center;gap:8px">'+
@@ -626,7 +632,6 @@ function closeRoomModal(){
   document.getElementById('roomModal').classList.remove('open');
 }
 
-// إغلاق بالضغط على الخلفية
 document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('roomModal').addEventListener('click', function(e){
     if(e.target === this) closeRoomModal();
