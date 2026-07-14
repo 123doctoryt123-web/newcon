@@ -1063,7 +1063,7 @@ async function loadManualMembers() {
 
 function loadManualSlots() {
   var day = parseInt(document.getElementById("manualDaySelect").value);
-  var slots = retreatAllSlots.filter(function(s){ return s.day === day && !s.member_name; });
+  var slots = retreatAllSlots.filter(function(s){ return s.day === day && s.bookings.length < s.capacity; });
   var sel = document.getElementById("manualSlotSelect");
   if (!sel) return;
   sel.innerHTML = '<option value="">— اختار وقت —</option>' +
@@ -1100,9 +1100,36 @@ async function adminBookManual() {
 }
 
 
-var retreatAllSlots = [];
+var retreatRawRows = [];   // الصفوف الخام من الـ DB (صف لكل شخص)
+var retreatAllSlots = [];  // مجمّعة: سلوت واحد يحتوي على قائمة المحجوزين
 var retreatCurrentFilter = 0;
 var retreatDayNames = { 1: 'اليوم الأول (5م - 10م)', 2: 'اليوم الثاني (10ص - 2ظ)', 3: 'اليوم الثالث (11ص - 1ظ)' };
+
+// تجميع الصفوف الخام في سلوتات مع قائمة المحجوزين
+function groupRetreatRows(rows) {
+  var map = {};
+  var order = [];
+  rows.forEach(function(r) {
+    if (!map[r.id]) {
+      map[r.id] = {
+        id: r.id, day: r.day, slot_index: r.slot_index,
+        time_label: r.time_label, location: r.location,
+        capacity: r.capacity, booked_count: r.booked_count,
+        bookings: []
+      };
+      order.push(r.id);
+    }
+    if (r.member_name) {
+      map[r.id].bookings.push({
+        booking_id: r.booking_id,
+        member_id:  r.member_id,
+        name:       r.member_name,
+        username:   r.member_username
+      });
+    }
+  });
+  return order.map(function(id){ return map[id]; });
+}
 
 // تحميل المواعيد لما يفتح التاب
 document.addEventListener("tabChanged", function(e) {
@@ -1142,7 +1169,8 @@ async function loadRetreatSlots() {
     return;
   }
 
-  retreatAllSlots = res.data || [];
+  retreatRawRows  = res.data || [];
+  retreatAllSlots = groupRetreatRows(retreatRawRows);
   updateRetreatStats();
   renderRetreatTable(retreatCurrentFilter);
   loadManualMembers();
@@ -1159,11 +1187,12 @@ async function loadRetreatSlots() {
 }
 
 function updateRetreatStats() {
-  var booked = retreatAllSlots.filter(function(s){ return s.member_name; }).length;
-  var free   = retreatAllSlots.length - booked;
-  document.getElementById("retreatBookedCount").textContent = booked;
-  document.getElementById("retreatFreeCount").textContent   = free;
-  document.getElementById("retreatTotalCount").textContent  = retreatAllSlots.length;
+  var totalSlots  = retreatAllSlots.length;
+  var freeSlots   = retreatAllSlots.filter(function(s){ return s.bookings.length < s.capacity; }).length;
+  var totalBooked = retreatRawRows.filter(function(r){ return r.member_name; }).length;
+  document.getElementById("retreatBookedCount").textContent = totalBooked;
+  document.getElementById("retreatFreeCount").textContent   = freeSlots;
+  document.getElementById("retreatTotalCount").textContent  = totalSlots;
 }
 
 function filterRetreatDay(day) {
@@ -1187,18 +1216,30 @@ function renderRetreatTable(day) {
     return;
   }
   tbody.innerHTML = slots.map(function(s) {
-    var nameCell = s.member_name
-      ? '<strong>' + esc(s.member_name) + '</strong><br><small style="color:var(--mist-dim)">' + esc(s.member_username) + '</small>'
-      : '<span style="color:var(--line)">— فاضي —</span>';
-    var cancelBtn = s.member_name && s.id
-      ? '<button class="btn small danger" onclick="cancelRetreatSlot(\'' + s.id + '\')">إلغاء</button>'
-      : '';
+    // عرض المحجوزين (0, 1, أو 2 أشخاص)
+    var nameCell = '';
+    if (s.bookings.length === 0) {
+      nameCell = '<span style="color:var(--line)">— فاضي —</span>';
+    } else {
+      nameCell = s.bookings.map(function(b){
+        return '<div style="margin-bottom:4px">' +
+          '<strong>' + esc(b.name) + '</strong> ' +
+          '<small style="color:var(--mist-dim)">(' + esc(b.username) + ')</small>' +
+          '</div>';
+      }).join('');
+    }
+    // أزرار الإلغاء لكل شخص
+    var cancelBtns = s.bookings.map(function(b){
+      return '<button class="btn small danger" style="margin-bottom:3px" ' +
+        'onclick="cancelRetreatSlot(' + b.booking_id + ')">إلغاء ' + esc(b.name) + '</button>';
+    }).join('<br>');
+
     return '<tr>' +
       '<td>' + retreatDayNames[s.day] + '</td>' +
       '<td style="font-family:var(--font-display);font-weight:700;color:var(--gold)">' + esc(s.time_label) + '</td>' +
       '<td>' + esc(s.location) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td class="no-print">' + cancelBtn + '</td>' +
+      '<td class="no-print">' + cancelBtns + '</td>' +
       '</tr>';
   }).join("");
 }
@@ -1222,11 +1263,11 @@ async function updateLocation(day) {
   }
 }
 
-async function cancelRetreatSlot(slotId) {
+async function cancelRetreatSlot(bookingId) {
   if (!confirm("هتلغي الحجز ده؟")) return;
   var pass = sessionStorage.getItem("adminPass") || window._adminPass;
   var res = await supabase.rpc("admin_cancel_retreat_slot", {
-    p_password: pass, p_slot_id: slotId
+    p_password: pass, p_slot_id: bookingId
   });
   if (res.error) { alert("خطأ: " + res.error.message); return; }
   loadRetreatSlots();
