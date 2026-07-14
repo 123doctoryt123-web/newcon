@@ -206,7 +206,7 @@ async function sendQuestion(){
   btn.disabled = true;
   btn.innerHTML = "<span>⏳</span> بيتبعت...";
 
-  var res = await supabase.rpc("submit_book_question", { p_question: txt });
+  var res = await supabase.rpc("submit_book_question", { p_question: txt, p_member_id: member.id });
   btn.disabled = false;
   btn.innerHTML = "<span>📨</span> ابعت سؤالك";
 
