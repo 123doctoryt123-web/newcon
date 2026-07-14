@@ -192,6 +192,13 @@
     <div id="gratFormMsg" style="margin-top:10px;text-align:center;font-size:13px"></div>
   </div>
 
+  <!-- ريست الأدمن -->
+  <div id="gratAdminResetBtn" style="display:none;margin-bottom:14px;text-align:center">
+    <button onclick="adminResetGratCounts()" style="background:rgba(200,150,90,0.08);border:1px solid rgba(200,150,90,0.3);color:var(--gold);font-family:var(--font-display);font-weight:700;font-size:13px;padding:10px 20px;border-radius:99px;cursor:pointer">
+      🔄 ريست عداد الامتنان (أدمن)
+    </button>
+  </div>
+
   <!-- الرسائل -->
   <div class="feed-header">
     <div class="feed-title">💛 رسائل من القلب</div>
@@ -220,6 +227,26 @@
 var member = requireSession();
 document.getElementById("logoutBtn").addEventListener("click", logout);
 var _messages = [];
+var MAX_GRAT_MSGS = 3;
+var _isAdminGrat = false;
+
+async function checkMyGratCount(){
+  var res = await supabase
+    .from("gratitude_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("member_id", member.id);
+  return res.count || 0;
+}
+
+// تحقق من الأدمن
+(async function checkAdminGrat(){
+  if(!member) return;
+  var res = await supabase.from("members").select("role").eq("id", member.id).single();
+  if(!res.error && res.data && res.data.role === "admin"){
+    _isAdminGrat = true;
+    document.getElementById("gratAdminResetBtn").style.display = "block";
+  }
+})();
 
 function esc(s){ return (s||"").replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 
@@ -251,6 +278,14 @@ async function sendGratitude(){
   var txt = (document.getElementById("gratMsg").value||"").trim();
   var msg = document.getElementById("gratFormMsg");
   if(txt.length<5){ msg.textContent="⚠️ اكتب رسالة أطول شوية"; msg.style.color="var(--coral)"; return; }
+
+  // تحقق من الحد الأقصى
+  var count = await checkMyGratCount();
+  if(count >= MAX_GRAT_MSGS){
+    msg.textContent="⛔ وصلت الحد الأقصى (" + MAX_GRAT_MSGS + " رسايل) — انتظر الأدمن يعمل ريست";
+    msg.style.color="var(--coral)"; return;
+  }
+
   var btn = document.getElementById("sendGratBtn");
   btn.disabled=true; btn.textContent="بنحفظ...";
   var res = await supabase.rpc("submit_gratitude", { p_member_id: member.id, p_message: txt });
@@ -259,6 +294,17 @@ async function sendGratitude(){
   msg.textContent="✅ اتضافت للجدار!"; msg.style.color="var(--pitch)";
   document.getElementById("gratMsg").value=""; document.getElementById("gChar").textContent="0";
   setTimeout(function(){ msg.textContent=""; }, 3000);
+  loadWall();
+}
+
+/* ── ريست عداد الامتنان (أدمن) ── */
+async function adminResetGratCounts(){
+  if(!_isAdminGrat) return;
+  if(!confirm("هتعمل ريست للعداد؟ الناس هتقدر تبعت رسايل تاني!")) return;
+  // نمسح كل الرسايل علشان العداد يرجع صفر
+  var res = await supabase.from("gratitude_messages").delete().neq("id", 0);
+  if(res.error){ alert("❌ مش قادر يعمل ريست"); return; }
+  alert("✅ اتعمل الريست — الناس تقدر تبعت تاني");
   loadWall();
 }
 
