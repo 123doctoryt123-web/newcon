@@ -654,7 +654,7 @@
       <div class="card" id="puzParticipantsCard" style="display:none">
         <strong style="font-size:15px">👥 إضافة تيمات اللغز</strong>
         <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 14px">
-          كل تيم بيحل لغزه لوحده — داخل التيم فيه مجموعة شايفة صورة A وأخرى شايفة صورة B
+          كل تيم بيحل لغزه لوحده — داخل التيم كل مجموعة شايفة صورة مختلفة (أ، ب، ت، ث)
         </p>
 
         <!-- فورم إنشاء تيم -->
@@ -664,14 +664,22 @@
           <label>اسم التيم</label>
           <input type="text" id="puzTeamName" placeholder="مثال: تيم النسور">
 
-          <div style="display:flex;gap:10px;margin-top:10px">
-            <div style="flex:1">
-              <label style="font-size:12px;color:var(--gold)">📍 صورة المكان A</label>
-              <input type="url" id="puzTeamImgA" placeholder="https://... رابط الصورة الأولى">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+            <div>
+              <label style="font-size:12px;color:var(--gold)">📍 صورة المكان أ</label>
+              <input type="url" id="puzTeamImgA" placeholder="https://... رابط صورة أ">
             </div>
-            <div style="flex:1">
-              <label style="font-size:12px;color:#a9e6c4">📍 صورة المكان B</label>
-              <input type="url" id="puzTeamImgB" placeholder="https://... رابط الصورة التانية">
+            <div>
+              <label style="font-size:12px;color:#a9e6c4">📍 صورة المكان ب</label>
+              <input type="url" id="puzTeamImgB" placeholder="https://... رابط صورة ب">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#a9c4e6">📍 صورة المكان ت</label>
+              <input type="url" id="puzTeamImgC" placeholder="https://... رابط صورة ت">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#e6a9c4">📍 صورة المكان ث</label>
+              <input type="url" id="puzTeamImgD" placeholder="https://... رابط صورة ث">
             </div>
           </div>
 
