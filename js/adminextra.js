@@ -832,16 +832,26 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
   var box = document.getElementById('roomScoresList');
   if(!box) return;
 
-  // فلتر الأعضاء في الجلسة دي
-  var rows = _scoresAllData.filter(function(r){
+  // اللي حضروا في الجلسة دي
+  var presentRows = _scoresAllData.filter(function(r){
     return r.team_name === teamName
         && r.secretary_name === secretaryName
         && r.session_date === sessionDate;
   });
 
-  var totalPts  = rows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); }, 0);
-  var totalBonus= rows.reduce(function(s,r){ return s+(r.bonus_pts||0); }, 0);
-  var present   = rows.filter(function(r){ return (r.session_pts||0)>0||(r.bonus_pts||0)>0; }).length;
+  var presentIds = presentRows.map(function(r){ return r.member_name; });
+
+  // اللي غابوا = أعضاء الفريق اللي مش في presentRows
+  var absentRows = teamsMembersCache
+    .filter(function(m){ return m.team_name === teamName && m.role === 'member' && presentIds.indexOf(m.name) === -1; })
+    .map(function(m){ return { member_name: m.name, session_pts: 0, bonus_pts: 0 }; });
+
+  var rows = presentRows.concat(absentRows);
+
+  var totalPts  = presentRows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); }, 0);
+  var totalBonus= presentRows.reduce(function(s,r){ return s+(r.bonus_pts||0); }, 0);
+  var present   = presentRows.length;
+  var absent    = absentRows.length;
 
   var html = '';
   // زرار رجوع
@@ -853,6 +863,7 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
   html += '<div style="font-size:12px;color:var(--mist-dim);margin-top:4px">'+sessionDate+'</div>';
   html += '<div style="display:flex;justify-content:center;gap:20px;margin-top:12px">';
   html += '<div><div style="font-size:22px;font-weight:800;color:#a9e6c4">'+present+'</div><div style="font-size:11px;color:var(--mist-dim)">حضر</div></div>';
+  html += '<div><div style="font-size:22px;font-weight:800;color:#ffb3a6">'+absent+'</div><div style="font-size:11px;color:var(--mist-dim)">غاب</div></div>';
   html += '<div><div style="font-size:22px;font-weight:800;color:var(--gold)">'+totalPts+'</div><div style="font-size:11px;color:var(--mist-dim)">نقطة</div></div>';
   if(totalBonus>0) html += '<div><div style="font-size:22px;font-weight:800;color:var(--gold)">+'+totalBonus+'</div><div style="font-size:11px;color:var(--mist-dim)">بونص</div></div>';
   html += '</div></div>';
