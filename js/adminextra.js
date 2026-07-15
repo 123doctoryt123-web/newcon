@@ -644,7 +644,7 @@ async function loadRoomScores(){
     supabase.from('puzzle_completions').select('member_id,completed_at').order('completed_at',{ascending:false}),
     supabase.from('daily_question_answers').select('member_id,is_correct,answered_at').order('answered_at',{ascending:false}),
     supabase.rpc('admin_list_project_scores',{p_password:getAdminPass()}),
-    supabase.from('member_badges').select('member_id,badge_id,earned_at').order('earned_at',{ascending:false})
+    supabase.from('member_badges').select('member_id,badge_key,earned_at').order('earned_at',{ascending:false})
   ]);
 
   _scoresAllData = detRes.data || [];
