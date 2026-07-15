@@ -493,7 +493,7 @@ async function loadPollResults(){
   rows.forEach(function(r){ if(r.option_idx!==null&&r.option_idx!==undefined){ votesMap[r.option_idx]=parseInt(r.vote_count)||0; total+=votesMap[r.option_idx]; } });
   var html='<div style="padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:14px">';
   html+='<div style="font-size:16px;font-weight:800;color:var(--mist);margin-bottom:4px">'+escHtml(first.question)+'</div>';
-  html+='<div style="font-size:12px;color:'+(active?'var(--pitch)':'var(--coral))+'">'+(active?'🟢 نشط':'🔴 منتهي')+' · إجمالي الأصوات: <strong>'+total+'</strong></div></div>';
+  html+='<div style="font-size:12px;color:'+(active?'var(--pitch)':'var(--coral)')+'">'+(active?'🟢 نشط':'🔴 منتهي')+' · إجمالي الأصوات: <strong>'+total+'</strong></div></div>';
   options.forEach(function(opt,idx){
     var count=votesMap[idx]||0, pct=total>0?Math.round(count/total*100):0;
     html+='<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">';
