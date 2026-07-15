@@ -93,10 +93,7 @@ function renderTeamsTable(){
         ? '<span style="color:var(--gold);font-size:12px">🏠 '+escHtml(rn)+'</span>'
         : '<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>';
     } else if(m.role==='retreat_servant'){
-      var rn2 = roomAssignmentsCache[m.id];
-      roleCell = rn2
-        ? '<span style="color:#a9e6c4;font-size:12px">🕊️ '+escHtml(rn2)+'</span>'
-        : '<span style="color:#a9e6c4;font-size:12px">🕊️ خادم الخلوة</span>';
+      roleCell = '<span style="color:#a9e6c4;font-size:12px">🕊️ خادم الخلوة</span>';
     } else if(m.role==='leader'){
       roleCell = '<span class="badge-leader">👑 قائد</span>';
     } else if(m.role==='project_reviewer'){
