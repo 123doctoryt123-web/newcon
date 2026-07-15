@@ -639,12 +639,12 @@ async function loadRoomScores(){
   var [detRes, qrRes, wheelRes, retreatRes, puzzleRes, dailyqRes, projectRes, badgeRes] = await Promise.all([
     supabase.rpc('admin_list_room_details', {p_password:getAdminPass()}),
     supabase.from('attendance').select('member_id,scan_type,scanned_at').order('scanned_at',{ascending:false}),
-    supabase.from('wheel_spins').select('member_id,prize,created_at').order('created_at',{ascending:false}),
+    supabase.from('wheel_spins').select('member_id,prize_key,prize_label,points_won,spun_at').order('spun_at',{ascending:false}),
     supabase.from('retreat_bookings').select('member_id,slot_id,booked_at').order('booked_at',{ascending:false}),
-    supabase.from('puzzle_completions').select('member_id,found_at').order('found_at',{ascending:false}),
+    supabase.from('puzzle_completions').select('member_id,completed_at').order('completed_at',{ascending:false}),
     supabase.from('daily_question_answers').select('member_id,is_correct,answered_at').order('answered_at',{ascending:false}),
     supabase.rpc('admin_list_project_scores',{p_password:getAdminPass()}),
-    supabase.from('member_badges').select('member_id,badge_id,awarded_at').order('awarded_at',{ascending:false})
+    supabase.from('member_badges').select('member_id,badge_id,earned_at').order('earned_at',{ascending:false})
   ]);
 
   _scoresAllData = detRes.data || [];
@@ -917,9 +917,9 @@ function showMemberDetail(memberId){
   html += makeSectionCard('🎡 عجلة الحظ', wheelRows.length, wheelRows.length ? scoresTableWrap(
     '<table><thead><tr><th>الجايزة</th><th>الوقت</th></tr></thead><tbody>'+
     wheelRows.map(function(r){
-      var d=new Date(r.created_at);
+      var d=new Date(r.spun_at);
       var t=d.toLocaleDateString('ar-EG')+' '+d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
-      return '<tr><td style="color:var(--gold)">'+escHtml(r.prize||'—')+'</td><td style="font-size:11px;color:var(--mist-dim)">'+t+'</td></tr>';
+      return '<tr><td style="color:var(--gold)">'+escHtml(r.prize_label||r.prize_key||'—')+'</td><td style="font-size:11px;color:var(--mist-dim)">'+t+'</td></tr>';
     }).join('')+'</tbody></table>'
   ) : '<div style="font-size:13px;color:var(--mist-dim);padding:8px 0">لسه ما لفش العجلة</div>', 'لفة');
 
