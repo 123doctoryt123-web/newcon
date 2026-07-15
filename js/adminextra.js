@@ -46,12 +46,18 @@ function escHtml(s){
 // الفرق
 // ============================================================
 var teamsMembersCache=[];
+var roomAssignmentsCache={};  // member_id → room_name
 
 async function loadTeamsAdmin(){
   var res=await supabase.rpc("admin_list_members_teams",{p_password:getAdminPass()});
   if(res.error) return;
   teamsMembersCache=res.data||[];
   leadersMembersCache=teamsMembersCache.slice();
+
+  // جيب room_assignments عشان نعرض اسم الغرفة في الجدول
+  var raRes = await supabase.from('room_assignments').select('member_id,room_name');
+  roomAssignmentsCache = {};
+  (raRes.data||[]).forEach(function(r){ roomAssignmentsCache[r.member_id] = r.room_name; });
   var select=document.getElementById("teamMemberSelect");
   if(select){
     select.innerHTML=teamsMembersCache.map(function(m){
@@ -75,21 +81,34 @@ function fillTeamInputsFromSelection(){
 function renderTeamsTable(){
   var tbody=document.getElementById("teamsTableBody");
   if(!tbody) return;
-  var roleLabel={
-    leader:'<span class="badge-leader">👑 قائد</span>',
-    room_admin:'<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>',
-    retreat_servant:'<span style="color:#a9e6c4;font-size:12px">🕊️ خادم الخلوة</span>',
-    project_reviewer:'<span style="color:var(--pitch);font-size:12px">📝 مصحح</span>',
-    member:'<span style="color:var(--mist-dim);font-size:12px">عضو</span>'
-  };
   tbody.innerHTML=teamsMembersCache.map(function(m){
     var teamCell = m.team_name
       ? '<span style="font-size:11px;background:rgba(200,150,90,.1);padding:2px 8px;border-radius:99px;color:var(--gold-dim)">'+escHtml(m.team_name)+'</span>'
       : '<span style="color:var(--coral);font-size:11px">⚠ بدون فريق</span>';
+
+    var roleCell;
+    if(m.role==='room_admin'){
+      var rn = roomAssignmentsCache[m.id];
+      roleCell = rn
+        ? '<span style="color:var(--gold);font-size:12px">🏠 '+escHtml(rn)+'</span>'
+        : '<span style="color:var(--gold);font-size:12px">🏠 أمين غرفة</span>';
+    } else if(m.role==='retreat_servant'){
+      var rn2 = roomAssignmentsCache[m.id];
+      roleCell = rn2
+        ? '<span style="color:#a9e6c4;font-size:12px">🕊️ '+escHtml(rn2)+'</span>'
+        : '<span style="color:#a9e6c4;font-size:12px">🕊️ خادم الخلوة</span>';
+    } else if(m.role==='leader'){
+      roleCell = '<span class="badge-leader">👑 قائد</span>';
+    } else if(m.role==='project_reviewer'){
+      roleCell = '<span style="color:var(--pitch);font-size:12px">📝 مصحح</span>';
+    } else {
+      roleCell = '<span style="color:var(--mist-dim);font-size:12px">عضو</span>';
+    }
+
     return'<tr class="member-row-clickable" onclick="openMemberModal(\''+m.id+'\')">'+
       '<td style="font-weight:600">'+escHtml(m.name)+'</td>'+
       '<td>'+teamCell+'</td>'+
-      '<td>'+(roleLabel[m.role]||roleLabel.member)+'</td>'+
+      '<td>'+roleCell+'</td>'+
       '<td style="font-family:var(--font-display);font-weight:700;color:var(--gold)">'+(m.points||0)+'</td>'+
       '</tr>';
   }).join("")||'<tr><td colspan="4" style="text-align:center;color:var(--mist-dim);padding:20px">لسه مفيش شباب مضافين</td></tr>';
