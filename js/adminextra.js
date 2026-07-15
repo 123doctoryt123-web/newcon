@@ -18,14 +18,12 @@ document.addEventListener("DOMContentLoaded",function(){
   loadTeamsAdmin();
   loadProgramAdmin();
 
-  // القادة والمشاريع — listeners بس، التحميل هيحصل لما التاب ينفتح
   var setLeaderBtn = document.getElementById('setLeaderBtn');
   if(setLeaderBtn) setLeaderBtn.addEventListener('click', setMemberRole);
   var createGroupBtn = document.getElementById('createGroupBtn');
   if(createGroupBtn) createGroupBtn.addEventListener('click', createProjectGroup);
 });
 
-// تحميل بيانات القادة لما تاب "teams" ينفتح (panel-leaders اتدمج فيه)
 (function watchTeamsTab(){
   var panel = document.getElementById('panel-teams');
   if(!panel) return;
@@ -56,9 +54,7 @@ async function loadTeamsAdmin(){
   var res=await supabase.rpc("admin_list_members_teams",{p_password:getAdminPass()});
   if(res.error) return;
   teamsMembersCache=res.data||[];
-  // sync leadersMembersCache so group picker is always up to date
   leadersMembersCache=teamsMembersCache.slice();
-  // keep hidden select in sync (used by spy game)
   var select=document.getElementById("teamMemberSelect");
   if(select){
     select.innerHTML=teamsMembersCache.map(function(m){
@@ -71,7 +67,6 @@ async function loadTeamsAdmin(){
 }
 
 function fillTeamInputsFromSelection(){
-  // kept for backward compat — no-op when inputs are hidden
   var id=document.getElementById("teamMemberSelect").value;
   var m=teamsMembersCache.find(function(x){ return x.id===id; });
   var tn=document.getElementById("teamNameInput");
@@ -104,7 +99,6 @@ function renderTeamsTable(){
 }
 
 async function saveMemberTeam(){
-  // kept for backward compat (hidden button) — delegates to modal save
   openMemberModal(document.getElementById("teamMemberSelect").value);
 }
 
@@ -201,7 +195,7 @@ async function stopSpyGame(){
 }
 
 // ============================================================
-// درس الكتاب — الأسئلة السرية
+// درس الكتاب
 // ============================================================
 function timeAgo(dateStr) {
   var diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
@@ -241,14 +235,14 @@ async function clearBookQuestions() {
   await supabase.rpc("admin_clear_book_questions", { p_password: getAdminPass() });
   loadBookQuestions();
 }
+
 // ============================================================
-// القادة: تحميل وتعيين الأدوار
+// القادة
 // ============================================================
 async function loadLeadersAdmin(){
   var pass = getAdminPass();
   if(!pass){ console.warn('loadLeadersAdmin: no admin pass yet'); return; }
 
-  // نستخدم teamsMembersCache مباشرةً لو موجود — عشان نتجنب تعبئة leadersMembersCache مرتين
   if(teamsMembersCache.length){
     leadersMembersCache = teamsMembersCache;
   } else {
@@ -265,7 +259,6 @@ async function loadLeadersAdmin(){
   }
 
   if(!leadersMembersCache.length){
-    // عرض رسالة مؤقتة
     var tbody = document.getElementById("leadersTableBody");
     if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب مضافين</td></tr>';
     var sel = document.getElementById("leaderMemberSelect");
@@ -273,7 +266,6 @@ async function loadLeadersAdmin(){
     return;
   }
 
-  // ملأ select تعيين القائد
   var sel = document.getElementById("leaderMemberSelect");
   if(sel){
     sel.innerHTML = '<option value="">— اختار شاب —</option>' +
@@ -282,7 +274,6 @@ async function loadLeadersAdmin(){
           escHtml(m.name) + (m.team_name ? ' ('+escHtml(m.team_name)+')' : ' (بدون فريق)') +
           (m.role==='leader' ? ' 👑' : '') + '</option>';
       }).join('');
-    // لما يتغير الاختيار، نظهر الدور الحالي
     sel.onchange = function(){
       var opt = sel.options[sel.selectedIndex];
       if(opt && opt.dataset.role){
@@ -292,7 +283,6 @@ async function loadLeadersAdmin(){
     };
   }
 
-  // ملأ جدول الأدوار
   var tbody = document.getElementById("leadersTableBody");
   if(tbody){
     var roleLabel = {
@@ -312,14 +302,11 @@ async function loadLeadersAdmin(){
     }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--mist-dim)">لسه مفيش شباب مضافين</td></tr>';
   }
 
-  // ملأ اختيار أعضاء المجموعة — نحمّل الـ map الأول وبعدين نرسم مرة واحدة
   await loadTakenMembersMap(false);
   renderGroupMembersCheckList();
 }
 
 async function setMemberRole(memberId, role){
-  // can be called from modal (memberId, role passed directly)
-  // or from hidden select (no args) — kept for compat
   if(!memberId){
     memberId = document.getElementById('leaderMemberSelect').value;
     role     = document.getElementById('leaderRoleSelect').value;
@@ -342,16 +329,13 @@ async function setMemberRole(memberId, role){
 // ============================================================
 // مجموعات المشاريع
 // ============================================================
-// الفريق المختار في الـ filter
 var _groupFilterTeam = '';
-// cache للأعضاء المتضافين بالفعل في مجموعة { member_id: group_name }
 var _takenMembersMap = {};
 
 function renderGroupFilterChips(){
   var bar = document.getElementById('groupFilterBar');
   if(!bar) return;
   var src = leadersMembersCache.length ? leadersMembersCache : teamsMembersCache;
-  // dedup الفرق
   var teams = [];
   var seenTeams = {};
   src.forEach(function(m){
@@ -379,7 +363,6 @@ function renderGroupMembersCheckList(){
     box.innerHTML = '<span style="color:var(--mist-dim);font-size:13px">لسه مفيش شباب — ضيف شباب من تاب الشباب الأول</span>';
     return;
   }
-  // dedup بالـ id — نحذف أي تكرار
   var seen = {};
   var unique = src.filter(function(m){
     if(seen[m.id]) return false;
@@ -396,10 +379,9 @@ function renderGroupMembersCheckList(){
   }
   box.innerHTML = filtered.map(function(m){
     var selected  = groupSelectedIds.has(m.id);
-    var takenIn   = _takenMembersMap[m.id]; // اسم المجموعة لو متضاف فيها
+    var takenIn   = _takenMembersMap[m.id];
     var roleIcon  = m.role === 'leader' ? ' 👑' : '';
     if(takenIn){
-      // رمادي — مش قابل للاختيار
       return '<button class="btn small outline grp-member-btn" data-id="' + m.id + '" data-taken="1" ' +
         'title="موجود في مجموعة: ' + escHtml(takenIn) + '" ' +
         'style="margin:2px;opacity:0.38;cursor:not-allowed;pointer-events:auto;position:relative">' +
@@ -413,7 +395,7 @@ function renderGroupMembersCheckList(){
   }).join('');
   box.querySelectorAll('.grp-member-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
-      if(btn.dataset.taken) return; // متضاف — تجاهل الكليك
+      if(btn.dataset.taken) return;
       var id = btn.dataset.id;
       if(groupSelectedIds.has(id)) groupSelectedIds.delete(id); else groupSelectedIds.add(id);
       var countEl = document.getElementById('groupSelCount');
@@ -421,13 +403,10 @@ function renderGroupMembersCheckList(){
       renderGroupMembersCheckList();
     });
   });
-  // حدّث العداد
   var countEl = document.getElementById('groupSelCount');
   if(countEl) countEl.textContent = 'تم اختيار: ' + groupSelectedIds.size;
 }
 
-// تحميل خريطة الأعضاء المتضافين في مجموعات { member_id: group_name }
-// andRender=true لو عايز ترسم بعد التحميل (زي بعد حذف/إنشاء مجموعة)
 async function loadTakenMembersMap(andRender){
   var res = await supabase.rpc('admin_list_project_groups', { p_password: getAdminPass() });
   _takenMembersMap = {};
@@ -448,10 +427,8 @@ async function createProjectGroup(){
     msg.innerHTML = '<div class="error-msg" style="display:block">لازم تختار من 2 لـ 5 أعضاء</div>'; return;
   }
 
-  // ← تحقق: هل أي عضو مختار موجود بالفعل في مجموعة؟
   var existingRes = await supabase.rpc('admin_list_project_groups', { p_password: getAdminPass() });
   if(!existingRes.error && existingRes.data && existingRes.data.length){
-    // نجمع كل الأعضاء الموجودين في مجموعات مع اسم مجموعتهم
     var takenMap = {};
     existingRes.data.forEach(function(row){
       takenMap[row.member_id] = row.group_name;
@@ -468,7 +445,6 @@ async function createProjectGroup(){
     }
   }
 
-  // نجيب team_name من أول عضو مختار
   var firstMember = leadersMembersCache.find(function(m){ return m.id === ids[0]; });
   var teamName = firstMember ? (firstMember.team_name || '') : '';
 
@@ -488,7 +464,7 @@ async function createProjectGroup(){
   document.getElementById('groupNameInput').value = '';
   groupSelectedIds.clear();
   setTimeout(function(){ msg.innerHTML = ''; }, 4000);
-  loadProjectGroups(); // هيستدعي loadTakenMembersMap داخلياً
+  loadProjectGroups();
 }
 
 async function loadProjectGroups(){
@@ -508,7 +484,6 @@ async function loadProjectGroups(){
     if(countEl) countEl.textContent = '0';
     return;
   }
-  // نجمّع المجموعات (كل صف = عضو في مجموعة)
   var groups = {};
   res.data.forEach(function(row){
     if(!groups[row.group_id]){
@@ -535,14 +510,12 @@ async function loadProjectGroups(){
       loadProjectGroups();
     });
   });
-  // حدّث خريطة الأعضاء المتضافين وأعد الرسم بعد أي تغيير في المجموعات
   loadTakenMembersMap(true);
 }
 
 // ============================================================
-// 🗳️ استفتاء سريع — Admin Functions
+// الاستفتاء
 // ============================================================
-
 function addPollOptionField(){
   var container = document.getElementById("pollOptionsContainer");
   if(!container) return;
@@ -583,7 +556,6 @@ async function adminCreatePoll(){
   if(res.error){ showMsg(msg, "❌ " + res.error.message, "error"); return; }
   showMsg(msg, "✅ الاستفتاء بدأ! الشباب يقدروا يصوتوا دلوقتي", "success");
 
-  // مسح الفورم
   document.getElementById("pollQuestion").value = "";
   document.querySelectorAll(".poll-opt-input").forEach(function(inp){ inp.value = ""; });
 
@@ -617,7 +589,6 @@ async function loadPollResults(){
   var active  = first.active;
   var letters = ["A","B","C","D","E","F","G","H"];
 
-  // احسب المجموع
   var votesMap = {}, total = 0;
   rows.forEach(function(r){
     if(r.option_idx !== null && r.option_idx !== undefined){
@@ -668,7 +639,6 @@ function showMsg(el, text, type){
 var _modalMemberId = null;
 
 function openMemberModal(memberId){
-  // ابحث في كلا الـ cache
   var m = teamsMembersCache.find(function(x){ return x.id===memberId; })
        || leadersMembersCache.find(function(x){ return x.id===memberId; });
   if(!m) return;
@@ -682,7 +652,6 @@ function openMemberModal(memberId){
   document.getElementById('modalRole').value      = m.role      || 'member';
   document.getElementById('modalMsg').innerHTML   = '';
 
-  // إظهار/إخفاء صف الغرفة
   var roomRow = document.getElementById('modalRoomRow');
   if(roomRow) roomRow.style.display = (m.role === 'room_admin' || m.role === 'retreat_servant') ? 'block' : 'none';
 
@@ -705,7 +674,6 @@ async function saveMemberModal(){
   var msg    = document.getElementById('modalMsg');
   var btn    = document.getElementById('modalSaveBtn');
 
-  // تحقق من تغيير الدور
   var cached = teamsMembersCache.find(function(x){ return x.id===_modalMemberId; })
             || leadersMembersCache.find(function(x){ return x.id===_modalMemberId; });
   var roleChanged  = cached && cached.role !== role;
@@ -730,13 +698,11 @@ async function saveMemberModal(){
 
   btn.disabled = true; btn.textContent = 'بنحفظ...';
 
-  // 1) حفظ الفريق والنقاط
   var r1 = await supabase.rpc('admin_set_member_team', {
     p_password: getAdminPass(), p_member_id: _modalMemberId,
     p_team_name: team, p_points: points
   });
 
-  // 2) حفظ الاسم (لو اتغير)
   var rName = { error: null };
   if(cached && cached.name !== newName){
     rName = await supabase.rpc('admin_update_member_name', {
@@ -745,11 +711,9 @@ async function saveMemberModal(){
     if(!rName.error) rName.error = rName.data === 'unauthorized' ? { message: 'غير مصرح' } : null;
   }
 
-  // 2) حفظ الدور (لو اتغير أو مختلف)
   var r2 = { error: null };
   if(roleChanged){
     if(role === 'room_admin' || role === 'retreat_servant'){
-      // تعيين أمين غرفة — محتاج اسم الغرفة
       var roomSel = document.getElementById('modalRoomSelect');
       var roomName = roomSel ? roomSel.value : '';
       if(!roomName){
@@ -777,13 +741,11 @@ async function saveMemberModal(){
 
   showModalMsg('✅ تم الحفظ' + (roleChanged ? ' — الدور: ' + roleLabel : ''), 'success');
 
-  // تحديث الاسم في الـ cache محلياً
   if(cached && cached.name !== newName){
     cached.name = newName;
     document.getElementById('modalMemberName').textContent = newName;
   }
 
-  // ريفرش الجداول
   await loadTeamsAdmin();
   if(typeof loadLeadersAdmin === 'function') loadLeadersAdmin();
 
@@ -796,7 +758,6 @@ function showModalMsg(text, type){
   el.innerHTML = '<div class="'+(type==='error'?'error-msg':'success-msg')+'" style="display:block">'+escHtml(text)+'</div>';
 }
 
-// ربط الأزرار والـ overlay
 document.addEventListener('DOMContentLoaded', function(){
   var modal      = document.getElementById('memberModal');
   var cancelBtn  = document.getElementById('modalCancelBtn');
@@ -806,7 +767,6 @@ document.addEventListener('DOMContentLoaded', function(){
   if(cancelBtn) cancelBtn.addEventListener('click', closeMemberModal);
   if(saveBtn)   saveBtn.addEventListener('click',  saveMemberModal);
 
-  // إظهار/إخفاء صف الغرفة لما يتغير الدور
   var modalRole = document.getElementById('modalRole');
   if(modalRole){
     modalRole.addEventListener('change', function(){
@@ -815,19 +775,17 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
-  // إغلاق بالضغط على الخلفية
   modal.addEventListener('click', function(e){
     if(e.target === modal) closeMemberModal();
   });
 
-  // إغلاق بـ Escape
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape' && modal.classList.contains('open')) closeMemberModal();
   });
 });
 
 // ============================================================
-// تحميل تاب الدرجات لما ينفتح
+// تاب الدرجات
 // ============================================================
 (function watchScoresTab(){
   var panel = document.getElementById('panel-scores');
@@ -845,73 +803,126 @@ function scoresTableWrap(html){
   return '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' + html + '</div>';
 }
 
+// ============================================================
+// درجات الغرف — يعرض من room_attendance مباشرة
+// ============================================================
 async function loadRoomScores(){
   var box = document.getElementById('roomScoresList');
   if(!box) return;
   box.innerHTML = '<div class="empty-state">بنحمّل...</div>';
 
-  var res = await supabase.rpc('admin_list_room_scores', { p_password: getAdminPass() });
-  var det = await supabase.rpc('admin_list_room_details',  { p_password: getAdminPass() });
+  var det = await supabase.rpc('admin_list_room_details', { p_password: getAdminPass() });
 
-  if(res.error || !res.data || !res.data.length){
-    box.innerHTML = '<div class="empty-state">لسه مفيش درجات غرف</div>'; return;
+  if(det.error || !det.data || !det.data.length){
+    box.innerHTML = '<div class="empty-state">لسه مفيش درجات غرف</div>';
+    return;
   }
 
-  // ── ملخص الجلسات ──
-  var totalPts = res.data.reduce(function(s,r){ return s + (r.total_score||0); }, 0);
+  var rows = det.data;
 
-  var summaryHtml =
-    '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:8px">📊 ملخص الجلسات</div>' +
-    scoresTableWrap(
-      '<table><thead><tr>' +
-        '<th>الأمين / الغرفة</th><th>الفريق</th><th>نقاط الجلسة</th><th>الحاضرين</th><th>نصيب الفرد</th><th>التاريخ</th>' +
-      '</tr></thead><tbody>' +
-      res.data.map(function(r){
-        return '<tr>' +
-          '<td style="font-weight:700;white-space:nowrap">'+escHtml(r.room_name)+'</td>' +
-          '<td style="white-space:nowrap">'+escHtml(r.team_name)+'</td>' +
-          '<td style="color:var(--gold);font-weight:700">'+r.total_score+'</td>' +
-          '<td style="color:#a9e6c4">'+r.present_count+'</td>' +
-          '<td style="color:var(--pitch);font-weight:700">'+parseFloat(r.score_per_member).toFixed(1)+'</td>' +
-          '<td style="font-size:11px;color:var(--mist-dim);white-space:nowrap">'+r.session_date+'</td>' +
-        '</tr>';
-      }).join('') +
-      '<tr style="border-top:2px solid var(--line)">' +
-        '<td colspan="2" style="font-weight:800;color:var(--mist)">الإجمالي</td>' +
-        '<td style="color:var(--gold);font-weight:800">'+totalPts+'</td>' +
-        '<td colspan="3"></td>' +
-      '</tr>' +
-      '</tbody></table>'
-    );
+  // ── ملخص لكل أمين/غرفة/يوم ──
+  var summaryMap = {};
+  rows.forEach(function(r){
+    var key = r.secretary_name + '|' + r.session_date;
+    if(!summaryMap[key]){
+      summaryMap[key] = {
+        secretary: r.secretary_name,
+        team:      r.team_name,
+        date:      r.session_date,
+        total:     0,
+        present:   0
+      };
+    }
+    summaryMap[key].total   += (r.session_pts||0) + (r.bonus_pts||0);
+    summaryMap[key].present += (r.session_pts > 0 || r.bonus_pts > 0) ? 1 : 0;
+  });
 
-  // ── تفاصيل الأعضاء ──
-  var detailHtml = '';
-  if(!det.error && det.data && det.data.length){
-    detailHtml =
-      '<hr style="border:none;border-top:1px solid var(--line);margin:18px 0">' +
-      '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:8px">📋 تفاصيل الأعضاء</div>' +
-      scoresTableWrap(
+  var summaryArr = Object.values(summaryMap);
+  var grandTotal = summaryArr.reduce(function(s,r){ return s + r.total; }, 0);
+
+  var html = '';
+
+  // جدول الملخص
+  html += '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:8px">📊 ملخص الجلسات</div>';
+  html += scoresTableWrap(
+    '<table><thead><tr>' +
+      '<th>الأمين</th><th>الفريق</th><th>الحاضرين</th><th>إجمالي النقاط</th><th>التاريخ</th>' +
+    '</tr></thead><tbody>' +
+    summaryArr.map(function(s){
+      return '<tr>' +
+        '<td style="font-weight:700;white-space:nowrap">' + escHtml(s.secretary) + '</td>' +
+        '<td style="white-space:nowrap">' + escHtml(s.team||'—') + '</td>' +
+        '<td style="color:#a9e6c4;font-weight:700">' + s.present + '</td>' +
+        '<td style="color:var(--gold);font-weight:700">' + s.total + '</td>' +
+        '<td style="font-size:11px;color:var(--mist-dim);white-space:nowrap">' + s.date + '</td>' +
+      '</tr>';
+    }).join('') +
+    '<tr style="border-top:2px solid var(--line)">' +
+      '<td colspan="3" style="font-weight:800;color:var(--mist)">الإجمالي الكلي</td>' +
+      '<td style="color:var(--gold);font-weight:800">' + grandTotal + '</td>' +
+      '<td></td>' +
+    '</tr>' +
+    '</tbody></table>'
+  );
+
+  // ── تقسيم التفاصيل حسب التاريخ والفريق ──
+  // نجمّع الأيام الفريدة
+  var dates = [];
+  var seenDates = {};
+  rows.forEach(function(r){
+    if(!seenDates[r.session_date]){ seenDates[r.session_date]=true; dates.push(r.session_date); }
+  });
+
+  dates.forEach(function(date){
+    var dayRows = rows.filter(function(r){ return r.session_date === date; });
+
+    // نجمّع الفرق في هذا اليوم
+    var teams = [];
+    var seenTeams = {};
+    dayRows.forEach(function(r){
+      var t = r.team_name || '—';
+      if(!seenTeams[t]){ seenTeams[t]=true; teams.push(t); }
+    });
+
+    html += '<hr style="border:none;border-top:1px solid var(--line);margin:18px 0">';
+    html += '<div style="font-size:13px;font-weight:800;color:var(--gold);margin-bottom:12px">📅 ' + date + '</div>';
+
+    teams.forEach(function(team){
+      var teamRows = dayRows.filter(function(r){ return (r.team_name||'—') === team; });
+
+      // احسب إجمالي الفريق
+      var teamTotal = teamRows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); }, 0);
+      var teamPresent = teamRows.filter(function(r){ return r.session_pts>0||r.bonus_pts>0; }).length;
+
+      html += '<div style="margin-bottom:16px">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:8px 10px;background:rgba(200,150,90,0.07);border-radius:8px;border:1px solid rgba(200,150,90,0.15)">';
+      html += '<span style="font-weight:700;color:var(--mist)">👥 فريق: ' + escHtml(team) + '</span>';
+      html += '<span style="font-size:12px;color:var(--gold)">✅ ' + teamPresent + ' حاضر &nbsp;|&nbsp; ⭐ ' + teamTotal + ' نقطة</span>';
+      html += '</div>';
+
+      html += scoresTableWrap(
         '<table><thead><tr>' +
-          '<th>الأمين</th><th>الفريق</th><th>العضو</th><th>الحضور</th><th>جلسة</th><th>بونص</th><th>الإجمالي</th><th>التاريخ</th>' +
+          '<th>العضو</th><th>الأمين</th><th>الحضور</th><th>نقاط الجلسة</th><th>بونص</th><th>الإجمالي</th>' +
         '</tr></thead><tbody>' +
-        det.data.map(function(r){
+        teamRows.map(function(r){
           var present = r.session_pts > 0 || r.bonus_pts > 0;
           return '<tr>' +
-            '<td style="font-size:11px;white-space:nowrap">'+escHtml(r.secretary_name)+'</td>' +
-            '<td style="white-space:nowrap">'+escHtml(r.team_name)+'</td>' +
-            '<td style="font-weight:700;color:var(--mist);white-space:nowrap">'+escHtml(r.member_name)+'</td>' +
-            '<td>'+(present?'<span style="color:#a9e6c4">✅</span>':'<span style="color:#ffb3a6">❌</span>')+'</td>' +
-            '<td style="color:var(--gold);font-weight:700">'+r.session_pts+'</td>' +
-            '<td style="color:var(--pitch);font-weight:700">'+(r.bonus_pts>0?'+'+r.bonus_pts:'—')+'</td>' +
-            '<td style="color:var(--gold);font-weight:800">'+(r.session_pts+r.bonus_pts)+'</td>' +
-            '<td style="font-size:11px;color:var(--mist-dim);white-space:nowrap">'+r.session_date+'</td>' +
+            '<td style="font-weight:700;color:var(--mist);white-space:nowrap">' + escHtml(r.member_name) + '</td>' +
+            '<td style="font-size:11px;color:var(--mist-dim);white-space:nowrap">' + escHtml(r.secretary_name) + '</td>' +
+            '<td>' + (present ? '<span style="color:#a9e6c4">✅ حضر</span>' : '<span style="color:#ffb3a6">❌ غاب</span>') + '</td>' +
+            '<td style="color:var(--gold);font-weight:700">' + (r.session_pts||0) + '</td>' +
+            '<td style="color:var(--pitch);font-weight:700">' + (r.bonus_pts>0 ? '+'+r.bonus_pts : '—') + '</td>' +
+            '<td style="color:var(--gold);font-weight:800">' + ((r.session_pts||0)+(r.bonus_pts||0)) + '</td>' +
           '</tr>';
         }).join('') +
         '</tbody></table>'
       );
-  }
 
-  box.innerHTML = summaryHtml + detailHtml;
+      html += '</div>';
+    });
+  });
+
+  box.innerHTML = html;
 }
 
 async function loadProjectScores(){
