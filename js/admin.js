@@ -41,6 +41,7 @@ function showPanel() {
   loadScanPoints();
   loadAttendanceLog();
   loadSiteLockStatus();
+  loadLbVisibleStatus();
   initOnlinePresence();
 }
 
@@ -57,6 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("saveTeamsBtn").addEventListener("click", saveTeams);
   document.getElementById("toggleLockBtn").addEventListener("click", toggleLock);
   document.getElementById("toggleSiteLockBtn").addEventListener("click", toggleSiteLock);
+  document.getElementById("toggleLbBtn").addEventListener("click", toggleLbVisible);
   document.getElementById("saveSiteLockMsgBtn").addEventListener("click", saveSiteLockMessage);
   document.getElementById("changePassBtn").addEventListener("click", changePass);
   document.getElementById("adminLogoutBtn").addEventListener("click", function () {
@@ -586,4 +588,30 @@ async function clearAnnouncement() {
   if (!res.error) {
     card.style.display = "none";
   }
+}
+
+// ============================================================
+// الليدربورد — إظهار / إخفاء
+// ============================================================
+var isLbVisible = true;
+
+async function loadLbVisibleStatus() {
+  var res = await supabase.rpc("get_leaderboard_visible");
+  if (res.error) return;
+  isLbVisible = res.data !== false;
+  document.getElementById("lbVisibleStatusText").textContent =
+    "الليدربورد: " + (isLbVisible ? "🟢 ظاهر للكل" : "🔴 مخفي (مش ظاهر لحد)");
+  document.getElementById("toggleLbBtn").textContent = isLbVisible ? "إخفاء الليدربورد" : "إظهار الليدربورد";
+}
+
+async function toggleLbVisible() {
+  isLbVisible = !isLbVisible;
+  var btn = document.getElementById("toggleLbBtn");
+  btn.disabled = true;
+  await supabase.rpc("admin_set_leaderboard_visible", { p_password: getAdminPass(), p_visible: isLbVisible });
+  btn.disabled = false;
+  await loadLbVisibleStatus();
+  var msgEl = document.getElementById("lbToggleMsg");
+  msgEl.innerHTML = '<div class="success-msg" style="display:block">✅ ' + (isLbVisible ? "الليدربورد ظهر للكل" : "الليدربورد اتأخّى") + '</div>';
+  setTimeout(function () { msgEl.innerHTML = ""; }, 3000);
 }
