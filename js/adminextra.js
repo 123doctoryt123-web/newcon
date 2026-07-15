@@ -791,9 +791,9 @@ function showTeamDetail(teamName){
     html += '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:10px">🏠 الغرف</div>';
     html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">';
     Object.values(roomSummary).forEach(function(s){
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--ink-2);border:1px solid var(--line);border-radius:10px">';
+      html += '<div onclick="showRoomSessionDetail(\''+escHtml(teamName)+'\',\''+escHtml(s.secretary)+'\',\''+s.date+'\')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--ink-2);border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor=\'rgba(200,150,90,.4)\'" onmouseout="this.style.borderColor=\'var(--line)\'">';
       html += '<div><div style="font-size:13px;font-weight:600;color:var(--mist)">'+escHtml(s.secretary)+'</div><div style="font-size:11px;color:var(--mist-dim)">'+s.date+'</div></div>';
-      html += '<div style="text-align:center"><div style="font-size:13px;font-weight:700;color:#a9e6c4">'+s.present+' حضر</div><div style="font-size:12px;color:var(--gold)">'+s.total+' نقطة</div></div>';
+      html += '<div style="display:flex;align-items:center;gap:12px"><div style="text-align:center"><div style="font-size:13px;font-weight:700;color:#a9e6c4">'+s.present+' حضر</div><div style="font-size:12px;color:var(--gold)">'+s.total+' نقطة</div></div><span style="color:var(--gold);opacity:0.6">←</span></div>';
       html += '</div>';
     });
     html += '</div>';
@@ -821,6 +821,57 @@ function showTeamDetail(teamName){
     html += '<span style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--gold)">'+(m.points||0)+'</span>';
     html += '<span style="font-size:10px;color:var(--mist-dim)">نقطة</span>';
     html += '<span style="color:var(--gold);opacity:0.6">←</span></div></div>';
+  });
+  html += '</div>';
+
+  box.innerHTML = html;
+}
+
+
+function showRoomSessionDetail(teamName, secretaryName, sessionDate){
+  var box = document.getElementById('roomScoresList');
+  if(!box) return;
+
+  // فلتر الأعضاء في الجلسة دي
+  var rows = _scoresAllData.filter(function(r){
+    return r.team_name === teamName
+        && r.secretary_name === secretaryName
+        && r.session_date === sessionDate;
+  });
+
+  var totalPts  = rows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); }, 0);
+  var totalBonus= rows.reduce(function(s,r){ return s+(r.bonus_pts||0); }, 0);
+  var present   = rows.filter(function(r){ return (r.session_pts||0)>0||(r.bonus_pts||0)>0; }).length;
+
+  var html = '';
+  // زرار رجوع
+  html += '<button onclick="showTeamDetail(\''+escHtml(teamName)+'\')" style="background:none;border:1px solid var(--line);color:var(--mist-dim);padding:8px 14px;border-radius:99px;cursor:pointer;font-size:13px;margin-bottom:16px">← رجوع للفريق</button>';
+
+  // هيدر الجلسة
+  html += '<div style="text-align:center;padding:20px;background:rgba(200,150,90,0.08);border:1px solid rgba(200,150,90,0.2);border-radius:14px;margin-bottom:16px">';
+  html += '<div style="font-size:18px;font-weight:800;color:var(--gold);font-family:var(--font-display)">🏠 '+escHtml(secretaryName)+'</div>';
+  html += '<div style="font-size:12px;color:var(--mist-dim);margin-top:4px">'+sessionDate+'</div>';
+  html += '<div style="display:flex;justify-content:center;gap:20px;margin-top:12px">';
+  html += '<div><div style="font-size:22px;font-weight:800;color:#a9e6c4">'+present+'</div><div style="font-size:11px;color:var(--mist-dim)">حضر</div></div>';
+  html += '<div><div style="font-size:22px;font-weight:800;color:var(--gold)">'+totalPts+'</div><div style="font-size:11px;color:var(--mist-dim)">نقطة</div></div>';
+  if(totalBonus>0) html += '<div><div style="font-size:22px;font-weight:800;color:var(--gold)">+'+totalBonus+'</div><div style="font-size:11px;color:var(--mist-dim)">بونص</div></div>';
+  html += '</div></div>';
+
+  // قايمة الأعضاء
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+  rows.sort(function(a,b){ return ((b.session_pts||0)+(b.bonus_pts||0)) - ((a.session_pts||0)+(a.bonus_pts||0)); });
+  rows.forEach(function(r){
+    var pts    = (r.session_pts||0)+(r.bonus_pts||0);
+    var isPresent = pts > 0;
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--ink-2);border:1px solid var(--line);border-radius:10px">';
+    html += '<div style="display:flex;align-items:center;gap:10px">';
+    html += '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--coral));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff">'+escHtml((r.member_name||'?').charAt(0))+'</div>';
+    html += '<div style="font-size:14px;font-weight:600;color:var(--mist)">'+escHtml(r.member_name||'—')+'</div></div>';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    if((r.bonus_pts||0)>0) html += '<span style="font-size:11px;color:var(--gold)">+'+r.bonus_pts+' بونص</span>';
+    html += '<span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--gold)">'+pts+' نقطة</span>';
+    html += '<span style="font-size:12px;padding:3px 8px;border-radius:99px;font-weight:700;'+(isPresent?'background:rgba(74,124,111,.15);color:#a9e6c4':'background:rgba(192,83,58,.12);color:#ffb3a6')+'">'+( isPresent?'✅ حضر':'❌ غاب')+'</span>';
+    html += '</div></div>';
   });
   html += '</div>';
 
