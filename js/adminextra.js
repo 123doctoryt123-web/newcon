@@ -551,9 +551,9 @@ function openMemberModal(memberId){
   document.getElementById('modalRole').value=m.role||'member';
   document.getElementById('modalMsg').innerHTML='';
   var roomRow=document.getElementById('modalRoomRow');
-  if(roomRow) roomRow.style.display=(m.role==='room_admin'||m.role==='retreat_servant')?'block':'none';
+  if(roomRow) roomRow.style.display=(m.role==='room_admin')?'block':'none';
   // جيب الغرفة الحالية للأمين وحددها في الـ select
-  if(m.role==='room_admin'||m.role==='retreat_servant'){
+  if(m.role==='room_admin'){
     supabase.from('room_assignments').select('room_name').eq('member_id',memberId).single().then(function(rr){
       var sel=document.getElementById('modalRoomSelect');
       if(sel) sel.value=(rr.data&&rr.data.room_name)||'';
@@ -594,7 +594,7 @@ async function saveMemberModal(){
   }
   var r2={error:null};
   if(roleChanged){
-    if(role==='room_admin'||role==='retreat_servant'){
+    if(role==='room_admin'){
       var roomSel=document.getElementById('modalRoomSelect');
       var roomName=roomSel?roomSel.value:'';
       if(!roomName){ showModalMsg('❌ اختار الغرفة الأول','error'); btn.disabled=false; btn.textContent='💾 حفظ'; return; }
@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(modalRole){
     modalRole.addEventListener('change',function(){
       var roomRow=document.getElementById('modalRoomRow');
-      if(roomRow) roomRow.style.display=(modalRole.value==='room_admin'||modalRole.value==='retreat_servant')?'block':'none';
+      if(roomRow) roomRow.style.display=(modalRole.value==='room_admin')?'block':'none';
     });
   }
   modal.addEventListener('click',function(e){ if(e.target===modal) closeMemberModal(); });
