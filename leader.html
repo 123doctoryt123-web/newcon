@@ -421,6 +421,14 @@ async function loadTeamPredictions(){
 // ترتيب كل الفرق
 // ============================================================
 async function loadAllTeamsRank(){
+  // تحقق إن الليدربورد مسموح بيه
+  var visRes = await supabase.rpc("get_leaderboard_visible");
+  var section = document.getElementById("teamRankList");
+  var label = section ? section.closest(".card") : null;
+  if(visRes.data === false){
+    if(section) section.innerHTML = '<div class="empty-state">🔒 الترتيب مش متاح دلوقتي</div>';
+    return;
+  }
   var res=await supabase.rpc("get_team_points");
   var box=document.getElementById("teamRankList");
   if(res.error||!res.data||!res.data.length){
