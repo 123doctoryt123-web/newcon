@@ -764,8 +764,8 @@ function showTeamDetail(teamName){
   // ملخص الغرف
   var roomSummary = {};
   roomRows.forEach(function(r){
-    var rname = r.secretary_name||'—';
-    if(!roomSummary[rname]) roomSummary[rname]={secretary:rname, present:0, total:0, date:r.session_date};
+    var rname = r.room_name||r.secretary_name||'—';
+    if(!roomSummary[rname]) roomSummary[rname]={secretary:r.secretary_name||'—', roomName:rname, present:0, total:0, date:r.session_date};
     if(r.session_pts>0||r.bonus_pts>0) roomSummary[rname].present++;
     roomSummary[rname].total += (r.session_pts||0)+(r.bonus_pts||0);
   });
@@ -791,8 +791,8 @@ function showTeamDetail(teamName){
     html += '<div style="font-size:11px;font-weight:700;color:var(--mist-dim);letter-spacing:1px;margin-bottom:10px">🏠 الغرف</div>';
     html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">';
     Object.values(roomSummary).forEach(function(s){
-      html += '<div onclick="showRoomSessionDetail(\''+escHtml(teamName)+'\',\''+escHtml(s.secretary)+'\',\''+s.date+'\')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--ink-2);border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor=\'rgba(200,150,90,.4)\'" onmouseout="this.style.borderColor=\'var(--line)\'">';
-      html += '<div><div style="font-size:13px;font-weight:600;color:var(--mist)">'+escHtml(s.secretary)+'</div><div style="font-size:11px;color:var(--mist-dim)">'+s.date+'</div></div>';
+      html += '<div onclick="showRoomSessionDetail(\''+escHtml(teamName)+'\',\''+escHtml(s.roomName)+'\',\''+s.date+'\')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--ink-2);border:1px solid var(--line);border-radius:10px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor=\'rgba(200,150,90,.4)\'" onmouseout="this.style.borderColor=\'var(--line)\'">';
+      html += '<div><div style="font-size:13px;font-weight:600;color:var(--mist)">'+escHtml(s.roomName)+'</div><div style="font-size:11px;color:var(--mist-dim)">'+escHtml(s.secretary)+' · '+s.date+'</div></div>';
       html += '<div style="display:flex;align-items:center;gap:12px"><div style="text-align:center"><div style="font-size:13px;font-weight:700;color:#a9e6c4">'+s.present+' حضر</div><div style="font-size:12px;color:var(--gold)">'+s.total+' نقطة</div></div><span style="color:var(--gold);opacity:0.6">←</span></div>';
       html += '</div>';
     });
@@ -835,7 +835,7 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
   // اللي حضروا في الجلسة دي
   var presentRows = _scoresAllData.filter(function(r){
     return r.team_name === teamName
-        && r.secretary_name === secretaryName
+        && (r.room_name||r.secretary_name) === secretaryName
         && r.session_date === sessionDate;
   });
 
@@ -860,6 +860,7 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
   // هيدر الجلسة
   html += '<div style="text-align:center;padding:20px;background:rgba(200,150,90,0.08);border:1px solid rgba(200,150,90,0.2);border-radius:14px;margin-bottom:16px">';
   html += '<div style="font-size:18px;font-weight:800;color:var(--gold);font-family:var(--font-display)">🏠 '+escHtml(secretaryName)+'</div>';
+  html += '<div style="font-size:12px;color:var(--mist-dim);margin-top:2px">أمين الغرفة: '+escHtml(presentRows.length?presentRows[0].secretary_name||'—':'—')+'</div>';
   html += '<div style="font-size:12px;color:var(--mist-dim);margin-top:4px">'+sessionDate+'</div>';
   html += '<div style="display:flex;justify-content:center;gap:20px;margin-top:12px">';
   html += '<div><div style="font-size:22px;font-weight:800;color:#a9e6c4">'+present+'</div><div style="font-size:11px;color:var(--mist-dim)">حضر</div></div>';
