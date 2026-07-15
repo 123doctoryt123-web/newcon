@@ -582,13 +582,17 @@ async function loadRoomsOverview(){
 }
 
 function openRoomModal(roomName){
-  var rows = _roomsData.filter(function(r){ return r.room_name === roomName; });
+  // الحاضرين في الغرفة دي
+  var presentRows = _roomsData.filter(function(r){ return r.room_name === roomName && r.attended; });
+  // الغايبين = اللي في الغرفة ومش حاضرين + اللي مش عندهم غرفة خالص
+  var absentInRoom = _roomsData.filter(function(r){ return r.room_name === roomName && !r.attended; });
+  var absentNoRoom = _roomsData.filter(function(r){ return r.room_name === 'لم يحضر'; });
+  var absentRows = absentInRoom.concat(absentNoRoom);
+  var rows = presentRows.concat(absentRows);
   if(!rows.length) return;
 
-  var present  = rows.filter(function(r){ return r.attended; }).length;
-  // الغياب = غير حاضرين في الغرفة + اللي مش عندهم غرفة خالص
-  var absentNoRoom = _roomsData.filter(function(r){ return r.room_name === 'لم يحضر'; }).length;
-  var absent   = (rows.length - present) + absentNoRoom;
+  var present  = presentRows.length;
+  var absent   = absentRows.length;
   var totalPts = rows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); },0);
   var totalBonus = rows.reduce(function(s,r){ return s+(r.bonus_pts||0); },0);
 
