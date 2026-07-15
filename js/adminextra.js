@@ -533,6 +533,16 @@ function openMemberModal(memberId){
   document.getElementById('modalMsg').innerHTML='';
   var roomRow=document.getElementById('modalRoomRow');
   if(roomRow) roomRow.style.display=(m.role==='room_admin'||m.role==='retreat_servant')?'block':'none';
+  // جيب الغرفة الحالية للأمين وحددها في الـ select
+  if(m.role==='room_admin'||m.role==='retreat_servant'){
+    supabase.from('room_assignments').select('room_name').eq('member_id',memberId).single().then(function(rr){
+      var sel=document.getElementById('modalRoomSelect');
+      if(sel) sel.value=(rr.data&&rr.data.room_name)||'';
+    });
+  } else {
+    var sel=document.getElementById('modalRoomSelect');
+    if(sel) sel.value='';
+  }
   document.getElementById('memberModal').classList.add('open');
   document.getElementById('modalTeamName').focus();
 }
