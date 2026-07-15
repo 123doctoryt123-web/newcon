@@ -542,7 +542,7 @@ async function loadRoomsOverview(){
 
   _roomsData = res.data;
 
-  // جمّع الغرف — بس اللي حضروا فعلاً (room_name != 'لم يحضر')
+  // جمّع الغرف — كل الأعضاء بما فيهم 'لم يحضر'
   var rooms = {};
   res.data.forEach(function(r){
     var key = r.room_name;
@@ -550,7 +550,6 @@ async function loadRoomsOverview(){
     rooms[key].rows.push(r);
   });
 
-  // شيل "لم يحضر" من الكروت لو مفيش غرف تانية
   var roomKeys = Object.keys(rooms).filter(function(k){ return k !== 'لم يحضر'; });
 
   if(!roomKeys.length){
@@ -558,11 +557,13 @@ async function loadRoomsOverview(){
     return;
   }
 
+  // عدد اللي مش عندهم غرفة خالص (غابوا كلياً)
+  var absentNoRoom = (rooms['لم يحضر'] ? rooms['لم يحضر'].rows.length : 0);
+
   var roomCards = roomKeys.map(function(key){
     var room = rooms[key];
-    // ✅ التعديل 1: استخدام r.attended بدل session_pts > 0
     var present  = room.rows.filter(function(r){ return r.attended; }).length;
-    var absent   = room.rows.length - present;
+    var absent   = (room.rows.length - present) + absentNoRoom;
     var totalPts = room.rows.reduce(function(s,r){ return s + (r.session_pts||0) + (r.bonus_pts||0); }, 0);
     return '<div class="room-card" data-room="'+esc(room.name)+'">'+
       '<div class="room-card-icon">'+roomIcon(room.name)+'</div>'+
@@ -584,9 +585,10 @@ function openRoomModal(roomName){
   var rows = _roomsData.filter(function(r){ return r.room_name === roomName; });
   if(!rows.length) return;
 
-  // ✅ التعديل 2: استخدام r.attended في حساب present
   var present  = rows.filter(function(r){ return r.attended; }).length;
-  var absent   = rows.length - present;
+  // الغياب = غير حاضرين في الغرفة + اللي مش عندهم غرفة خالص
+  var absentNoRoom = _roomsData.filter(function(r){ return r.room_name === 'لم يحضر'; }).length;
+  var absent   = (rows.length - present) + absentNoRoom;
   var totalPts = rows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); },0);
   var totalBonus = rows.reduce(function(s,r){ return s+(r.bonus_pts||0); },0);
 
