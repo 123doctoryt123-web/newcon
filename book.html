@@ -121,6 +121,7 @@
       <textarea class="bq-textarea" id="bqInput" placeholder="اكتب سؤالك هنا…" maxlength="500"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <span id="bqCharCount" style="font-size:11px;color:var(--mist-dim)">0 / 500</span>
+        <span id="bookRemaining" style="font-size:12px;color:var(--mist-dim)">بنحمّل...</span>
       </div>
       <button class="bq-send-btn" id="bqSendBtn" onclick="sendQuestion()">
         <span>📨</span> ابعت سؤالك
@@ -191,6 +192,20 @@ async function checkMyBookCount(){
   return res.count || 0;
 }
 
+async function updateBookRemaining(){
+  var count = await checkMyBookCount();
+  var remaining = MAX_BOOK_MSGS - count;
+  var el = document.getElementById("bookRemaining");
+  if(!el) return;
+  if(remaining <= 0){
+    el.innerHTML = '⛔ وصلت الحد الأقصى';
+    el.style.color = 'var(--coral)';
+  } else {
+    var color = remaining === 1 ? 'var(--coral)' : remaining === 2 ? 'var(--gold)' : 'var(--mist-dim)';
+    el.innerHTML = 'فاضلك <b style="color:'+color+'">' + remaining + '</b> سؤال من ' + MAX_BOOK_MSGS;
+  }
+}
+
 async function sendQuestion(){
   var txt = document.getElementById("bqInput").value.trim();
   if(!txt){ return; }
@@ -216,6 +231,7 @@ async function sendQuestion(){
   }
   document.getElementById("bqFormWrap").style.display = "none";
   document.getElementById("bqSentMsg").style.display = "block";
+  updateBookRemaining();
 }
 
 function resetForm(){
@@ -298,6 +314,7 @@ supabase.channel("rt-book-questions")
   .subscribe();
 
 loadQuestions();
+updateBookRemaining();
 </script>
 <script src="js/realtime.js"></script>
 </body>
