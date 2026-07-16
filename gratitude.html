@@ -188,6 +188,7 @@
       maxlength="200" rows="4"
       oninput="document.getElementById('gChar').textContent=this.value.length"></textarea>
     <div class="char-count"><span id="gChar">0</span> / 200</div>
+    <div id="gratRemaining" style="font-size:12px;text-align:center;margin-bottom:10px;color:var(--mist-dim)">بنحمّل...</div>
     <button class="btn" id="sendGratBtn" onclick="sendGratitude()">🧱 حط في الجدار</button>
     <div id="gratFormMsg" style="margin-top:10px;text-align:center;font-size:13px"></div>
   </div>
@@ -237,6 +238,22 @@ async function checkMyGratCount(){
     .eq("member_id", member.id);
   return res.count || 0;
 }
+
+async function updateGratRemaining(){
+  var count = await checkMyGratCount();
+  var remaining = MAX_GRAT_MSGS - count;
+  var el = document.getElementById("gratRemaining");
+  if(!el) return;
+  if(remaining <= 0){
+    el.innerHTML = '⛔ وصلت الحد الأقصى — مش هتقدر تبعت تاني';
+    el.style.color = 'var(--coral)';
+  } else {
+    var color = remaining === 1 ? 'var(--coral)' : remaining === 2 ? 'var(--gold)' : 'var(--mist-dim)';
+    el.innerHTML = '📨 فاضلك <b style="color:'+color+'">' + remaining + '</b> رسالة من ' + MAX_GRAT_MSGS;
+    el.style.color = 'var(--mist-dim)';
+  }
+}
+
 
 // تحقق من الأدمن
 (async function checkAdminGrat(){
@@ -295,7 +312,7 @@ async function sendGratitude(){
   document.getElementById("gratMsg").value=""; document.getElementById("gChar").textContent="0";
   setTimeout(function(){ msg.textContent=""; }, 3000);
   loadWall();
-}
+  updateGratRemaining();
 
 /* ── ريست عداد الامتنان (أدمن) ── */
 async function adminResetGratCounts(){
@@ -348,6 +365,7 @@ function closeFullscreen(){ document.getElementById("fsOverlay").classList.remov
 
 loadTeam();
 loadWall();
+updateGratRemaining();
 </script>
 </body>
 </html>
