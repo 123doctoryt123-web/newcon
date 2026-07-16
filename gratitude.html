@@ -232,11 +232,8 @@ var MAX_GRAT_MSGS = 3;
 var _isAdminGrat = false;
 
 async function checkMyGratCount(){
-  var res = await supabase
-    .from("gratitude_wall")
-    .select("id", { count: "exact", head: true })
-    .eq("member_id", member.id);
-  return res.count || 0;
+  var res = await supabase.rpc("get_my_gratitude_count", { p_member_id: member.id });
+  return res.data || 0;
 }
 
 async function updateGratRemaining(){
