@@ -753,7 +753,7 @@ function renderTeamCards(teams, roomPtsByTeam){
   html += '<div style="display:flex;flex-direction:column;gap:6px">';
 
   // رتّب الأعضاء حسب النقاط
-  var allMembers = teamsMembersCache.filter(function(m){ return m.role==='member'; });
+  var allMembers = teamsMembersCache.filter(function(m){ return m.role!=='admin' && m.role!=='secretary'; });
   allMembers.sort(function(a,b){ return (b.points||0)-(a.points||0); });
 
   allMembers.forEach(function(m){
@@ -784,7 +784,7 @@ function showTeamDetail(teamName){
   var box=document.getElementById('roomScoresList');
   if(!box) return;
 
-  var teamMembers = teamsMembersCache.filter(function(m){ return m.team_name===teamName && m.role==='member'; });
+  var teamMembers = teamsMembersCache.filter(function(m){ return m.team_name===teamName && m.role!=='admin' && m.role!=='secretary'; });
   var roomRows    = _scoresAllData.filter(function(r){ return r.team_name===teamName; });
 
   // ملخص الغرف
@@ -869,7 +869,7 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
 
   // اللي غابوا = أعضاء الفريق اللي مش في presentRows
   var absentRows = teamsMembersCache
-    .filter(function(m){ return m.team_name === teamName && m.role === 'member' && presentIds.indexOf(m.name) === -1; })
+    .filter(function(m){ return m.team_name === teamName && m.role !== 'admin' && m.role !== 'secretary' && presentIds.indexOf(m.name) === -1; })
     .map(function(m){ return { member_name: m.name, session_pts: 0, bonus_pts: 0 }; });
 
   var rows = presentRows.concat(absentRows);
