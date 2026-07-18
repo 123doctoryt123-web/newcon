@@ -101,12 +101,103 @@ async function loadTeamPoints() {
 
   var wrap = document.getElementById("teamPointsWrap");
   wrap.innerHTML = teams.map(function (t, i) {
-    return '<div class="team-row">' +
+    return '<div class="team-row" data-team="' + escapeHtml(t.team_name) + '">' +
       '<span class="team-rank">#' + (i + 1) + '</span>' +
       '<span class="team-name">' + escapeHtml(t.team_name) + '</span>' +
       '<span class="team-points">' + t.total_points + ' نقطة</span>' +
       '</div>';
   }).join("") || '<div style="color:var(--mist-dim);font-size:13px">لسه مفيش فرق</div>';
+
+  wrap.querySelectorAll(".team-row").forEach(function (row) {
+    row.addEventListener("click", function () {
+      openTeamModal(row.dataset.team);
+    });
+  });
+}
+
+// ============================================================
+// مودال تفاصيل الفريق
+// ============================================================
+async function openTeamModal(teamName) {
+  document.getElementById("teamModalTitle").textContent = "فريق: " + teamName;
+  document.getElementById("teamModalBody").innerHTML = "جاري التحميل...";
+  document.getElementById("teamModal").classList.add("active");
+
+  var res = await supabase.rpc("viewer_team_members", {
+    p_password: getViewerPass(),
+    p_team_name: teamName
+  });
+  var body = document.getElementById("teamModalBody");
+  if (res.error || !res.data || !res.data.length) {
+    body.innerHTML = '<div style="color:var(--mist-dim);font-size:13px">مفيش أعضاء في الفريق ده</div>';
+    return;
+  }
+  body.innerHTML = res.data.map(function (m) {
+    var roleCell = roleLabelMap[m.role] || roleLabelMap.member;
+    return '<div class="member-mini-row" data-member="' + m.member_id + '" data-name="' + escapeHtml(m.name) + '">' +
+      '<div>' +
+        '<div class="member-mini-name">' + escapeHtml(m.name) + '</div>' +
+        '<div class="member-mini-sub">' + escapeHtml(roleCell) + ' · حضر ' + m.room_sessions_attended + ' غرفة</div>' +
+      '</div>' +
+      '<span class="member-mini-pts">' + (m.points || 0) + '</span>' +
+      '</div>';
+  }).join("");
+
+  body.querySelectorAll(".member-mini-row").forEach(function (row) {
+    row.addEventListener("click", function () {
+      openMemberModal(row.dataset.member, row.dataset.name, teamName);
+    });
+  });
+}
+
+// ============================================================
+// مودال تفاصيل العضو (الغرف + مصادر النقاط)
+// ============================================================
+async function openMemberModal(memberId, memberName, teamName) {
+  document.getElementById("teamModal").classList.remove("active");
+  document.getElementById("memberModalTitle").textContent = memberName;
+  document.getElementById("memberModalBody").innerHTML = "جاري التحميل...";
+  document.getElementById("memberModal").classList.add("active");
+  document.getElementById("memberModalBack").onclick = function () {
+    document.getElementById("memberModal").classList.remove("active");
+    document.getElementById("teamModal").classList.add("active");
+  };
+
+  var roomsRes = await supabase.rpc("viewer_member_rooms", {
+    p_password: getViewerPass(), p_member_id: memberId
+  });
+  var pointsRes = await supabase.rpc("viewer_member_points_breakdown", {
+    p_password: getViewerPass(), p_member_id: memberId
+  });
+
+  var html = "";
+
+  html += '<h4 style="color:var(--mist);font-size:14px;margin:12px 0 8px">🏠 حضور الغرف</h4>';
+  var rooms = (roomsRes.data || []);
+  if (!rooms.length) {
+    html += '<div style="color:var(--mist-dim);font-size:12px">لسه مفيش حضور غرف مسجل</div>';
+  } else {
+    html += '<ul class="detail-list">' + rooms.map(function (r) {
+      var d = r.session_date ? new Date(r.session_date).toLocaleDateString("ar-EG") : "-";
+      return '<li><span class="detail-src">' + escapeHtml(r.room_name || "-") + '</span>' +
+        '<span class="detail-txt">' + d + ' · بواسطة ' + escapeHtml(r.secretary_name) + '</span>' +
+        '<span class="detail-pts">' + ((r.session_pts||0) + (r.bonus_pts||0)) + '</span></li>';
+    }).join("") + '</ul>';
+  }
+
+  html += '<h4 style="color:var(--mist);font-size:14px;margin:18px 0 8px">📊 مصادر النقاط</h4>';
+  var pts = (pointsRes.data || []);
+  if (!pts.length) {
+    html += '<div style="color:var(--mist-dim);font-size:12px">لسه مفيش نقاط مسجلة من أنشطة تانية</div>';
+  } else {
+    html += '<ul class="detail-list">' + pts.map(function (p) {
+      return '<li><span class="detail-src">' + escapeHtml(p.source) + '</span>' +
+        '<span class="detail-txt">' + escapeHtml(p.detail || "-") + '</span>' +
+        '<span class="detail-pts">' + (p.points || 0) + '</span></li>';
+    }).join("") + '</ul>';
+  }
+
+  document.getElementById("memberModalBody").innerHTML = html;
 }
 
 // re-render team points whenever members reload (called after loadMembers in loadAll,
@@ -156,6 +247,19 @@ document.addEventListener("DOMContentLoaded", function () {
     location.reload();
   });
   document.getElementById("refreshBtn").addEventListener("click", loadAll);
+
+  document.getElementById("teamModalClose").addEventListener("click", function () {
+    document.getElementById("teamModal").classList.remove("active");
+  });
+  document.getElementById("memberModalClose").addEventListener("click", function () {
+    document.getElementById("memberModal").classList.remove("active");
+  });
+  document.getElementById("teamModal").addEventListener("click", function (e) {
+    if (e.target.id === "teamModal") e.target.classList.remove("active");
+  });
+  document.getElementById("memberModal").addEventListener("click", function (e) {
+    if (e.target.id === "memberModal") e.target.classList.remove("active");
+  });
   document.getElementById("memberSearch").addEventListener("input", renderMembers);
   document.getElementById("attendanceSearch").addEventListener("input", renderAttendance);
 
