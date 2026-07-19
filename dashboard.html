@@ -609,13 +609,14 @@ async function loadReviewerGroups(){
     } else {
       html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
     }
-    [5,10,15,20].forEach(function(sc){
-      var isSelected = g.my_score === sc;
-      html += '<button onclick="giveProjectScore(\'' + g.group_id + '\',' + sc + ',this)" ' +
-        'style="flex:1;min-width:55px;padding:10px 4px;background:' + (isSelected ? 'rgba(74,124,111,0.25)' : 'rgba(74,124,111,0.08)') + ';' +
-        'border:1px solid ' + (isSelected ? 'var(--pitch)' : 'rgba(74,124,111,0.3)') + ';' +
-        'border-radius:10px;color:var(--pitch);font-family:var(--font-display);font-weight:800;font-size:16px;cursor:pointer">' + sc + '</button>';
-    });
+    html += '<input type="number" min="0" max="999" placeholder="اكتب الدرجة" id="scoreInput_' + g.group_id + '" ' +
+      'value="' + (g.my_score !== null ? g.my_score : '') + '" ' +
+      'style="flex:1;min-width:80px;padding:10px 12px;background:rgba(74,124,111,0.08);' +
+      'border:1px solid rgba(74,124,111,0.3);border-radius:10px;color:var(--pitch);' +
+      'font-family:var(--font-display);font-weight:800;font-size:16px;text-align:center">' +
+      '<button onclick="giveProjectScoreFromInput(\'' + g.group_id + '\',this)" ' +
+      'style="padding:10px 18px;background:var(--pitch);border:none;border-radius:10px;color:#fff;' +
+      'font-family:var(--font-display);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">💾 حفظ</button>';
     html += '</div>';
     html += '<input type="text" placeholder="ملاحظة (اختياري)" id="note_' + g.group_id + '" ' +
       'style="width:100%;margin-top:8px;font-size:12px" value="' + escapeHtmlSimple(g.my_note||'') + '">';
@@ -634,6 +635,27 @@ async function giveProjectScore(groupId, score, btn){
   if(res.error || res.data !== 'ok'){
     alert("❌ " + (res.error ? res.error.message : res.data));
     btn.disabled = false; return;
+  }
+  await loadReviewerGroups();
+}
+
+async function giveProjectScoreFromInput(groupId, btn){
+  var scoreEl = document.getElementById("scoreInput_" + groupId);
+  var noteEl = document.getElementById("note_" + groupId);
+  var score = parseInt(scoreEl ? scoreEl.value : "");
+  var note = noteEl ? noteEl.value.trim() : '';
+  if(isNaN(score) || score < 0){
+    alert("⚠️ اكتب رقم صحيح للدرجة");
+    return;
+  }
+  btn.disabled = true;
+  var res = await supabase.rpc("project_reviewer_give_score", {
+    p_reviewer_id: member.id, p_group_id: groupId, p_score: score, p_note: note || null
+  });
+  btn.disabled = false;
+  if(res.error || res.data !== 'ok'){
+    alert("❌ " + (res.error ? res.error.message : res.data));
+    return;
   }
   await loadReviewerGroups();
 }
