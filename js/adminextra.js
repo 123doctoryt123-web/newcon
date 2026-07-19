@@ -662,7 +662,7 @@ async function loadRoomScores(){
   box.innerHTML='<div class="empty-state">بنحمّل...</div>';
 
   // جيب كل الداتا
-  var [detRes, qrRes, wheelRes, retreatRes, puzzleRes, dailyqRes, projectRes, badgeRes] = await Promise.all([
+  var [detRes, qrRes, wheelRes, retreatRes, puzzleRes, dailyqRes, projectRes, badgeRes, challengeRes] = await Promise.all([
     supabase.rpc('admin_list_room_details', {p_password:getAdminPass()}),
     supabase.from('attendance').select('member_id,scan_type,scanned_at').order('scanned_at',{ascending:false}),
     supabase.from('wheel_spins').select('member_id,prize_key,prize_label,points_won,spun_at').order('spun_at',{ascending:false}),
@@ -670,7 +670,8 @@ async function loadRoomScores(){
     supabase.from('puzzle_completions').select('member_id,completed_at').order('completed_at',{ascending:false}),
     supabase.from('daily_question_answers').select('member_id,is_correct,answered_at').order('answered_at',{ascending:false}),
     supabase.rpc('admin_list_project_scores',{p_password:getAdminPass()}),
-    supabase.from('member_badges').select('member_id,badge_key,earned_at').order('earned_at',{ascending:false})
+    supabase.from('member_badges').select('member_id,badge_key,earned_at').order('earned_at',{ascending:false}),
+    supabase.from('team_challenge_completions').select('team_name,challenge_id,completed_at,team_challenges(title,points)').order('completed_at',{ascending:false})
   ]);
 
   _scoresAllData = detRes.data || [];
@@ -712,7 +713,8 @@ async function loadRoomScores(){
     puzzle: puzzleRes.data||[],
     dailyq: dailyqRes.data||[],
     project: projectRes.data||[],
-    badge: badgeRes.data||[]
+    badge: badgeRes.data||[],
+    challenge: challengeRes.data||[]
   };
 }
 
@@ -964,6 +966,10 @@ function showMemberDetail(memberId){
   // الشارات
   var badgeRows = (extra.badge||[]).filter(function(r){ return r.member_id===memberId; });
 
+  // تحدي الفريق
+  var challengeRows = (extra.challenge||[]).filter(function(r){ return r.team_name===m.team_name; });
+  var challengeTotal = challengeRows.reduce(function(s,r){ return s+((r.team_challenges&&r.team_challenges.points)||0); },0);
+
   var backBtn = _scoresTeam
     ? 'showTeamDetail(\''+escHtml(_scoresTeam)+'\')'
     : 'loadRoomScores()';
@@ -1039,6 +1045,20 @@ function showMemberDetail(memberId){
   html += makeSectionCard('🏅 الشارات', badgeRows.length, badgeRows.length
     ? '<div style="font-size:13px;color:var(--gold);padding:8px 0">🏅 عنده '+badgeRows.length+' شارة</div>'
     : '<div style="font-size:13px;color:var(--mist-dim);padding:8px 0">لسه معندوش شارات</div>', 'شارة');
+
+  // 8) تحدي الفريق
+  html += makeSectionCard('🏆 تحدي الفريق', challengeTotal, challengeRows.length ? scoresTableWrap(
+    '<table><thead><tr><th>التحدي</th><th>النقاط</th><th>التاريخ</th></tr></thead><tbody>'+
+    challengeRows.map(function(r){
+      var tc = r.team_challenges||{};
+      var d = r.completed_at ? new Date(r.completed_at).toLocaleDateString('ar-EG') : '—';
+      return '<tr>'+
+        '<td>'+escHtml(tc.title||'—')+'</td>'+
+        '<td style="color:var(--gold);font-weight:700">'+(tc.points||0)+'</td>'+
+        '<td style="font-size:11px;color:var(--mist-dim)">'+d+'</td>'+
+        '</tr>';
+    }).join('')+'</tbody></table>'
+  ) : '<div style="font-size:13px;color:var(--mist-dim);padding:8px 0">فريقه لسه ما كملش تحديات</div>');
 
   html += '</div>';
   box.innerHTML = html;
