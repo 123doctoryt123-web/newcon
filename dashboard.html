@@ -763,7 +763,7 @@ async function loadTeamRoster(teamName){
 async function loadPredictBadge(){
   var res = await supabase.rpc("get_match_info");
   var badge = document.getElementById("predictBadge");
-  if(res.error || !res.data || !res.data.length) return;
+  if(!badge || res.error || !res.data || !res.data.length) return;
   var locked = res.data[0].locked;
   badge.style.display = "inline-block";
   badge.textContent = locked ? "مقفول 🔒" : "مفتوح ✅";
