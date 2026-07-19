@@ -786,6 +786,7 @@ function showTeamDetail(teamName){
 
   var teamMembers = teamsMembersCache.filter(function(m){ return m.team_name===teamName && m.role!=='admin' && m.role!=='secretary'; });
   var roomRows    = _scoresAllData.filter(function(r){ return r.team_name===teamName; });
+  var hasIdInRoomData = _scoresAllData.length > 0 && _scoresAllData[0].member_id !== undefined;
 
   // ملخص الغرف
   var roomSummary = {};
@@ -830,7 +831,7 @@ function showTeamDetail(teamName){
   html += '<div style="display:flex;flex-direction:column;gap:6px">';
   teamMembers.sort(function(a,b){ return (b.points||0)-(a.points||0); }).forEach(function(m){
     // حضور الغرف لهذا العضو
-    var memberRooms = roomRows.filter(function(r){ return r.member_name===m.name; });
+    var memberRooms = roomRows.filter(function(r){ return hasIdInRoomData ? r.member_id===m.id : r.member_name===m.name; });
     var roomPresent = memberRooms.filter(function(r){ return r.session_pts>0||r.bonus_pts>0; }).length;
 
     html += '<div onclick="showMemberDetail(\''+m.id+'\')" style="'+
@@ -865,11 +866,15 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
         && r.session_date === sessionDate;
   });
 
-  var presentIds = presentRows.map(function(r){ return r.member_name; });
+  var hasIdInRoomData = _scoresAllData.length > 0 && _scoresAllData[0].member_id !== undefined;
+  var presentIds = presentRows.map(function(r){ return hasIdInRoomData ? r.member_id : r.member_name; });
 
   // اللي غابوا = أعضاء الفريق اللي مش في presentRows
   var absentRows = teamsMembersCache
-    .filter(function(m){ return m.team_name === teamName && m.role !== 'admin' && m.role !== 'secretary' && presentIds.indexOf(m.name) === -1; })
+    .filter(function(m){
+      var key = hasIdInRoomData ? m.id : m.name;
+      return m.team_name === teamName && m.role !== 'admin' && m.role !== 'secretary' && presentIds.indexOf(key) === -1;
+    })
     .map(function(m){ return { member_name: m.name, session_pts: 0, bonus_pts: 0 }; });
 
   var rows = presentRows.concat(absentRows);
@@ -928,8 +933,9 @@ function showMemberDetail(memberId){
 
   var extra = window._extraData || {};
 
-  // نقاط الغرف
-  var roomRows = _scoresAllData.filter(function(r){ return r.member_name===m.name; });
+  // نقاط الغرف — فلتر بـ member_id لو موجود، وإلا بالاسم
+  var hasIdInRoomData = _scoresAllData.length > 0 && _scoresAllData[0].member_id !== undefined;
+  var roomRows = _scoresAllData.filter(function(r){ return hasIdInRoomData ? r.member_id===memberId : r.member_name===m.name; });
   var roomTotal = roomRows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); },0);
 
   // نقاط QR
