@@ -833,7 +833,7 @@ function showTeamDetail(teamName){
   html += '<div style="display:flex;flex-direction:column;gap:6px">';
   teamMembers.sort(function(a,b){ return (b.points||0)-(a.points||0); }).forEach(function(m){
     // حضور الغرف لهذا العضو
-    var memberRooms = roomRows.filter(function(r){ return hasIdInRoomData ? r.member_id===m.id : r.member_name===m.name; });
+    var memberRooms = roomRows.filter(function(r){ return hasIdInRoomData ? String(r.member_id)===String(m.id) : r.member_name===m.name; });
     var roomPresent = memberRooms.filter(function(r){ return r.session_pts>0||r.bonus_pts>0; }).length;
 
     html += '<div onclick="showMemberDetail(\''+m.id+'\')" style="'+
@@ -869,13 +869,13 @@ function showRoomSessionDetail(teamName, secretaryName, sessionDate){
   });
 
   var hasIdInRoomData = _scoresAllData.length > 0 && _scoresAllData[0].member_id !== undefined;
-  var presentIds = presentRows.map(function(r){ return hasIdInRoomData ? r.member_id : r.member_name; });
+  var presentIds = presentRows.map(function(r){ return hasIdInRoomData ? String(r.member_id) : r.member_name; });
 
   // اللي غابوا = أعضاء الفريق اللي مش في presentRows
   var absentRows = teamsMembersCache
     .filter(function(m){
-      var key = hasIdInRoomData ? m.id : m.name;
-      return m.team_name === teamName && m.role !== 'admin' && m.role !== 'secretary' && presentIds.indexOf(key) === -1;
+      var key = hasIdInRoomData ? String(m.id) : m.name;
+      return m.team_name === teamName && m.role !== 'admin' && m.role !== 'secretary' && presentIds.indexOf(String(key)) === -1;
     })
     .map(function(m){ return { member_name: m.name, session_pts: 0, bonus_pts: 0 }; });
 
@@ -937,24 +937,24 @@ function showMemberDetail(memberId){
 
   // نقاط الغرف — فلتر بـ member_id لو موجود، وإلا بالاسم
   var hasIdInRoomData = _scoresAllData.length > 0 && _scoresAllData[0].member_id !== undefined;
-  var roomRows = _scoresAllData.filter(function(r){ return hasIdInRoomData ? r.member_id===memberId : r.member_name===m.name; });
+  var roomRows = _scoresAllData.filter(function(r){ return hasIdInRoomData ? String(r.member_id)===String(memberId) : r.member_name===m.name; });
   var roomTotal = roomRows.reduce(function(s,r){ return s+(r.session_pts||0)+(r.bonus_pts||0); },0);
 
   // نقاط QR
-  var qrRows = (extra.qr||[]).filter(function(r){ return r.member_id===memberId; });
+  var qrRows = (extra.qr||[]).filter(function(r){ return String(r.member_id)===String(memberId); });
   var qrTotal = qrRows.length * 5; // تقريبي — كل scan بـ 5 نقاط
 
   // عجلة الحظ
-  var wheelRows = (extra.wheel||[]).filter(function(r){ return r.member_id===memberId; });
+  var wheelRows = (extra.wheel||[]).filter(function(r){ return String(r.member_id)===String(memberId); });
 
   // الخلوة
-  var retreatRows = (extra.retreat||[]).filter(function(r){ return r.member_id===memberId; });
+  var retreatRows = (extra.retreat||[]).filter(function(r){ return String(r.member_id)===String(memberId); });
 
   // اللغز
-  var puzzleRows = (extra.puzzle||[]).filter(function(r){ return r.member_id===memberId; });
+  var puzzleRows = (extra.puzzle||[]).filter(function(r){ return String(r.member_id)===String(memberId); });
 
   // سؤال اليوم
-  var dailyqRows = (extra.dailyq||[]).filter(function(r){ return r.member_id===memberId; });
+  var dailyqRows = (extra.dailyq||[]).filter(function(r){ return String(r.member_id)===String(memberId); });
   var dailyqCorrect = dailyqRows.filter(function(r){ return r.is_correct; }).length;
 
   // المشروع
@@ -964,7 +964,7 @@ function showMemberDetail(memberId){
   });
 
   // الشارات
-  var badgeRows = (extra.badge||[]).filter(function(r){ return r.member_id===memberId; });
+  var badgeRows = (extra.badge||[]).filter(function(r){ return String(r.member_id)===String(memberId); });
 
   // تحدي الفريق
   var challengeRows = (extra.challenge||[]).filter(function(r){ return r.team_name===m.team_name; });
