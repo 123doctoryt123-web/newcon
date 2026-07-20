@@ -21,7 +21,7 @@ async function loadPuzzleMembersSelect() {
   var pass = sessionStorage.getItem('adminPass');
   if (!pass) return;
   _puzzleMembers = [];
-  var res = await supabase.rpc('admin_list_members', { p_password: pass });
+  var res = await supabase.rpc('admin_list_members_teams', { p_password: pass });
   if (res.error || !res.data) return;
   _puzzleMembers = res.data;
   renderTeamQuickSelect(_puzzleMembers);
