@@ -24,7 +24,75 @@ async function loadPuzzleMembersSelect() {
   var res = await supabase.rpc('admin_list_members', { p_password: pass });
   if (res.error || !res.data) return;
   _puzzleMembers = res.data;
+  renderTeamQuickSelect(_puzzleMembers);
   renderPuzCheckList(_puzzleMembers);
+}
+
+// ── بناء أزرار الاختيار السريع للتيمات ──
+function renderTeamQuickSelect(members) {
+  var box = document.getElementById('puzTeamQuickSelect');
+  if (!box) return;
+
+  // جمّع التيمات الفريدة
+  var teams = {};
+  members.forEach(function(m) {
+    var t = m.team_name || '';
+    if (t && !teams[t]) teams[t] = [];
+    if (t) teams[t].push(m.id);
+  });
+
+  var teamNames = Object.keys(teams);
+  if (!teamNames.length) {
+    box.innerHTML = '<p style="font-size:12px;color:var(--mist-dim)">مفيش تيمات محددة في النظام</p>';
+    return;
+  }
+
+  var slotLabels = ['أ', 'ب', 'ت', 'ث'];
+  var slotValues = ['A', 'B', 'C', 'D'];
+  var slotColors = ['var(--gold)', '#a9e6c4', '#a9c4e6', '#e6a9c4'];
+
+  var html = '<p style="font-size:12px;color:var(--mist-dim);margin-bottom:8px">اختار تيم كامل مرة واحدة وحدد ليه Slot:</p>';
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+
+  teamNames.forEach(function(tName) {
+    var count = teams[tName].length;
+    html += '<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--ink-3)">' +
+      '<span style="font-size:13px;color:var(--mist);flex:1">🏆 ' + esc(tName) + ' <span style="font-size:11px;color:var(--mist-dim)">(' + count + ' عضو)</span></span>' +
+      slotLabels.map(function(label, i) {
+        return '<button onclick="assignTeamToSlot(' + JSON.stringify(tName) + ',\'' + slotValues[i] + '\')" ' +
+          'style="padding:4px 10px;border-radius:20px;border:1px solid ' + slotColors[i] + ';background:transparent;color:' + slotColors[i] + ';font-size:12px;cursor:pointer;font-weight:700" ' +
+          'title="حدد كل ' + esc(tName) + ' في slot ' + label + '">' + label + '</button>';
+      }).join('') +
+      '<button onclick="clearTeamSlot(' + JSON.stringify(tName) + ')" ' +
+        'style="padding:4px 10px;border-radius:20px;border:1px solid var(--mist-dim);background:transparent;color:var(--mist-dim);font-size:12px;cursor:pointer" ' +
+        'title="إلغاء تحديد كل ' + esc(tName) + '">✕</button>' +
+    '</div>';
+  });
+
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// ── تعيين تيم كامل لـ slot معين ──
+function assignTeamToSlot(teamName, slot) {
+  _puzzleMembers.forEach(function(m) {
+    if ((m.team_name || '') === teamName) {
+      var radio = document.querySelector('.puz-radio[value="' + slot + '"][data-member="' + m.id + '"]');
+      if (radio) radio.checked = true;
+    }
+  });
+  updatePuzCount();
+}
+
+// ── إلغاء تحديد تيم كامل ──
+function clearTeamSlot(teamName) {
+  _puzzleMembers.forEach(function(m) {
+    if ((m.team_name || '') === teamName) {
+      var radio = document.querySelector('.puz-radio[value=""][data-member="' + m.id + '"]');
+      if (radio) radio.checked = true;
+    }
+  });
+  updatePuzCount();
 }
 
 // كل عضو فيه راديو: أ أو ب أو ت أو ث أو مش في التيم
