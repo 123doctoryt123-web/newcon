@@ -5,7 +5,8 @@
 var featureKeys = {
   secretbox: "secretbox_open",
   book: "book_open",
-  gratitude: "gratitude_open"
+  gratitude: "gratitude_open",
+  puzzle: "puzzle_open"
 };
 
 var featureState = {};
@@ -50,7 +51,9 @@ document.addEventListener("DOMContentLoaded", function () {
   var secretboxBtn = document.getElementById("toggleSecretboxBtn");
   var bookBtn = document.getElementById("toggleBookBtn");
   var gratitudeBtn = document.getElementById("toggleGratitudeBtn");
+  var puzzleBtn = document.getElementById("togglePuzzleBtn");
   if (secretboxBtn) secretboxBtn.addEventListener("click", function () { toggleFeature("secretbox"); });
   if (bookBtn) bookBtn.addEventListener("click", function () { toggleFeature("book"); });
   if (gratitudeBtn) gratitudeBtn.addEventListener("click", function () { toggleFeature("gratitude"); });
+  if (puzzleBtn) puzzleBtn.addEventListener("click", function () { toggleFeature("puzzle"); });
 });
