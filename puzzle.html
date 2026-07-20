@@ -178,7 +178,12 @@
 </style>
 </head>
 <body>
-<div class="container">
+<div id="lockScreen" style="display:none;max-width:340px;margin:100px auto;padding:32px 24px;background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);text-align:center;">
+  <div style="font-size:48px;margin-bottom:14px;">🔒</div>
+  <div style="font-family:var(--font-display);font-weight:800;color:var(--mist);font-size:18px;margin-bottom:8px;">الباب مقفول دلوقتي 🚪</div>
+  <div style="color:var(--mist-dim);font-size:13px;line-height:1.7;">الفيتشر ده مش متاح حالياً<br>استنى شوية وارجع تاني 😉</div>
+</div>
+<div class="container" id="pageContainer" style="display:none">
   <div class="topbar">
     <a href="dashboard.html" class="brand"><span class="dot"></span> Connect Three</a>
     <a href="dashboard.html" class="logout-link">رجوع</a>
@@ -279,6 +284,17 @@ let endsAt     = null;
 let startsAt   = null;
 let timerInterval = null;
 let countdownInterval = null;
+
+// ── فحص القفل ──
+(async function checkFeature(){
+  const res = await supabase.rpc('get_feature_status', { p_key: 'puzzle_open' });
+  const isOpen = res.error ? true : res.data;
+  if (!isOpen) {
+    document.getElementById('lockScreen').style.display = 'block';
+  } else {
+    document.getElementById('pageContainer').style.display = 'block';
+  }
+})();
 
 // ── تحميل الصفحة ──
 window.addEventListener('DOMContentLoaded', async () => {
