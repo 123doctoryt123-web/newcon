@@ -7,13 +7,32 @@ var _puzzleMembers   = [];   // كل الأعضاء
 
 // ── مراقبة تاب اللغز ──
 document.addEventListener('DOMContentLoaded', function() {
+
+  // ── استرجاع التاب الأخير بعد الريفريش ──
+  var lastTab = localStorage.getItem('adminActiveTab');
+  if (lastTab) {
+    var targetTab   = document.querySelector('.tab[data-tab="' + lastTab + '"]');
+    var targetPanel = document.getElementById('panel-' + lastTab);
+    if (targetTab && targetPanel) {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      targetTab.classList.add('active');
+      targetPanel.classList.add('active');
+    }
+  }
+
+  // ── حفظ التاب النشط عند كل ضغطة ──
   document.querySelectorAll('.tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
+      localStorage.setItem('adminActiveTab', this.dataset.tab);
       if (this.dataset.tab === 'puzzle') {
         setTimeout(loadActivePuzzle, 200);
       }
     });
   });
+
+  // ── تحميل اللغز النشط تلقائياً عند أول فتح الصفحة ──
+  setTimeout(loadActivePuzzle, 500);
 });
 
 // ── جلب الأعضاء وبناء القائمة ──
