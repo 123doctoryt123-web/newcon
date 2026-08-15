@@ -24,9 +24,9 @@
   font-family:var(--font-display); font-weight:700; font-size:18px;
   margin-bottom:16px; display:none;
 }
-.result-banner.ok  { background:rgba(74,124,111,0.2);  border:1px solid var(--pitch); color:#a9e6c4; }
+.result-banner.ok  { background:rgba(74,124,111,0.2);  border:1px solid var(--pitch); color:var(--pitch); }
 .result-banner.dup { background:rgba(200,150,90,0.15); border:1px solid var(--gold);  color:var(--gold); }
-.result-banner.err { background:rgba(192,83,58,0.15);  border:1px solid var(--coral); color:#ffb3a6; }
+.result-banner.err { background:rgba(192,83,58,0.15);  border:1px solid var(--coral); color:var(--coral); }
 
 .manual-section{ margin-top:10px; }
 .scan-log-item{
@@ -345,5 +345,7 @@ function esc(s){
   });
 }
 </script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

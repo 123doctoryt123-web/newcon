@@ -95,7 +95,7 @@
   padding:24px 20px; margin-bottom:20px; text-align:center;
 }
 .done-icon{ font-size:52px; display:block; margin-bottom:14px; }
-.done-title{ font-family:var(--font-display); font-weight:800; font-size:20px; color:#a9e6c4; margin-bottom:8px; }
+.done-title{ font-family:var(--font-display); font-weight:800; font-size:20px; color:var(--pitch); margin-bottom:8px; }
 .done-preview{
   background:rgba(200,150,90,.1); border:1px solid rgba(200,150,90,.25);
   border-radius:var(--radius-sm); padding:14px 16px;
@@ -117,7 +117,7 @@
   font-size:12px; font-weight:700; padding:6px 14px; border-radius:99px;
   margin-bottom:16px;
 }
-.badge-closed{ background:rgba(192,83,58,.15); border:1px solid var(--coral); color:#ffb3a6; }
+.badge-closed{ background:rgba(192,83,58,.15); border:1px solid var(--coral); color:var(--coral); }
 
 /* ═══ Winner ═══ */
 .winner-banner{
@@ -314,5 +314,7 @@ loadTeam();
 init();
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

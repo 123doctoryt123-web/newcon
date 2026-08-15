@@ -108,7 +108,7 @@ document.getElementById("saveBtn").addEventListener("click", async function(){
   if(res.error){
     successMsg.style.background = "rgba(240,86,61,0.12)";
     successMsg.style.borderColor = "var(--coral)";
-    successMsg.style.color = "#ffb3a6";
+    successMsg.style.color = "var(--coral)";
     successMsg.textContent = "حصل خطأ، حاول تاني";
   } else {
     successMsg.textContent = "تم حفظ توقعك ✅";
@@ -120,5 +120,7 @@ document.getElementById("saveBtn").addEventListener("click", async function(){
 init();
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

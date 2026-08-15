@@ -71,7 +71,7 @@
   to  { opacity:1; transform:translateY(0)   scale(1);    }
 }
 #memberModalBox h3{
-  margin:0 0 18px; font-size:16px; color:var(--gold,#c8965a);
+  margin:0 0 18px; font-size:16px; color:var(--gold,var(--gold));
   display:flex; align-items:center; gap:8px;
 }
 #memberModalBox label{
@@ -95,7 +95,7 @@
 .badge-leader{
   display:inline-block; font-size:10px; padding:2px 7px;
   border-radius:20px; background:rgba(200,150,90,.15);
-  color:var(--gold,#c8965a); font-weight:700; margin-right:4px;
+  color:var(--gold,var(--gold)); font-weight:700; margin-right:4px;
 }
 #memberModal .success-msg,
 #memberModal .error-msg{ margin-top:10px; }
@@ -405,7 +405,7 @@
       الأسئلة اللي بعتها الشباب بشكل مجهول — بتتحدث تلقائياً
     </p>
     <button class="btn outline" id="refreshBookQBtn" onclick="loadBookQuestions()">🔄 تحديث</button>
-    <button class="btn" id="clearBookQBtn" style="background:#c0533a;margin-right:8px" onclick="clearBookQuestions()">🗑️ مسح الكل</button>
+    <button class="btn" id="clearBookQBtn" style="background:var(--coral);margin-right:8px" onclick="clearBookQuestions()">🗑️ مسح الكل</button>
     <div id="bookQList" style="margin-top:16px">
       <div class="empty-state">بنحمّل...</div>
     </div>
@@ -555,7 +555,7 @@
             <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">متاح</div>
           </div>
           <div style="flex:1;min-width:80px;text-align:center;padding:12px;background:rgba(74,124,111,0.08);border-radius:10px">
-            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:#a9e6c4" id="retreatTotalCount">—</div>
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--pitch)" id="retreatTotalCount">—</div>
             <div style="font-size:11px;color:var(--mist-dim);margin-top:4px">إجمالي</div>
           </div>
         </div>
@@ -707,7 +707,7 @@
               <img id="previewA" style="display:none;width:100%;border-radius:8px;margin-top:6px;max-height:80px;object-fit:cover">
             </div>
             <div>
-              <label style="font-size:12px;color:#a9e6c4">📍 صورة المكان ب</label>
+              <label style="font-size:12px;color:var(--pitch)">📍 صورة المكان ب</label>
               <input type="text" id="puzTeamImgB" placeholder="https://... رابط صورة ب">
               <label style="display:inline-flex;align-items:center;gap:6px;margin-top:5px;cursor:pointer;font-size:12px;color:var(--mist-dim);background:rgba(200,150,90,0.08);border:1px solid rgba(200,150,90,0.25);padding:5px 10px;border-radius:99px">
                 📁 ارفع من جهازك<input type="file" accept="image/*" style="display:none" onchange="uploadImgToInput(this,'puzTeamImgB','previewB')">
@@ -812,7 +812,7 @@
 
         <div style="display:flex;gap:10px">
           <button id="createPollBtn" onclick="adminCreatePoll()" class="btn" style="flex:1">🚀 ابدأ الاستفتاء</button>
-          <button id="stopPollBtn"   onclick="adminStopPoll()"   class="btn" style="flex:1;background:rgba(192,83,58,0.15);border-color:var(--coral);color:#ffb3a6">⛔ أوقف الحالي</button>
+          <button id="stopPollBtn"   onclick="adminStopPoll()"   class="btn" style="flex:1;background:rgba(192,83,58,0.15);border-color:var(--coral);color:var(--coral)">⛔ أوقف الحالي</button>
         </div>
         <div id="pollAdminMsg" style="margin-top:10px"></div>
       </div>
@@ -1475,7 +1475,7 @@ async function loadSecrets(){
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
         '<span style="font-size:11px;color:var(--mist-dim)">'+t+'</span>'+
         '<div style="display:flex;gap:8px">'+
-          '<button onclick="toggleSecret(\''+s.id+'\','+(!s.published)+')" style="background:none;border:1px solid '+(s.published?'var(--coral)':'var(--pitch)')+';color:'+(s.published?'#ffb3a6':'#a9e6c4')+';padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">'+(s.published?'⛔ إخفاء':'✅ نشر')+'</button>'+
+          '<button onclick="toggleSecret(\''+s.id+'\','+(!s.published)+')" style="background:none;border:1px solid '+(s.published?'var(--coral)':'var(--pitch)')+';color:'+(s.published?'var(--coral)':'var(--pitch)')+';padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">'+(s.published?'⛔ إخفاء':'✅ نشر')+'</button>'+
           '<button onclick="deleteSecret(\''+s.id+'\')" style="background:none;border:1px solid rgba(192,83,58,0.3);color:var(--coral);padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">🗑️</button>'+
         '</div>'+
       '</div>'+
@@ -1526,7 +1526,7 @@ async function loadGratitude(){
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
         '<span style="font-size:11px;color:var(--mist-dim)">'+t+'</span>'+
         '<div style="display:flex;gap:8px">'+
-          '<button onclick="toggleGratitude(\''+g.id+'\','+(!g.visible)+')" style="background:none;border:1px solid '+(g.visible?'var(--coral)':'var(--pitch)')+';color:'+(g.visible?'#ffb3a6':'#a9e6c4')+';padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">'+(g.visible?'🙈 إخفاء':'👁️ إظهار')+'</button>'+
+          '<button onclick="toggleGratitude(\''+g.id+'\','+(!g.visible)+')" style="background:none;border:1px solid '+(g.visible?'var(--coral)':'var(--pitch)')+';color:'+(g.visible?'var(--coral)':'var(--pitch)')+';padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">'+(g.visible?'🙈 إخفاء':'👁️ إظهار')+'</button>'+
           '<button onclick="deleteGratitude(\''+g.id+'\')" style="background:none;border:1px solid rgba(192,83,58,0.3);color:var(--coral);padding:5px 12px;border-radius:99px;cursor:pointer;font-size:12px">🗑️</button>'+
         '</div>'+
       '</div>'+
@@ -1649,8 +1649,8 @@ async function loadDQAnswers(){
   var letters = { a:'أ', b:'ب', c:'ج', d:'د' };
   body.innerHTML = rows.map(function(r){
     var badge = r.is_correct
-      ? '<span style="background:rgba(74,124,111,0.2);color:#a9e6c4;border:1px solid var(--pitch);border-radius:99px;padding:2px 10px;font-size:11px">✅ صح</span>'
-      : '<span style="background:rgba(192,83,58,0.15);color:#ffb3a6;border:1px solid var(--coral);border-radius:99px;padding:2px 10px;font-size:11px">❌ غلط</span>';
+      ? '<span style="background:rgba(74,124,111,0.2);color:var(--pitch);border:1px solid var(--pitch);border-radius:99px;padding:2px 10px;font-size:11px">✅ صح</span>'
+      : '<span style="background:rgba(192,83,58,0.15);color:var(--coral);border:1px solid var(--coral);border-radius:99px;padding:2px 10px;font-size:11px">❌ غلط</span>';
     return '<tr>'
       + '<td style="padding:8px;border-bottom:1px solid var(--line)">' + escapeHtml(r.member_name) + '</td>'
       + '<td style="padding:8px;border-bottom:1px solid var(--line);color:var(--mist-dim)">' + escapeHtml(r.team_name || '—') + '</td>'
@@ -1700,8 +1700,8 @@ async function loadChallengesAdmin(){
           '<span style="font-size:11px;color:var(--mist-dim)">✅ أتمّه ' + c.completions + ' فريق</span>' +
           '<span style="font-size:11px;padding:2px 8px;border-radius:99px;' +
             (c.active
-              ? 'background:rgba(74,124,111,0.15);color:#a9e6c4;border:1px solid var(--pitch)'
-              : 'background:rgba(192,83,58,0.12);color:#ffb3a6;border:1px solid var(--coral)') +
+              ? 'background:rgba(74,124,111,0.15);color:var(--pitch);border:1px solid var(--pitch)'
+              : 'background:rgba(192,83,58,0.12);color:var(--coral);border:1px solid var(--coral)') +
             '">' + (c.active ? '🟢 نشط' : '🔴 موقوف') + '</span>' +
         '</div>' +
         '<div style="display:flex;gap:6px">' +
@@ -1739,7 +1739,7 @@ document.getElementById("createChallengeBtn") && document.getElementById("create
     msg.style.color="var(--coral)"; msg.textContent="❌ حصل خطأ — " + res.error.message; return;
   }
 
-  msg.style.color="#a9e6c4"; msg.textContent="✅ التحدي اتنشر بنجاح!";
+  msg.style.color="var(--pitch)"; msg.textContent="✅ التحدي اتنشر بنجاح!";
   document.getElementById("challengeTitle").value="";
   document.getElementById("challengeDesc").value="";
   document.getElementById("challengePoints").value="10";
@@ -1861,5 +1861,7 @@ function uploadImgToInput(fileInput, targetId, previewId) {
   reader.readAsDataURL(file);
 }
 </script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

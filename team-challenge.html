@@ -8,7 +8,7 @@
 <style>
 .hero-banner{
   position:relative; overflow:hidden;
-  background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
+  background: linear-gradient(150deg, var(--ink-3), var(--ink-2) 55%, var(--ink-3));
   border:1px solid var(--line); border-radius: var(--radius);
   padding:22px 20px; margin-bottom:18px;
 }
@@ -38,7 +38,7 @@
 }
 .challenge-card.done{
   border-color: rgba(74,124,111,0.5);
-  background: linear-gradient(160deg, #0e2019, #142b22);
+  background: linear-gradient(160deg, var(--ink-2), var(--pitch-dim));
 }
 .challenge-card::before{
   content:""; position:absolute; top:-30px; left:-30px;
@@ -51,7 +51,7 @@
 }
 .challenge-icon{
   width:46px; height:46px; border-radius:12px; flex-shrink:0;
-  background: linear-gradient(135deg, var(--gold), #a07840);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
   display:flex; align-items:center; justify-content:center; font-size:22px;
   box-shadow: 0 0 12px rgba(200,150,90,0.25);
 }
@@ -72,7 +72,7 @@
 }
 .challenge-card.done .challenge-pts{
   background: rgba(74,124,111,0.15); border-color:rgba(74,124,111,0.3);
-  color:#a9e6c4;
+  color:var(--pitch);
 }
 .challenge-desc{
   font-size:13px; color:var(--mist-dim); line-height:1.65;
@@ -94,7 +94,7 @@
   display:flex; align-items:center; gap:8px;
   background: rgba(74,124,111,0.15); border:1px solid var(--pitch);
   border-radius:99px; padding:10px 16px;
-  font-size:13px; font-weight:700; color:#a9e6c4;
+  font-size:13px; font-weight:700; color:var(--pitch);
   font-family: var(--font-display);
 }
 .done-time{
@@ -132,7 +132,7 @@
   opacity:0;
 }
 .toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
-.toast.error{ background: linear-gradient(135deg, var(--coral), #a03020); }
+.toast.error{ background: linear-gradient(135deg, var(--coral), var(--coral-dim)); }
 </style>
 </head>
 <body>
@@ -379,5 +379,7 @@ function esc(s){
 init();
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

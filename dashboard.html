@@ -9,7 +9,7 @@
 <style>
 .hero-banner{
   position:relative; overflow:hidden;
-  background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
+  background: linear-gradient(150deg, var(--ink-3), var(--ink-2) 55%, var(--ink-3));
   border:1px solid var(--line); border-radius: var(--radius);
   padding:22px 20px; margin-bottom:18px;
 }
@@ -49,7 +49,7 @@
 .team-rank-top{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
 .rank-icon-box{
   width:50px; height:50px; border-radius:14px; flex-shrink:0;
-  background: linear-gradient(135deg, var(--gold), #a07840);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
   display:flex; align-items:center; justify-content:center; font-size:24px;
   box-shadow: 0 0 16px rgba(200,150,90,0.3);
 }
@@ -82,8 +82,8 @@
   font-size:10px; font-weight:700; padding:3px 9px; border-radius:99px;
   white-space:nowrap;
 }
-.gate-status-badge.open{ background: rgba(74,124,111,0.2); color:#a9e6c4; border:1px solid var(--pitch); }
-.gate-status-badge.closed{ background: rgba(192,83,58,0.18); color:#ffb3a6; border:1px solid var(--coral); }
+.gate-status-badge.open{ background: rgba(74,124,111,0.2); color:var(--pitch); border:1px solid var(--pitch); }
+.gate-status-badge.closed{ background: rgba(192,83,58,0.18); color:var(--coral); border:1px solid var(--coral); }
 .leader-gate{
   display:none;
   position:relative; overflow:hidden;
@@ -95,7 +95,7 @@
 .leader-gate.visible{ display:flex; }
 .leader-gate-icon{
   width:44px; height:44px; border-radius:12px; flex-shrink:0;
-  background: linear-gradient(135deg, var(--gold), #a07840);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
   display:flex; align-items:center; justify-content:center; font-size:22px;
 }
 .leader-gate h3{ font-family:var(--font-display); font-weight:800; font-size:15px; color:var(--gold); margin-bottom:2px; }
@@ -267,7 +267,7 @@
   .poll-bar-top{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--mist);margin-bottom:4px;}
   .poll-bar-bg{height:8px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;}
   .poll-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pitch-dim),var(--pitch));transition:width .5s ease;}
-  .poll-bar-fill.mine{background:linear-gradient(90deg,#a07840,var(--gold));box-shadow:0 0 6px rgba(200,150,90,.4);}
+  .poll-bar-fill.mine{background:linear-gradient(90deg,var(--gold-dim),var(--gold));box-shadow:0 0 6px rgba(200,150,90,.4);}
   </style>
 
   <div class="hero-banner">
@@ -322,19 +322,19 @@
   <div class="leader-gate" id="secretaryGateBtn" onclick="location.href='secretary.html'" style="display:none;border-color:var(--pitch);background:linear-gradient(120deg,rgba(74,124,111,0.15),rgba(74,124,111,0.05))">
     <div class="leader-gate-icon" style="background:linear-gradient(135deg,var(--pitch),var(--pitch-dim))">🗝️</div>
     <div>
-      <h3 style="color:#a9e6c4">لوحة أمين الغرفة</h3>
+      <h3 style="color:var(--pitch)">لوحة أمين الغرفة</h3>
       <p>أعط درجات للفريق الخاص بك</p>
     </div>
     <div class="arrow" style="color:var(--pitch)">‹</div>
   </div>
 
-  <div class="leader-gate" id="retreatServantGateBtn" onclick="location.href='secretary.html'" style="display:none;border-color:#a9e6c4;background:linear-gradient(120deg,rgba(169,230,196,0.1),rgba(74,124,111,0.05))">
-    <div class="leader-gate-icon" style="background:linear-gradient(135deg,#4a7c6f,#2d5a4f)">🕊️</div>
+  <div class="leader-gate" id="retreatServantGateBtn" onclick="location.href='secretary.html'" style="display:none;border-color:var(--pitch);background:linear-gradient(120deg,rgba(169,230,196,0.1),rgba(74,124,111,0.05))">
+    <div class="leader-gate-icon" style="background:linear-gradient(135deg,var(--pitch),var(--pitch-dim))">🕊️</div>
     <div>
-      <h3 style="color:#a9e6c4">لوحة خادم الخلوة</h3>
+      <h3 style="color:var(--pitch)">لوحة خادم الخلوة</h3>
       <p>سجّل حضور الشباب في الخلوة</p>
     </div>
-    <div class="arrow" style="color:#a9e6c4">‹</div>
+    <div class="arrow" style="color:var(--pitch)">‹</div>
   </div>
 
   <div id="mainContent">
@@ -1016,5 +1016,7 @@ setTimeout(async function() {
 }, 400);
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

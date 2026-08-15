@@ -9,7 +9,7 @@
 /* ---- بانر الترحيب ---- */
 .hero-banner{
   position:relative; overflow:hidden;
-  background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
+  background: linear-gradient(150deg, var(--ink-3), var(--ink-2) 55%, var(--ink-3));
   border:1px solid var(--line); border-radius: var(--radius);
   padding:22px 20px; margin-bottom:18px;
 }
@@ -97,8 +97,8 @@
 .room-card-stats{ display:flex; justify-content:center; gap:10px; }
 .room-stat{ font-size:11px; color:var(--mist-dim); }
 .room-stat span{ font-family:var(--font-display); font-weight:700; font-size:14px; display:block; }
-.room-stat span.green{ color:#a9e6c4; }
-.room-stat span.red{ color:#ffb3a6; }
+.room-stat span.green{ color:var(--pitch); }
+.room-stat span.red{ color:var(--coral); }
 .room-stat span.gold{ color:var(--gold); }
 
 /* ---- Modal الغرفة ---- */
@@ -122,8 +122,8 @@
 .room-badge{
   font-size:11px; padding:2px 9px; border-radius:99px; font-weight:700;
 }
-.badge-present{ background:rgba(74,124,111,.15); color:#a9e6c4; border:1px solid var(--pitch); }
-.badge-absent{  background:rgba(192,83,58,.12);  color:#ffb3a6; border:1px solid var(--coral); }
+.badge-present{ background:rgba(74,124,111,.15); color:var(--pitch); border:1px solid var(--pitch); }
+.badge-absent{  background:rgba(192,83,58,.12);  color:var(--coral); border:1px solid var(--coral); }
 
 /* ---- فاصل ---- */
 .section-label{
@@ -476,7 +476,7 @@ async function loadTeamChallenges(){
           '<div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--mist);margin-bottom:4px">' + esc(c.title) + '</div>' +
           '<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;' +
             (c.completed
-              ? 'background:rgba(74,124,111,0.15);color:#a9e6c4;border:1px solid var(--pitch)'
+              ? 'background:rgba(74,124,111,0.15);color:var(--pitch);border:1px solid var(--pitch)'
               : 'background:rgba(200,150,90,0.12);color:var(--gold);border:1px solid rgba(200,150,90,0.3)') + '">' +
             '⭐ ' + c.points + ' نقطة لكل عضو' +
           '</span>' +
@@ -484,7 +484,7 @@ async function loadTeamChallenges(){
       '</div>' +
       (c.description ? '<p style="font-size:12px;color:var(--mist-dim);margin:0 0 10px;line-height:1.6;padding-right:52px">' + esc(c.description) + '</p>' : '') +
       (c.completed
-        ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#a9e6c4;padding-right:52px">✅ الفريق أتمّ المهمة!</div>'
+        ? '<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--pitch);padding-right:52px">✅ الفريق أتمّ المهمة!</div>'
         : '<button onclick="completeChallenge(' + c.id + ',\'' + esc(c.title) + '\',' + c.points + ')" style="' +
             'width:100%;background:linear-gradient(135deg,var(--gold),var(--gold-dim));color:var(--ink);' +
             'font-family:var(--font-display);font-weight:800;font-size:13px;border:none;border-radius:99px;' +
@@ -607,11 +607,11 @@ function openRoomModal(roomName){
   document.getElementById('roomModalTitle').textContent = roomIcon(roomName)+' '+roomName;
   document.getElementById('roomModalSummary').innerHTML =
     '<div style="flex:1;text-align:center;background:rgba(74,124,111,.1);border-radius:10px;padding:10px">'+
-      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#a9e6c4">'+present+'</div>'+
+      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--pitch)">'+present+'</div>'+
       '<div style="font-size:11px;color:var(--mist-dim)">حضر</div>'+
     '</div>'+
     '<div style="flex:1;text-align:center;background:rgba(192,83,58,.1);border-radius:10px;padding:10px">'+
-      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#ffb3a6">'+absent+'</div>'+
+      '<div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--coral)">'+absent+'</div>'+
       '<div style="font-size:11px;color:var(--mist-dim)">غاب</div>'+
     '</div>'+
     '<div style="flex:1;text-align:center;background:rgba(200,150,90,.1);border-radius:10px;padding:10px">'+
@@ -659,5 +659,7 @@ function esc(s){
 }
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

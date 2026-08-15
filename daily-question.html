@@ -84,17 +84,17 @@
 .option-btn.correct{
   background: rgba(74,124,111,0.18);
   border-color: var(--pitch);
-  color: #a9e6c4;
+  color: var(--pitch);
 }
 .option-btn.wrong{
   background: rgba(192,83,58,0.15);
   border-color: var(--coral);
-  color: #ffb3a6;
+  color: var(--coral);
 }
 .option-btn.reveal-correct{
   background: rgba(74,124,111,0.12);
   border-color: var(--pitch);
-  color: #a9e6c4;
+  color: var(--pitch);
 }
 
 .opt-letter{
@@ -104,9 +104,9 @@
   font-family: var(--font-display); font-weight: 800;
   font-size: 13px; color: var(--gold);
 }
-.option-btn.correct .opt-letter{ background: rgba(74,124,111,0.3); color:#a9e6c4; }
-.option-btn.wrong .opt-letter{ background: rgba(192,83,58,0.3); color:#ffb3a6; }
-.option-btn.reveal-correct .opt-letter{ background: rgba(74,124,111,0.2); color:#a9e6c4; }
+.option-btn.correct .opt-letter{ background: rgba(74,124,111,0.3); color:var(--pitch); }
+.option-btn.wrong .opt-letter{ background: rgba(192,83,58,0.3); color:var(--coral); }
+.option-btn.reveal-correct .opt-letter{ background: rgba(74,124,111,0.2); color:var(--pitch); }
 
 /* ── نتيجة ── */
 .result-banner{
@@ -128,8 +128,8 @@
   font-family:var(--font-display); font-weight:800; font-size:20px;
   margin-bottom:6px;
 }
-.result-banner.correct-res .result-title{ color: #a9e6c4; }
-.result-banner.wrong-res .result-title{ color: #ffb3a6; }
+.result-banner.correct-res .result-title{ color: var(--pitch); }
+.result-banner.wrong-res .result-title{ color: var(--coral); }
 .result-sub{ font-size:13px; color:var(--mist-dim); }
 
 .pts-pill{
@@ -408,5 +408,7 @@ function escHtml(s){
 // ============================================================
 loadQuestion();
 </script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

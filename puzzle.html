@@ -100,7 +100,7 @@
   font-family: var(--font-display);
   font-size: 17px; font-weight:800;
   letter-spacing:.3px;
-  background: linear-gradient(135deg, var(--pitch), #3a6b5e);
+  background: linear-gradient(135deg, var(--pitch), var(--pitch));
   color: #fff;
   box-shadow: 0 4px 24px rgba(74,124,111,0.35);
   transition: transform .15s, box-shadow .15s;
@@ -126,7 +126,7 @@
 .done-banner .done-icon{ font-size:48px; margin-bottom:8px; display:block; }
 .done-banner h2{
   font-family: var(--font-display);
-  font-size:20px; color: #a9e6c4;
+  font-size:20px; color: var(--pitch);
   margin-bottom:4px;
 }
 .done-banner p{ font-size:13px; color:var(--mist-dim); }
@@ -441,5 +441,7 @@ function show(id) {
 }
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

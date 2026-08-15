@@ -20,7 +20,7 @@
   border:1px solid var(--line); cursor:pointer; color:var(--mist-dim);
   font-size:13px; font-weight:600; transition: all .15s;
 }
-.msg-tab.active{ background: linear-gradient(135deg, var(--coral), #a03020); color:#fff; border-color:var(--coral); }
+.msg-tab.active{ background: linear-gradient(135deg, var(--coral), var(--coral-dim)); color:#fff; border-color:var(--coral); }
 
 /* ---- البطاقة الرئيسية ---- */
 .verse-shell{
@@ -338,5 +338,7 @@ document.getElementById("readCount").textContent = localStorage.getItem(COUNT_KE
 document.getElementById("favCount").textContent = getFavorites().length;
 showRandomVerse(true);
 </script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

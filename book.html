@@ -8,7 +8,7 @@
 <style>
 .bq-form-card{
   position:relative; overflow:hidden;
-  background: linear-gradient(150deg, #16273d, var(--ink-2) 55%, var(--ink-3));
+  background: linear-gradient(150deg, var(--ink-3), var(--ink-2) 55%, var(--ink-3));
   border:1px solid var(--line); border-radius:var(--radius);
   padding:22px 20px; margin-bottom:18px;
 }
@@ -301,5 +301,7 @@ supabase.channel("rt-book-questions")
 loadQuestions();
 </script>
 <script src="js/realtime.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>

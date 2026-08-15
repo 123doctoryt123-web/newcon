@@ -120,7 +120,7 @@
 /* ═══ Fullscreen Overlay ═══ */
 .fs-overlay{
   display:none; position:fixed; inset:0;
-  background:#060f18; z-index:9999; overflow:hidden; flex-direction:column;
+  background:var(--ink); z-index:9999; overflow:hidden; flex-direction:column;
 }
 .fs-overlay.active{ display:flex; }
 .fs-header{ text-align:center; padding:30px 20px 10px; flex-shrink:0; }
@@ -140,7 +140,7 @@
   padding:clamp(14px,2vw,24px) clamp(16px,3vw,32px); flex-shrink:0;
 }
 .fs-card-name{ font-family:var(--font-display); font-weight:800; font-size:clamp(13px,2vw,18px); color:var(--gold); margin-bottom:8px; }
-.fs-card-msg{ font-size:clamp(15px,2.5vw,22px); color:#e8e0d0; line-height:1.6; font-family:var(--font-display); }
+.fs-card-msg{ font-size:clamp(15px,2.5vw,22px); color:var(--mist); line-height:1.6; font-family:var(--font-display); }
 .fs-close{
   position:fixed; top:16px; left:16px;
   background:rgba(200,150,90,.15); border:1px solid var(--line);
@@ -351,5 +351,7 @@ function closeFullscreen(){ document.getElementById("fsOverlay").classList.remov
 loadTeam();
 loadWall();
 </script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
 </body>
 </html>
