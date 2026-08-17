@@ -501,3 +501,159 @@ body.ct-ready .ct-rv{ transition:opacity .7s var(--ease), transform .7s var(--ea
   #ct-gl{ display:none !important; }
   .ct-rv{ opacity:1 !important; transform:none !important; }
 }
+
+
+/* ==========================================================================
+   FX layer (js/fx.js) — decorative only, never affects layout
+   ========================================================================== */
+
+/* ripple */
+.ctfx-ripple{
+  position:absolute; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, rgba(255,255,255,.45), rgba(255,255,255,0) 65%);
+  transform:scale(0); opacity:.75; animation:ctfxRipple .62s ease-out forwards;
+}
+@keyframes ctfxRipple{ to{ transform:scale(1); opacity:0; } }
+
+/* word-reveal headings */
+.ctfx-w{ display:inline-block; overflow:hidden; vertical-align:top; }
+.ctfx-w i{
+  display:inline-block; font-style:normal; transform:translateY(115%);
+  transition:transform .85s cubic-bezier(.16,1,.3,1);
+}
+.go .ctfx-w i, .ctfx-w.go i{ transform:translateY(0); }
+h1.display.go .ctfx-w i, .container > h1.go .ctfx-w i, .container > h2.go .ctfx-w i{ transform:translateY(0); }
+
+/* toasts */
+#ctfx-toasts{
+  position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+  z-index:9994; display:flex; flex-direction:column; gap:10px; align-items:center;
+  pointer-events:none; width:calc(100% - 36px); max-width:420px;
+}
+.ctfx-toast{
+  background:var(--surface); border:1px solid var(--gold); color:var(--mist);
+  padding:13px 18px; border-radius:99px; font-size:13.5px; font-weight:700;
+  box-shadow:var(--shadow-lift);
+  opacity:0; transform:translateY(18px) scale(.94);
+  transition:opacity .35s var(--ease), transform .45s var(--ease);
+}
+.ctfx-toast.in{ opacity:1; transform:translateY(0) scale(1); }
+.ctfx-toast.bad{ border-color:var(--coral); }
+.ctfx-toast.good{ border-color:var(--pitch); }
+
+/* richer entrance for revealed blocks */
+body.ct-ready .ct-rv{
+  transition:opacity .8s var(--ease), transform .8s var(--ease), filter .8s var(--ease);
+}
+.ct-rv{ filter:blur(6px); }
+.ct-rv.in{ filter:blur(0); }
+
+/* gate icon gets a life of its own */
+.gate .icon{ animation: ctfxFloat 5s ease-in-out infinite; }
+.gate:nth-child(2n) .icon{ animation-delay:-1.4s; }
+.gate:nth-child(3n) .icon{ animation-delay:-2.6s; }
+@keyframes ctfxFloat{
+  0%,100%{ transform:translateY(0) rotate(0deg); }
+  50%    { transform:translateY(-5px) rotate(-3deg); }
+}
+.gate:hover .icon{ animation-play-state:paused; }
+
+/* animated aurora sweep behind the page */
+body::before{
+  background:
+    radial-gradient(circle at 30% 20%, rgba(212,162,87,0.13) 0%, transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(210,95,66,0.10) 0%, transparent 55%);
+  animation: ctfxAurora 22s ease-in-out infinite alternate;
+}
+@keyframes ctfxAurora{
+  0%  { transform:translateX(-50%) rotate(0deg)   scale(1); }
+  100%{ transform:translateX(-50%) rotate(18deg)  scale(1.15); }
+}
+
+/* buttons breathe */
+.btn{ animation: ctfxBreath 4.5s ease-in-out infinite; }
+@keyframes ctfxBreath{
+  0%,100%{ box-shadow:0 0 0 0 rgba(210,95,66,0); }
+  50%    { box-shadow:0 6px 22px -8px rgba(210,95,66,.55); }
+}
+.btn:hover{ animation-play-state:paused; }
+
+/* score digits pulse gold */
+.score-digit{ animation: ctfxGlow 3.4s ease-in-out infinite; }
+@keyframes ctfxGlow{
+  0%,100%{ box-shadow:0 0 0 0 rgba(212,162,87,0); }
+  50%    { box-shadow:0 0 26px -4px rgba(212,162,87,.5); }
+}
+
+/* badges pop in */
+.badge, .gate-status-badge{ animation: ctfxPop .5s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes ctfxPop{ from{ transform:scale(.5); opacity:0; } to{ transform:scale(1); opacity:1; } }
+
+@media (prefers-reduced-motion: reduce){
+  .ctfx-ripple, .gate .icon, .btn, .score-digit, .badge, .gate-status-badge, body::before{
+    animation:none !important;
+  }
+  .ct-rv{ filter:none !important; }
+  .ctfx-w i{ transform:none !important; }
+}
+
+
+/* ==========================================================================
+   Entrance choreography — the dashboard is the first thing anyone sees,
+   so the cards arrive in a visible cascade instead of all at once.
+   ========================================================================== */
+
+/* RTL: the outside edge is the right, so cards slide in from there */
+.gate.ct-rv{
+  transform: translateX(46px) translateY(12px) scale(.93) rotate(1.4deg);
+  filter: blur(7px);
+}
+.gate.ct-rv.in{ transform:none; filter:blur(0); }
+
+.card.ct-rv{ transform: translateY(30px) scale(.965); }
+.card.ct-rv.in{ transform:none; }
+
+body.ct-ready .gate.ct-rv{
+  transition: opacity .7s var(--ease), transform .85s cubic-bezier(.16,1,.3,1), filter .7s ease;
+}
+
+/* light sweeps across the gates every few seconds */
+.gate::before{
+  content:''; position:absolute; top:0; bottom:0; width:38%;
+  background:linear-gradient(90deg, transparent, rgba(240,200,128,.13), transparent);
+  transform:skewX(-18deg) translateX(-260%);
+  animation: gateSheen 7s ease-in-out infinite;
+  pointer-events:none; z-index:0;
+}
+@keyframes gateSheen{
+  0%, 72%  { transform:skewX(-18deg) translateX(-260%); }
+  88%,100% { transform:skewX(-18deg) translateX(360%); }
+}
+.gate:nth-child(3n)::before{ animation-delay:-2.3s; }
+.gate:nth-child(3n+1)::before{ animation-delay:-4.6s; }
+
+/* pressing a gate acknowledges the tap before the page turns */
+.gate.ct-press{
+  transform: scale(.97) !important;
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 2px rgba(212,162,87,.35), 0 0 40px -6px rgba(212,162,87,.6) !important;
+  transition: transform .18s ease, box-shadow .18s ease !important;
+}
+
+/* the page-turn curtain carries the brand instead of being a flat slab */
+#ct-curtain{
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, var(--coral), var(--coral-dim) 60%, #6E1F0E);
+}
+#ct-curtain .ct-mark{
+  font-family:var(--font-display); font-weight:800; font-size:22px; letter-spacing:2px;
+  color:#fff; opacity:0; transform:translateY(14px) scale(.9);
+  transition:opacity .3s ease .12s, transform .45s var(--ease) .12s;
+  text-shadow:0 4px 20px rgba(0,0,0,.35);
+}
+#ct-curtain.in .ct-mark{ opacity:1; transform:none; }
+
+@media (prefers-reduced-motion: reduce){
+  .gate::before{ animation:none !important; }
+  .gate.ct-rv, .card.ct-rv{ transform:none !important; filter:none !important; }
+}

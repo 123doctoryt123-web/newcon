@@ -122,6 +122,7 @@
   <div id="adminPanel" style="display:none">
     <div class="topbar no-print">
       <div class="brand"><span class="dot"></span> لوحة التحكم</div>
+      <a href="qr-admin.html" class="logout-link">🗺️ المحطات</a>
       <a href="#" class="logout-link" id="adminLogoutBtn">خروج</a>
     </div>
 
@@ -633,9 +634,13 @@
           <span>📖 درس الكتاب</span>
           <button class="btn small" id="toggleBookBtn">...</button>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--ink-3);border-radius:var(--radius-sm)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:10px 12px;background:var(--ink-3);border-radius:var(--radius-sm)">
           <span>🧱 جدار الامتنان</span>
           <button class="btn small" id="toggleGratitudeBtn">...</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--ink-3);border-radius:var(--radius-sm)">
+          <span>🗺️ رحلة المحطات (QR)</span>
+          <button class="btn small" id="toggleQrhuntBtn">...</button>
         </div>
         <div id="featureLockMsg" style="margin-top:10px"></div>
       </div>
@@ -1863,5 +1868,6 @@ function uploadImgToInput(fileInput, targetId, previewId) {
 </script>
 <script src="js/vendor3d.min.js"></script>
 <script src="js/experience.js"></script>
+<script src="js/fx.js"></script>
 </body>
 </html>

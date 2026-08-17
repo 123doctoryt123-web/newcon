@@ -28,7 +28,12 @@
 <script src="js/supabaseclient.js"></script>
 <script src="js/auth.js"></script>
 <script>
-  if(getSession()) window.location.href = "dashboard.html";
+  if(getSession()){
+    var p = null; try{ p = sessionStorage.getItem("qr_pending"); }catch(e){}
+    if(p){ try{ sessionStorage.removeItem("qr_pending"); }catch(e){}
+      window.location.href = "qr.html?c=" + encodeURIComponent(p);
+    } else window.location.href = "dashboard.html";
+  }
 
   async function doLogin(){
     var username = document.getElementById("usernameInput").value.trim();
@@ -56,6 +61,14 @@
     }
 
     saveSession({ id: res.data[0].id, name: res.data[0].name, username: username });
+    // لو جه من QR محطة قبل ما يسجل دخول، نرجّعه للمحطة على طول
+    var pending = null;
+    try { pending = sessionStorage.getItem("qr_pending"); } catch(e){}
+    if (pending) {
+      try { sessionStorage.removeItem("qr_pending"); } catch(e){}
+      window.location.href = "qr.html?c=" + encodeURIComponent(pending);
+      return;
+    }
     window.location.href = "dashboard.html";
   }
 
@@ -66,5 +79,6 @@
 </script>
 <script src="js/vendor3d.min.js"></script>
 <script src="js/experience.js"></script>
+<script src="js/fx.js"></script>
 </body>
 </html>

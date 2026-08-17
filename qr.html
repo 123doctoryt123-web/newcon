@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>محطة | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .qr-stage{ max-width:520px; margin:0 auto; padding:26px 18px 90px; position:relative; z-index:3; }
+
+  /* ---------- الحالة: بيقرأ ---------- */
+  .seal-wrap{ display:flex; flex-direction:column; align-items:center; padding:60px 0 30px; }
+  .seal{
+    width:170px; height:170px; border-radius:50%; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 45%, var(--gold-dim));
+    box-shadow:0 0 0 10px rgba(212,162,87,.10), 0 0 60px rgba(212,162,87,.45);
+    font-size:64px;
+    animation: sealFloat 3s ease-in-out infinite;
+  }
+  .seal::before, .seal::after{
+    content:''; position:absolute; inset:-14px; border-radius:50%;
+    border:1px solid var(--gold); opacity:.5;
+    animation: sealPing 2.6s ease-out infinite;
+  }
+  .seal::after{ animation-delay:1.3s; }
+  @keyframes sealFloat{ 0%,100%{ transform:translateY(0) rotate(-2deg);} 50%{ transform:translateY(-12px) rotate(2deg);} }
+  @keyframes sealPing{ 0%{ transform:scale(.85); opacity:.65; } 100%{ transform:scale(1.5); opacity:0; } }
+  .seal-txt{ margin-top:26px; font-family:var(--font-mono); font-size:11px; letter-spacing:3px; color:var(--mist-dim); }
+
+  /* ---------- الحالة: النتيجة ---------- */
+  #result{ display:none; }
+  .reveal-badge{
+    display:inline-flex; align-items:center; gap:8px; margin:0 auto 16px;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:2px;
+    padding:8px 16px; border-radius:99px;
+    border:1px solid var(--gold); color:var(--gold); background:rgba(212,162,87,.08);
+  }
+  .reveal-title{
+    font-family:var(--font-display); font-weight:800; line-height:1.2;
+    font-size:clamp(26px,7vw,40px); margin-bottom:14px;
+  }
+  .reveal-title .w{ display:inline-block; overflow:hidden; vertical-align:top; }
+  .reveal-title .w i{ display:inline-block; font-style:normal; transform:translateY(110%); transition:transform .9s cubic-bezier(.16,1,.3,1); }
+  #result.go .reveal-title .w i{ transform:translateY(0); }
+
+  .reveal-img{
+    width:100%; border-radius:var(--radius); border:1px solid var(--line);
+    display:block; margin:0 0 18px; clip-path:inset(0 0 100% 0);
+    transition:clip-path 1.1s cubic-bezier(.76,0,.24,1);
+  }
+  #result.go .reveal-img{ clip-path:inset(0 0 0 0); }
+
+  .reveal-body{
+    font-size:15.5px; line-height:2; color:var(--mist);
+    white-space:pre-wrap; margin-bottom:20px;
+    opacity:0; transform:translateY(16px);
+    transition:opacity .8s ease .35s, transform .8s var(--ease) .35s;
+  }
+  #result.go .reveal-body{ opacity:1; transform:none; }
+
+  .pts{
+    display:flex; align-items:baseline; justify-content:center; gap:8px;
+    font-family:var(--font-display); font-weight:800; color:var(--gold);
+    font-size:44px; margin:4px 0 2px;
+  }
+  .pts small{ font-size:14px; color:var(--mist-dim); font-weight:500; }
+
+  .progress-line{ height:6px; border-radius:99px; background:var(--line-soft); overflow:hidden; margin:14px 0 8px; }
+  .progress-line i{ display:block; height:100%; width:0; border-radius:99px;
+    background:linear-gradient(90deg,var(--gold),var(--coral)); transition:width 1.2s var(--ease) .4s; }
+
+  .qr-actions{ display:flex; gap:10px; margin-top:22px; }
+  .qr-actions .btn{ flex:1; }
+
+  /* ---------- حالات الخطأ ---------- */
+  .state-box{ text-align:center; padding:50px 20px; }
+  .state-box .ico{ font-size:60px; display:block; margin-bottom:16px; }
+  .state-box h2{ font-size:19px; margin-bottom:10px; }
+  .state-box p{ color:var(--mist-dim); font-size:14px; line-height:1.8; }
+
+  .video-wrap{ position:relative; padding-top:56.25%; border-radius:var(--radius); overflow:hidden; border:1px solid var(--line); margin-bottom:18px; }
+  .video-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+</style>
+</head>
+<body>
+
+<div class="qr-stage">
+
+  <!-- بيقرأ الكود -->
+  <div id="readingState">
+    <div class="seal-wrap">
+      <div class="seal">🔎</div>
+      <div class="seal-txt">بنفتح المحطة…</div>
+    </div>
+  </div>
+
+  <!-- النتيجة -->
+  <div id="result">
+    <div style="text-align:center">
+      <span class="reveal-badge" id="revealBadge">محطة جديدة</span>
+    </div>
+    <h1 class="reveal-title" id="revealTitle"></h1>
+
+    <div id="mediaSlot"></div>
+
+    <div class="reveal-body" id="revealBody"></div>
+
+    <div class="card" id="statsCard" style="text-align:center">
+      <div class="pts" id="ptsRow" style="display:none">
+        <span id="ptsVal">0</span><small>نقطة</small>
+      </div>
+      <div style="font-size:13px;color:var(--mist-dim)" id="progTxt">—</div>
+      <div class="progress-line"><i id="progBar"></i></div>
+    </div>
+
+    <div id="badgeBox" style="display:none;text-align:center;border:1px solid var(--gold);
+         border-radius:var(--radius);padding:20px;margin-bottom:14px;
+         background:linear-gradient(160deg,rgba(212,162,87,.16),rgba(212,162,87,.04))">
+      <div style="font-size:46px;line-height:1;margin-bottom:8px" id="badgeIco">🗺️</div>
+      <div style="font-family:var(--font-display);font-weight:800;font-size:19px" id="badgeName">شارة جديدة</div>
+      <div style="font-size:13px;color:var(--mist-dim);margin-top:5px" id="badgeDesc"></div>
+    </div>
+
+    <a class="btn" id="arBtn" style="display:none;margin-bottom:10px">👁️ شوفه بالواقع المعزز</a>
+    <div class="qr-actions">
+      <a href="qr-hunt.html" class="btn">🗺️ محطاتي</a>
+      <a href="dashboard.html" class="btn outline">الرئيسية</a>
+    </div>
+  </div>
+
+  <!-- خطأ / حالات -->
+  <div id="stateBox" style="display:none">
+    <div class="card state-box">
+      <span class="ico" id="stIco">🤔</span>
+      <h2 id="stTitle"></h2>
+      <p id="stMsg"></p>
+      <div class="qr-actions">
+        <a href="dashboard.html" class="btn outline">الرئيسية</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var code = (params.get('c') || params.get('code') || '').trim();
+
+  function show(id){
+    ['readingState','result','stateBox'].forEach(function(x){
+      document.getElementById(x).style.display = (x===id) ? 'block' : 'none';
+    });
+  }
+  function state(ico, title, msg){
+    document.getElementById('stIco').textContent = ico;
+    document.getElementById('stTitle').textContent = title;
+    document.getElementById('stMsg').innerHTML = msg;
+    show('stateBox');
+  }
+
+  // Arabic is cursive — split on WORDS, never characters, or the letters
+  // disconnect and the title renders wrong.
+  function splitWords(node, text){
+    node.innerHTML = '';
+    text.split(/(\s+)/).forEach(function(tok, i){
+      if(!tok.trim()){ node.appendChild(document.createTextNode(tok)); return; }
+      var w = document.createElement('span'); w.className = 'w';
+      var it = document.createElement('i'); it.textContent = tok;
+      it.style.transitionDelay = (i * 0.045) + 's';
+      w.appendChild(it); node.appendChild(w);
+    });
+  }
+
+  if(!code){
+    state('❓','مفيش كود','الرابط ده ناقص كود المحطة.<br>اعمل سكان للـ QR تاني من الكاميرا.');
+    return;
+  }
+
+  var member = null;
+  try { member = JSON.parse(localStorage.getItem('member') || 'null'); } catch(e){}
+
+  // مش مسجل دخول؟ نحفظ الكود ونرجعه بعد الدخول
+  if(!member || !member.id){
+    try { sessionStorage.setItem('qr_pending', code); } catch(e){}
+    state('🔐','لازم تسجل دخول الأول',
+      'سجّل دخولك وهنرجعك للمحطة دي على طول.<br><br>' +
+      '<a class="btn" style="max-width:220px;margin:0 auto" href="index.html">تسجيل الدخول</a>');
+    return;
+  }
+
+  document.addEventListener('DOMContentLoaded', run);
+  if(document.readyState !== 'loading') run();
+  var ran = false;
+  async function run(){
+    if(ran) return; ran = true;
+    show('readingState');
+    var t0 = Date.now();
+    try{
+      var res = await supabase.rpc('scan_qr_station', { p_member_id: member.id, p_code: code });
+      if(res.error) throw res.error;
+      var d = res.data;
+      if(typeof d === 'string') { try{ d = JSON.parse(d); }catch(e){} }
+      if(!d){ throw new Error('empty'); }
+
+      // خلي شاشة الفتح تبان لحظة عشان الإحساس
+      var wait = Math.max(0, 900 - (Date.now() - t0));
+      setTimeout(function(){ render(d); }, wait);
+    }catch(e){
+      state('📡','مش قادر نوصل','فيه مشكلة في الاتصال. اتأكد من النت وجرب تاني.');
+    }
+  }
+
+  function render(d){
+    if(d.status === 'not_found'){
+      state('🔍','الكود ده مش موجود','يمكن الـ QR ده مش من اللعبة، أو اتغير.<br>اتأكد إنك بتصوّر الكود الصح.');
+      return;
+    }
+    if(d.status === 'inactive'){
+      state('⏸️','المحطة دي مقفولة','المحطة موجودة بس الأدمن قافلها دلوقتي.');
+      return;
+    }
+    if(d.status === 'closed'){
+      state('🔒','اللعبة مقفولة','لعبة المحطات مش شغالة دلوقتي. استنى الأدمن يفتحها.');
+      return;
+    }
+
+    var already = (d.status === 'already');
+    document.getElementById('revealBadge').textContent = already ? '↩︎ لقيتها قبل كده' : '✦ محطة جديدة';
+    splitWords(document.getElementById('revealTitle'), d.title || 'محطة');
+
+    var media = document.getElementById('mediaSlot');
+    media.innerHTML = '';
+    if(d.image_url){
+      var im = document.createElement('img');
+      im.className = 'reveal-img'; im.src = d.image_url; im.alt = d.title || '';
+      media.appendChild(im);
+    }
+    if(d.video_url){
+      var vw = document.createElement('div'); vw.className = 'video-wrap';
+      var fr = document.createElement('iframe');
+      fr.src = toEmbed(d.video_url);
+      fr.setAttribute('allow','accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture');
+      fr.setAttribute('allowfullscreen','');
+      vw.appendChild(fr); media.appendChild(vw);
+    }
+
+    document.getElementById('revealBody').textContent = d.body || '';
+
+    // زرار الواقع المعزز — يظهر بس لو المحطة ليها مجسم
+    if(d.has_ar){
+      var ab = document.getElementById('arBtn');
+      ab.href = 'ar.html?c=' + encodeURIComponent(d.code || code);
+      ab.style.display = 'inline-flex';
+    }
+
+    var pts = Number(d.points || 0);
+    if(pts > 0){
+      document.getElementById('ptsRow').style.display = 'flex';
+    }
+    var found = Number(d.found || 0), total = Number(d.total || 0);
+    document.getElementById('progTxt').textContent =
+      total ? ('لقيت ' + found + ' من ' + total + ' محطة') : '';
+
+    show('result');
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        document.getElementById('result').classList.add('go');
+        if(total) document.getElementById('progBar').style.width = Math.round(found/total*100) + '%';
+        if(pts > 0 && window.CTFX) window.CTFX.countTo(document.getElementById('ptsVal'), pts, 900);
+        else document.getElementById('ptsVal').textContent = pts;
+
+        if(!already && window.CTFX){
+          window.CTFX.confetti();
+          window.CTFX.haptic([18, 40, 18]);
+          if(found && total && found === total) setTimeout(window.CTFX.confetti, 700);
+        }
+
+        // خلّص كل المحطات وخد الشارة
+        var bd = d.badge;
+        if(typeof bd === 'string'){ try{ bd = JSON.parse(bd); }catch(e){ bd = null; } }
+        if(bd && bd.status === 'ok'){
+          var bb = document.getElementById('badgeBox');
+          document.getElementById('badgeName').textContent = 'شارة المستكشف 🎉';
+          document.getElementById('badgeDesc').textContent =
+            'لقيت كل المحطات' + (bd.points ? ' — و' + bd.points + ' نقطة زيادة' : '');
+          bb.style.display = 'block';
+          if(window.CTFX){
+            setTimeout(function(){ window.CTFX.confetti({count:130}); }, 400);
+            window.CTFX.haptic([30,60,30,60,30]);
+          }
+        }
+      });
+    });
+  }
+
+  function toEmbed(u){
+    var m = String(u).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+    if(m) return 'https://www.youtube.com/embed/' + m[1];
+    return u;
+  }
+})();
+</script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
+<script src="js/fx.js"></script>
+</body>
+</html>

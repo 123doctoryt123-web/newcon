@@ -37,6 +37,9 @@
 
   /* ---------------------------------------------------------------- DOM  */
   var curtain = el('div', 'ct-curtain');
+  var mark = el('div', null, 'ct-mark');
+  mark.textContent = 'CONNECT THREE';
+  curtain.appendChild(mark);
   var prog    = el('div', 'ct-prog');
   document.body.appendChild(curtain);
   document.body.appendChild(prog);
@@ -163,7 +166,8 @@
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
         var i = revealEls.indexOf(en.target);
-        en.target.style.transitionDelay = Math.min(Math.max(i, 0), 6) * 0.05 + 's';
+        // cascade far enough to actually read as a sequence
+        en.target.style.transitionDelay = Math.min(Math.max(i, 0), 12) * 0.065 + 's';
         en.target.classList.add('in');
         io.unobserve(en.target);
       });
@@ -241,6 +245,12 @@
   /* --------------------------------------------- page-transition curtain */
   function leaveTo(href) {
     try { sessionStorage.setItem('ct_nav', '1'); } catch (e) {}
+    // On a direct page load the curtain gets parked (display:none / inline
+    // transform). Reset it here or the outgoing wipe silently never shows.
+    curtain.style.display = '';
+    curtain.style.transition = '';
+    curtain.style.transform = '';
+    void curtain.offsetHeight;            // force the reset to apply first
     curtain.classList.add('in');
     var went = false;
     var go = function () { if (!went) { went = true; location.href = href; } };
@@ -271,6 +281,8 @@
       g.removeAttribute('onclick');
       g.addEventListener('click', function () {
         if (window.__ctBlip) window.__ctBlip(480, 0.06);
+        g.classList.add('ct-press');
+        if (window.CTFX) window.CTFX.haptic(14);
         leaveTo(m[1]);
       });
     });

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>الواقع المعزز | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  html,body{ height:100%; overflow:hidden; }
+  body::before, body::after{ display:none; }   /* الخلفية والحبيبات مش مطلوبين هنا */
+
+  #camVideo{
+    position:fixed; inset:0; width:100%; height:100%;
+    object-fit:cover; z-index:0; background:#000;
+  }
+  #arCanvas{ position:fixed; inset:0; width:100%; height:100%; z-index:1; }
+
+  /* ---------- شاشة البداية ---------- */
+  #intro{
+    position:fixed; inset:0; z-index:9; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:22px; padding:30px;
+    background:radial-gradient(circle at 50% 35%, #16293D, #0A1521 70%);
+    text-align:center;
+  }
+  #intro .orb{
+    width:150px; height:150px; border-radius:50%; position:relative;
+    background:radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 45%, var(--gold-dim));
+    box-shadow:0 0 70px rgba(212,162,87,.55);
+    display:flex; align-items:center; justify-content:center; font-size:60px;
+    animation:orbFloat 3s ease-in-out infinite;
+  }
+  #intro .orb::after{
+    content:''; position:absolute; inset:-16px; border-radius:50%;
+    border:1px solid var(--gold); animation:orbPing 2.4s ease-out infinite;
+  }
+  @keyframes orbFloat{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+  @keyframes orbPing{ 0%{transform:scale(.9);opacity:.7} 100%{transform:scale(1.5);opacity:0} }
+  #intro h1{ font-size:26px; }
+  #intro p{ color:var(--mist-dim); font-size:14.5px; line-height:1.9; max-width:330px; }
+  #intro .btn{ max-width:280px; }
+
+  /* ---------- واجهة أثناء الـ AR ---------- */
+  #hud{ position:fixed; inset:0; z-index:5; pointer-events:none; display:none; }
+  #hud .top{
+    position:absolute; top:calc(14px + env(safe-area-inset-top)); left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center; padding:0 16px;
+  }
+  #hud .chip{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:2px; color:var(--gold);
+    background:rgba(0,0,0,.45); backdrop-filter:blur(8px);
+    padding:8px 14px; border-radius:99px; border:1px solid rgba(212,162,87,.35);
+  }
+  #hud .chip.tap{ pointer-events:auto; color:#fff; }
+  #hud .bottom{
+    position:absolute; bottom:calc(22px + env(safe-area-inset-bottom)); left:0; right:0;
+    display:flex; justify-content:center; align-items:center; gap:18px;
+  }
+  .circleBtn{
+    pointer-events:auto; width:62px; height:62px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.75); background:rgba(0,0,0,.35);
+    backdrop-filter:blur(8px); color:#fff; font-size:22px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .circleBtn.main{
+    width:78px; height:78px; border-color:var(--gold);
+    background:radial-gradient(circle at 40% 35%, var(--gold-bright), var(--gold));
+    color:#1A1206; font-size:26px;
+    box-shadow:0 0 34px rgba(212,162,87,.65);
+  }
+  .circleBtn:active{ transform:scale(.92); }
+  #hint{
+    position:absolute; bottom:calc(112px + env(safe-area-inset-bottom)); left:0; right:0;
+    text-align:center; font-size:13px; color:#fff; text-shadow:0 2px 10px #000;
+  }
+
+  /* ---------- شاشة الصورة الملتقطة ---------- */
+  #shot{
+    position:fixed; inset:0; z-index:20; display:none; background:#0A1521;
+    flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:20px;
+  }
+  #shot img{ max-width:100%; max-height:66vh; border-radius:16px; border:1px solid var(--line); }
+  #shot .row{ display:flex; gap:10px; width:100%; max-width:380px; }
+  #shot .row .btn{ flex:1; }
+
+  #err{
+    position:fixed; inset:0; z-index:30; display:none; padding:30px;
+    background:#0A1521; align-items:center; justify-content:center; text-align:center;
+  }
+  #err .card{ max-width:400px; }
+</style>
+</head>
+<body>
+
+<video id="camVideo" playsinline muted autoplay></video>
+<canvas id="arCanvas"></canvas>
+
+<div id="intro">
+  <div class="orb" id="introIcon">✨</div>
+  <h1 id="introTitle">جاهز؟</h1>
+  <p id="introText">هنفتح الكاميرا، ووجّه موبايلك حواليك — هتلاقي المفاجأة مستنياك في الهوا.</p>
+  <button class="btn" id="startBtn">🎬 يلا نبدأ</button>
+  <a href="qr-hunt.html" style="font-size:13px;color:var(--mist-dim)">رجوع</a>
+</div>
+
+<div id="hud">
+  <div class="top">
+    <span class="chip" id="chipTitle">—</span>
+    <span class="chip tap" id="closeBtn">✕</span>
+  </div>
+  <div id="hint">حرّك موبايلك حواليك 👀</div>
+  <div class="bottom">
+    <button class="circleBtn" id="againBtn" title="إعادة">↻</button>
+    <button class="circleBtn main" id="snapBtn" title="صورة">📸</button>
+    <button class="circleBtn" id="soundBtn2" title="صوت">🔊</button>
+  </div>
+</div>
+
+<div id="shot">
+  <img id="shotImg" alt="صورتك">
+  <div class="row">
+    <a class="btn" id="dlBtn" download="connect-three.png">💾 حفظ الصورة</a>
+    <button class="btn outline" id="backBtn">رجوع</button>
+  </div>
+</div>
+
+<div id="err">
+  <div class="card">
+    <div style="font-size:52px;margin-bottom:12px" id="errIco">📷</div>
+    <h2 style="font-size:18px;margin-bottom:10px" id="errTitle"></h2>
+    <p style="color:var(--mist-dim);font-size:14px;line-height:1.9" id="errMsg"></p>
+    <a href="qr-hunt.html" class="btn outline" style="margin-top:16px">رجوع</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/vendor3d.min.js"></script>
+<script>
+(function(){
+  var THREE = window.CT_GFX && window.CT_GFX.THREE;
+  var q = new URLSearchParams(location.search);
+
+  // إعدادات المحطة (تيجي من قاعدة البيانات أو من اللينك للتجربة)
+  var cfg = {
+    type:  q.get('type') || 'text',
+    text:  q.get('text') || 'أهلاً بيك 👋',
+    color: q.get('color') || '#D4A257',
+    image: q.get('img') || '',
+    video: q.get('vid') || '',
+    model: q.get('m') || '',
+    title: q.get('t') || 'الواقع المعزز'
+  };
+  var code = (q.get('c') || '').trim();
+
+  function fail(ico, title, msg){
+    document.getElementById('errIco').textContent = ico;
+    document.getElementById('errTitle').textContent = title;
+    document.getElementById('errMsg').innerHTML = msg;
+    document.getElementById('err').style.display = 'flex';
+    document.getElementById('intro').style.display = 'none';
+  }
+
+  /* ---------------- تحميل بيانات المحطة ---------------- */
+  if(code){
+    var member=null; try{ member=JSON.parse(localStorage.getItem('member')||'null'); }catch(e){}
+    if(!member || !member.id){
+      try{ sessionStorage.setItem('qr_pending', code); }catch(e){}
+      location.href='index.html'; return;
+    }
+    supabase.rpc('get_qr_station_model',{p_member_id:member.id,p_code:code}).then(function(r){
+      var d=r&&r.data; if(typeof d==='string'){ try{d=JSON.parse(d);}catch(e){} }
+      if(!d || d.status!=='ok'){
+        fail('🔒','لسه بدري','لازم تعمل سكان للمحطة الأول عشان تشوف المفاجأة بتاعتها.');
+        return;
+      }
+      cfg.type  = d.ar_type || 'text';
+      cfg.text  = d.ar_text || d.title || '';
+      cfg.color = d.ar_color || '#D4A257';
+      cfg.image = d.image_url || '';
+      cfg.video = d.video_url || '';
+      cfg.model = d.model_url || '';
+      cfg.title = d.title || 'محطة';
+      document.getElementById('introTitle').textContent = cfg.title;
+      document.getElementById('chipTitle').textContent  = cfg.title;
+    }).catch(function(){});
+  } else {
+    document.getElementById('chipTitle').textContent = cfg.title;
+  }
+
+  /* ---------------- الكاميرا ---------------- */
+  var video = document.getElementById('camVideo');
+  var stream = null;
+
+  async function startCamera(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      return false;
+    }
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:{ ideal:'environment' } }, audio:false
+      });
+      video.srcObject = stream;
+      await video.play();
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* ---------------- المشهد ثلاثي الأبعاد ---------------- */
+  var renderer, scene, camera, group, clock, mixerObjs = [];
+  var canvas = document.getElementById('arCanvas');
+
+  function initScene(){
+    renderer = new THREE.WebGLRenderer({ canvas:canvas, alpha:true, antialias:true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(innerWidth, innerHeight, false);
+    renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.05, 100);
+    camera.position.set(0,0,0);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+    var d = new THREE.DirectionalLight(0xffffff, 1.4); d.position.set(2,4,3); scene.add(d);
+    var g = new THREE.PointLight(0xD4A257, 2.2, 20); g.position.set(0,1,-2.4); scene.add(g);
+
+    group = new THREE.Group();
+    group.position.set(0, 0, -2.6);        // قدام المستخدم بـ 2.6 متر
+    scene.add(group);
+
+    clock = new THREE.Clock();
+    addSparkles();
+    buildContent();
+    animate();
+    window.addEventListener('resize', onResize);
+  }
+
+  function onResize(){
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight, false);
+    mixerObjs.forEach(function(o){
+      o.scale.set(1,1,1);
+      o.userData.target = fitScale(o);
+    });
+  }
+
+  /* ---- الكلام العربي 3D ----
+     مهم: الحروف العربية متصلة، ومكتبات الـ3D بتفصلها وتقلبها لو رسمتها حرف حرف.
+     الحل إننا نرسم الكلام على canvas (المتصفح بيوصّل الحروف صح) ونستخدمه
+     كصورة، وناخد نسخ منها ورا بعض عشان يبان ليها سُمك حقيقي. */
+  // نلف الكلام الطويل على أكتر من سطر بدل ما يطلع بره الشاشة
+  function wrapText(txt, perLine){
+    return String(txt).split('\n').map(function(line){
+      var words = line.trim().split(/\s+/);
+      if(words.length <= perLine) return line;
+      var out = [], row = [];
+      words.forEach(function(w){
+        row.push(w);
+        if(row.length >= perLine){ out.push(row.join(' ')); row = []; }
+      });
+      if(row.length) out.push(row.join(' '));
+      return out.join('\n');
+    }).join('\n');
+  }
+
+  function textTexture(txt, color){
+    var pad = 40, fs = 130;
+    var c = document.createElement('canvas'), x = c.getContext('2d');
+    x.font = '800 '+fs+'px Changa, Tajawal, sans-serif';
+    var lines = String(txt).split('\n');
+    var w = 0;
+    lines.forEach(function(l){ w = Math.max(w, x.measureText(l).width); });
+    c.width  = Math.ceil(w + pad*2);
+    c.height = Math.ceil(lines.length * fs * 1.35 + pad*2);
+
+    x = c.getContext('2d');
+    x.font = '800 '+fs+'px Changa, Tajawal, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.direction = 'rtl';
+
+    var grad = x.createLinearGradient(0,0,0,c.height);
+    grad.addColorStop(0, '#FFF3D6');
+    grad.addColorStop(0.45, color);
+    grad.addColorStop(1, '#8A5F22');
+
+    lines.forEach(function(l,i){
+      var y = pad + fs*0.68 + i*fs*1.35;
+      x.lineWidth = 14; x.strokeStyle = 'rgba(0,0,0,.55)';
+      x.strokeText(l, c.width/2, y);
+      x.fillStyle = grad;
+      x.fillText(l, c.width/2, y);
+    });
+
+    var t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    return { tex:t, ratio: c.width/c.height };
+  }
+
+  function build3DText(txt, color){
+    var r = textTexture(wrapText(txt, 3), color);
+    var H = 0.85, W = H * r.ratio;
+    var holder = new THREE.Group();
+
+    // طبقات ورا بعض = إحساس السُمك
+    var LAYERS = 14;
+    for(var i=LAYERS-1; i>=0; i--){
+      var isFront = (i===0);
+      var m = new THREE.MeshBasicMaterial({
+        map:r.tex, transparent:true,
+        color: isFront ? 0xffffff : 0x4a3410,
+        opacity: isFront ? 1 : 0.92,
+        depthWrite: isFront
+      });
+      var p = new THREE.Mesh(new THREE.PlaneGeometry(W,H), m);
+      p.position.z = -i * 0.012;
+      holder.add(p);
+    }
+    // هالة ضوء وراه
+    var glow = new THREE.Mesh(
+      new THREE.PlaneGeometry(W*1.5, H*2.2),
+      new THREE.MeshBasicMaterial({ map:r.tex, transparent:true, opacity:.18,
+        color:new THREE.Color(color), blending:THREE.AdditiveBlending, depthWrite:false })
+    );
+    glow.position.z = -0.22; glow.scale.set(1.1,1.1,1);
+    holder.add(glow);
+    return holder;
+  }
+
+  function buildPanel(texture, ratio){
+    var H = 1.25, W = H * (ratio || 1.4);
+    var frame = new THREE.Mesh(
+      new THREE.PlaneGeometry(W+0.09, H+0.09),
+      new THREE.MeshBasicMaterial({ color:0xD4A257, transparent:true, opacity:.95 })
+    );
+    frame.position.z = -0.012;
+    var panel = new THREE.Mesh(
+      new THREE.PlaneGeometry(W,H),
+      new THREE.MeshBasicMaterial({ map:texture, toneMapped:false })
+    );
+    var g = new THREE.Group(); g.add(frame); g.add(panel);
+    return g;
+  }
+
+  var arVideoEl = null;
+
+  function buildContent(){
+    group.clear && group.clear();
+
+    if(cfg.type === 'image' && cfg.image){
+      new THREE.TextureLoader().load(cfg.image, function(tex){
+        tex.colorSpace = THREE.SRGBColorSpace;
+        var ratio = (tex.image && tex.image.width/tex.image.height) || 1.4;
+        var p = buildPanel(tex, ratio);
+        group.add(p); entrance(p);
+      }, undefined, function(){
+        var t = build3DText(cfg.text || 'الصورة مش راضية تفتح', cfg.color);
+        group.add(t); entrance(t);
+      });
+      return;
+    }
+
+    if(cfg.type === 'video' && cfg.video){
+      var v = document.createElement('video');
+      v.src = cfg.video; v.crossOrigin='anonymous'; v.loop = true;
+      v.muted = true; v.playsInline = true; v.setAttribute('playsinline','');
+      arVideoEl = v;
+      v.play().catch(function(){});
+      var tex = new THREE.VideoTexture(v);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      var p = buildPanel(tex, 16/9);
+      group.add(p); entrance(p);
+      return;
+    }
+
+    if(cfg.type === 'model' && cfg.model){
+      var Loader = window.CT_GFX && window.CT_GFX.GLTFLoader;
+      if(!Loader){
+        var tf = build3DText(cfg.text || cfg.title, cfg.color);
+        group.add(tf); entrance(tf); return;
+      }
+      new Loader().load(cfg.model, function(gltf){
+        var m = gltf.scene;
+        // نوسّط الموديل حوالين نقطة الأصل عشان يلف حوالين نفسه مظبوط
+        var box = new THREE.Box3().setFromObject(m);
+        var c = box.getCenter(new THREE.Vector3());
+        m.position.sub(c);
+        var holder = new THREE.Group();
+        holder.add(m);
+        group.add(holder); entrance(holder);
+      }, undefined, function(){
+        var te = build3DText('الموديل مش راضي يفتح', cfg.color);
+        group.add(te); entrance(te);
+      });
+      return;
+    }
+
+    var t = build3DText(cfg.text || '✨', cfg.color);
+    group.add(t); entrance(t);
+  }
+
+  // نحسب المساحة الظاهرة على بعد المحتوى ونصغّره لو أكبر منها،
+  // عشان الكلام الطويل ما يخرجش بره الشاشة على الموبايلات الرفيعة.
+  function fitScale(obj){
+    var dist = Math.abs(group.position.z);
+    var vh = 2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+    var vw = vh * camera.aspect;
+    var box = new THREE.Box3().setFromObject(obj);
+    var size = box.getSize(new THREE.Vector3());
+    if(size.x < 1e-4 || size.y < 1e-4) return 1;
+    return Math.min(1, (vw*0.86)/size.x, (vh*0.7)/size.y);
+  }
+
+  function entrance(obj){
+    var target = fitScale(obj);
+    obj.userData.target = target;
+    obj.scale.set(0.001,0.001,0.001);
+    obj.userData.spawn = performance.now();
+    mixerObjs.push(obj);
+    if(window.CTFX){ window.CTFX.haptic([20,50,20]); }
+  }
+
+  /* ---- شرارات حوالين المحتوى ---- */
+  var sparkles;
+  function addSparkles(){
+    var N = 140, pos = new Float32Array(N*3);
+    for(var i=0;i<N;i++){
+      var r = 1.6 + Math.random()*2.4, a = Math.random()*Math.PI*2, b = (Math.random()-0.5)*2.4;
+      pos[i*3]   = Math.cos(a)*r;
+      pos[i*3+1] = b;
+      pos[i*3+2] = Math.sin(a)*r - 2.6;
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    sparkles = new THREE.Points(g, new THREE.PointsMaterial({
+      color:0xD4A257, size:0.035, transparent:true, opacity:.85,
+      blending:THREE.AdditiveBlending, depthWrite:false
+    }));
+    scene.add(sparkles);
+  }
+
+  /* ---- اتجاه الموبايل: المحتوى يفضل ثابت مكانه وانت بتلف ---- */
+  var orient = null;
+  var zee = null, euler = null, q0 = null, q1 = null;
+  function enableOrientation(){
+    if(!window.DeviceOrientationEvent) return;
+    zee = new THREE.Vector3(0,0,1);
+    euler = new THREE.Euler();
+    q0 = new THREE.Quaternion();
+    q1 = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5)); // -90° حوالين X
+    window.addEventListener('deviceorientation', function(e){ orient = e; }, true);
+  }
+  function applyOrientation(){
+    if(!orient || orient.alpha == null) return;
+    var a = THREE.MathUtils.degToRad(orient.alpha || 0);
+    var b = THREE.MathUtils.degToRad(orient.beta  || 0);
+    var g = THREE.MathUtils.degToRad(orient.gamma || 0);
+    var o = THREE.MathUtils.degToRad(window.orientation || 0);
+    euler.set(b, a, -g, 'YXZ');
+    camera.quaternion.setFromEuler(euler);
+    camera.quaternion.multiply(q1);
+    camera.quaternion.multiply(q0.setFromAxisAngle(zee, -o));
+  }
+
+  function animate(){
+    requestAnimationFrame(animate);
+    var t = performance.now();
+
+    mixerObjs.forEach(function(o){
+      var p = Math.min(1, (t - o.userData.spawn)/900);
+      var e = 1 - Math.pow(1-p, 3);
+      var tg = o.userData.target || 1;
+      var s = tg * (0.001 + e * 0.999);
+      o.scale.set(s,s,s);
+      o.rotation.y = Math.sin(t*0.0006) * 0.22;
+      o.position.y = Math.sin(t*0.0011) * 0.07;
+    });
+
+    if(sparkles){
+      sparkles.rotation.y += 0.0012;
+      sparkles.material.opacity = 0.55 + Math.sin(t*0.002)*0.3;
+    }
+
+    applyOrientation();
+    renderer.render(scene, camera);
+  }
+
+  /* ---------------- التقاط صورة ---------------- */
+  function snap(){
+    var w = innerWidth, h = innerHeight;
+    var out = document.createElement('canvas');
+    out.width = w * 2; out.height = h * 2;
+    var x = out.getContext('2d');
+
+    // 1) صورة الكاميرا بنفس قصّة object-fit:cover
+    if(video.videoWidth){
+      var vw = video.videoWidth, vh = video.videoHeight;
+      var scale = Math.max(out.width/vw, out.height/vh);
+      var dw = vw*scale, dh = vh*scale;
+      x.drawImage(video, (out.width-dw)/2, (out.height-dh)/2, dw, dh);
+    } else {
+      x.fillStyle = '#0A1521'; x.fillRect(0,0,out.width,out.height);
+    }
+    // 2) المحتوى ثلاثي الأبعاد فوقها
+    renderer.render(scene, camera);
+    x.drawImage(canvas, 0, 0, out.width, out.height);
+    // 3) توقيع
+    x.font = '600 '+(out.width*0.028)+'px Changa, sans-serif';
+    x.fillStyle = 'rgba(255,255,255,.85)'; x.textAlign = 'center';
+    x.fillText('Connect Three', out.width/2, out.height - out.width*0.05);
+
+    var url = out.toDataURL('image/png');
+    document.getElementById('shotImg').src = url;
+    document.getElementById('dlBtn').href = url;
+    document.getElementById('shot').style.display = 'flex';
+    if(window.CTFX){ window.CTFX.confetti({count:60}); window.CTFX.haptic([25,60,25]); }
+  }
+
+  /* ---------------- التشغيل ---------------- */
+  document.getElementById('startBtn').addEventListener('click', async function(){
+    var btn = this; btn.disabled = true; btn.textContent = 'بنجهّز…';
+
+    if(!THREE){
+      fail('⚠️','مشكلة في التحميل','ملف الرسوميات مش اتحمّل. اعمل ريفريش للصفحة.');
+      return;
+    }
+
+    // إذن الجيروسكوب على الآيفون لازم يتطلب من ضغطة المستخدم
+    try{
+      if(window.DeviceOrientationEvent &&
+         typeof window.DeviceOrientationEvent.requestPermission === 'function'){
+        await window.DeviceOrientationEvent.requestPermission();
+      }
+    }catch(e){}
+    enableOrientation();
+
+    var camOk = await startCamera();
+    if(!camOk){
+      // من غير كاميرا لسه ينفع نعرض المحتوى على خلفية داكنة
+      video.style.background = 'radial-gradient(circle at 50% 40%, #16293D, #0A1521 70%)';
+      document.getElementById('hint').textContent = 'الكاميرا مقفولة — بس المحتوى شغال';
+    }
+
+    document.getElementById('intro').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    initScene();
+
+    setTimeout(function(){
+      var h = document.getElementById('hint');
+      if(h) h.style.transition='opacity .6s', h.style.opacity='0';
+    }, 5000);
+  });
+
+  document.getElementById('snapBtn').addEventListener('click', snap);
+  document.getElementById('backBtn').addEventListener('click', function(){
+    document.getElementById('shot').style.display='none';
+  });
+  document.getElementById('againBtn').addEventListener('click', function(){
+    mixerObjs = []; buildContent();
+  });
+  document.getElementById('soundBtn2').addEventListener('click', function(){
+    if(!arVideoEl) return;
+    arVideoEl.muted = !arVideoEl.muted;
+    this.textContent = arVideoEl.muted ? '🔇' : '🔊';
+  });
+  document.getElementById('closeBtn').addEventListener('click', function(){
+    if(stream) stream.getTracks().forEach(function(t){ t.stop(); });
+    location.href = code ? 'qr.html?c='+encodeURIComponent(code) : 'qr-hunt.html';
+  });
+  window.addEventListener('pagehide', function(){
+    if(stream) stream.getTracks().forEach(function(t){ t.stop(); });
+  });
+})();
+</script>
+<script src="js/fx.js"></script>
+</body>
+</html>

@@ -6,7 +6,8 @@ var featureKeys = {
   secretbox: "secretbox_open",
   book: "book_open",
   gratitude: "gratitude_open",
-  puzzle: "puzzle_open"
+  puzzle: "puzzle_open",
+  qrhunt: "qr_hunt_open"
 };
 
 var featureState = {};
@@ -56,4 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (bookBtn) bookBtn.addEventListener("click", function () { toggleFeature("book"); });
   if (gratitudeBtn) gratitudeBtn.addEventListener("click", function () { toggleFeature("gratitude"); });
   if (puzzleBtn) puzzleBtn.addEventListener("click", function () { toggleFeature("puzzle"); });
+
+  var qrhuntBtn = document.getElementById("toggleQrhuntBtn");
+  if (qrhuntBtn) qrhuntBtn.addEventListener("click", function () { toggleFeature("qrhunt"); });
 });

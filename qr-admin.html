@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة المحطات | Connect Three</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:560px){ .row2{ grid-template-columns:1fr; } }
+
+  .st-row{
+    display:flex; align-items:center; gap:12px; padding:14px 0;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .st-row:last-child{ border-bottom:none; }
+  .st-row .code{
+    font-family:var(--font-mono); font-size:12px; padding:5px 10px; border-radius:8px;
+    background:rgba(212,162,87,.12); color:var(--gold); white-space:nowrap;
+  }
+  .st-row .t{ flex:1; min-width:0; font-weight:700; font-size:14.5px; }
+  .st-row .meta{ font-size:11.5px; color:var(--mist-dim); margin-top:2px; font-weight:400; }
+  .st-row .acts{ display:flex; gap:6px; }
+  .mini{
+    border:1px solid var(--line); background:transparent; color:var(--mist-dim);
+    border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer;
+  }
+  .mini:hover{ color:var(--gold); border-color:var(--gold); }
+  .mini.del:hover{ color:var(--coral); border-color:var(--coral); }
+  .off{ opacity:.45; }
+
+  /* ---- printable QR sheet ---- */
+  #printArea{ display:none; }
+  .qr-card{
+    width:340px; padding:26px 22px 30px; text-align:center;
+    border:2px solid #111; border-radius:16px; background:#fff; color:#111;
+    page-break-inside:avoid; break-inside:avoid; margin:0 auto 26px;
+  }
+  .qr-card h3{ font-family:'Changa',sans-serif; font-size:22px; margin:0 0 4px; color:#111; }
+  .qr-card .sub{ font-size:12px; color:#555; margin-bottom:16px; }
+  .qr-card .box{ display:flex; justify-content:center; margin-bottom:14px; }
+  .qr-card .code{ font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:2px; color:#111; }
+  .qr-card .foot{ font-size:11px; color:#666; margin-top:8px; }
+
+  @media print{
+    body{ background:#fff !important; }
+    body::before, body::after{ display:none !important; }
+    .container{ display:none !important; }
+    #printArea{ display:block !important; }
+    .qr-card{ margin:0 auto 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container wide">
+  <div class="topbar">
+    <a href="admin.html" class="brand"><span class="dot"></span> إدارة المحطات</a>
+    <a href="admin.html" class="logout-link">رجوع</a>
+  </div>
+
+  <!-- كلمة سر الأدمن -->
+  <div class="card" id="authCard">
+    <label for="pw">كلمة سر الأدمن</label>
+    <input type="password" id="pw" placeholder="••••••">
+    <button class="btn" id="authBtn">دخول</button>
+    <div class="error-msg" id="authErr"></div>
+  </div>
+
+  <div id="panel" style="display:none">
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div>
+          <h2 style="font-size:17px;margin-bottom:4px">حالة اللعبة</h2>
+          <p style="font-size:12.5px;color:var(--mist-dim);margin:0">لو قفلتها، السكان مش هيشتغل</p>
+        </div>
+        <button class="btn small" id="openBtn">…</button>
+      </div>
+    </div>
+
+    <!-- إضافة/تعديل -->
+    <div class="card">
+      <h2 style="font-size:17px;margin-bottom:14px" id="formTitle">➕ محطة جديدة</h2>
+      <input type="hidden" id="stId">
+      <div class="row2">
+        <div>
+          <label for="code">الكود (اللي جوه الـ QR)</label>
+          <input type="text" id="code" placeholder="CT-04">
+        </div>
+        <div>
+          <label for="points">النقط</label>
+          <input type="text" inputmode="numeric" id="points" placeholder="10">
+        </div>
+      </div>
+      <label for="title">العنوان</label>
+      <input type="text" id="title" placeholder="المحطة الرابعة">
+
+      <label for="hint">تلميح المكان (بيظهر للشباب قبل ما يلاقوها)</label>
+      <input type="text" id="hint" placeholder="دوّر جنب المسرح">
+
+      <label for="body">المحتوى اللي هيظهر بعد السكان</label>
+      <textarea id="body" placeholder="اكتب الكلام اللي عايز يشوفوه…"></textarea>
+
+      <div class="row2">
+        <div>
+          <label for="image_url">لينك صورة (اختياري)</label>
+          <input type="url" id="image_url" placeholder="https://…">
+        </div>
+        <div>
+          <label for="video_url">لينك فيديو / يوتيوب (اختياري)</label>
+          <input type="url" id="video_url" placeholder="https://youtu.be/…">
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;background:rgba(212,162,87,.04)">
+        <h3 style="font-size:15px;margin-bottom:4px">🧊 اللي هيطير في الهوا (الواقع المعزز)</h3>
+        <p style="font-size:12.5px;color:var(--mist-dim);margin:0 0 14px">
+          ده اللي هيشوفه الشاب بالكاميرا لما يوصل المكان
+        </p>
+
+        <label for="ar_type">نوع المحتوى</label>
+        <select id="ar_type">
+          <option value="text">✍️ كلام ثلاثي الأبعاد</option>
+          <option value="image">🖼️ صورة طايرة</option>
+          <option value="video">🎬 فيديو طاير</option>
+          <option value="model">🧊 مجسم (.glb)</option>
+        </select>
+
+        <div id="arTextWrap">
+          <label for="ar_text">الكلام (اكتب اللي انت عايزه — هيتحول 3D لوحده)</label>
+          <textarea id="ar_text" placeholder="مبروك! لقيت المحطة 🎉"></textarea>
+          <label for="ar_color">لون الكلام</label>
+          <input type="text" id="ar_color" placeholder="#D4A257">
+        </div>
+
+        <p style="font-size:12px;color:var(--mist-dim);margin:6px 0 0" id="arNote"></p>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label for="model_url">مجسم ثلاثي الأبعاد — ملف .glb (اختياري)</label>
+          <input type="url" id="model_url" placeholder="https://…/statue.glb">
+        </div>
+        <div>
+          <label for="usdz_url">نسخة الآيفون — ملف .usdz (اختياري)</label>
+          <input type="url" id="usdz_url" placeholder="https://…/statue.usdz">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label for="sort_order">الترتيب</label>
+          <input type="text" inputmode="numeric" id="sort_order" placeholder="1">
+        </div>
+        <div>
+          <label for="active">مفعّلة؟</label>
+          <select id="active"><option value="true">أيوة</option><option value="false">لأ</option></select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn" id="saveBtn">حفظ</button>
+        <button class="btn outline" id="resetBtn">جديد</button>
+      </div>
+      <div class="error-msg" id="formErr"></div>
+      <div class="success-msg" id="formOk"></div>
+    </div>
+
+    <!-- ترتيب اللاعبين -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 style="font-size:17px">🏆 ترتيب اللعبة</h2>
+        <button class="btn small outline" id="lbBtn">تحديث</button>
+      </div>
+      <div id="lbBox"><div class="empty-state">دوس تحديث</div></div>
+    </div>
+
+    <!-- القائمة -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h2 style="font-size:17px">المحطات</h2>
+        <button class="btn small outline" id="printBtn">🖨️ طباعة كل الأكواد</button>
+      </div>
+      <div id="list"><div class="empty-state">…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ورق الطباعة -->
+<div id="printArea"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseclient.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script>
+(function(){
+  var PW = '';
+  var rows = [];
+  var huntOpen = true;
+
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  // The QR encodes a full URL so a plain phone camera opens it directly —
+  // no app, no scanner, no typing.
+  function scanUrl(code){
+    var base = location.href.replace(/\/[^\/]*$/, '/');
+    return base + 'qr.html?c=' + encodeURIComponent(code);
+  }
+
+  $('authBtn').addEventListener('click', auth);
+  $('pw').addEventListener('keydown', function(e){ if(e.key==='Enter') auth(); });
+
+  async function auth(){
+    PW = $('pw').value.trim();
+    $('authErr').style.display='none';
+    if(!PW){ return; }
+    try{
+      var r = await supabase.rpc('admin_list_qr_stations', { p_password: PW });
+      if(r.error) throw r.error;
+      rows = r.data || [];
+      $('authCard').style.display='none';
+      $('panel').style.display='block';
+      loadOpenState();
+      renderList();
+    }catch(e){
+      $('authErr').textContent = 'كلمة السر غلط، أو الجداول لسه مش متعملة (شغّل QR_HUNT.sql)';
+      $('authErr').style.display='block';
+    }
+  }
+
+  async function loadOpenState(){
+    try{
+      var r = await supabase.rpc('get_feature_status', { p_key: 'qr_hunt_open' });
+      huntOpen = r.error ? true : !!r.data;
+    }catch(e){ huntOpen = true; }
+    paintOpen();
+  }
+  function paintOpen(){
+    var b = $('openBtn');
+    b.textContent = huntOpen ? '✅ مفتوحة' : '⛔ مقفولة';
+    b.className = 'btn small' + (huntOpen ? '' : ' outline');
+  }
+  $('openBtn').addEventListener('click', async function(){
+    try{
+      // نفس نظام الأقفال بتاع باقي الألعاب في لوحة التحكم
+      await supabase.rpc('admin_set_feature_status',
+        { p_password: PW, p_key: 'qr_hunt_open', p_open: !huntOpen });
+      huntOpen = !huntOpen; paintOpen();
+      if(window.CTFX) window.CTFX.toast(huntOpen?'اللعبة اتفتحت':'اللعبة اتقفلت', huntOpen?'good':'bad');
+    }catch(e){ if(window.CTFX) window.CTFX.toast('مش قادر يغيّر الحالة','bad'); }
+  });
+
+  async function refresh(){
+    var r = await supabase.rpc('admin_list_qr_stations', { p_password: PW });
+    rows = (r && r.data) || [];
+    renderList();
+  }
+
+  function renderList(){
+    var box = $('list');
+    if(!rows.length){ box.innerHTML = '<div class="empty-state">مفيش محطات لسه</div>'; return; }
+    box.innerHTML = '';
+    rows.forEach(function(r){
+      var d = document.createElement('div');
+      d.className = 'st-row' + (r.active ? '' : ' off');
+      d.innerHTML =
+        '<span class="code">' + esc(r.code) + '</span>' +
+        '<div class="t">' + esc(r.title) +
+          '<div class="meta">' + (r.points||0) + ' نقطة · ' + (r.scans||0) + ' سكان' +
+          ' · ' + ({text:'✍️ كلام',image:'🖼️ صورة',video:'🎬 فيديو',model:'🧊 مجسم'}[r.ar_type||'text']||'') +
+          (r.active?'':' · مقفولة') + '</div></div>' +
+        '<div class="acts">' +
+          '<button class="mini" data-a="qr">QR</button>' +
+          '<button class="mini" data-a="ar">AR</button>' +
+          '<button class="mini" data-a="edit">تعديل</button>' +
+          '<button class="mini del" data-a="del">حذف</button>' +
+        '</div>';
+      d.querySelector('[data-a=edit]').addEventListener('click', function(){ fill(r); });
+      d.querySelector('[data-a=del]').addEventListener('click', function(){ del(r); });
+      d.querySelector('[data-a=qr]').addEventListener('click', function(){ printOne(r); });
+      var arb = d.querySelector('[data-a=ar]');
+      if(arb) arb.addEventListener('click', function(){
+        var u = 'ar.html?type=' + encodeURIComponent(r.ar_type || 'text') +
+                '&t=' + encodeURIComponent(r.title || '') +
+                '&text=' + encodeURIComponent(r.ar_text || r.title || '') +
+                '&color=' + encodeURIComponent(r.ar_color || '#D4A257');
+        if(r.image_url) u += '&img=' + encodeURIComponent(r.image_url);
+        if(r.video_url) u += '&vid=' + encodeURIComponent(r.video_url);
+        if(r.model_url) u += '&m='   + encodeURIComponent(r.model_url);
+        window.open(u, '_blank');
+      });
+      box.appendChild(d);
+    });
+  }
+
+  function fill(r){
+    $('stId').value = r.id || '';
+    $('code').value = r.code || '';
+    $('title').value = r.title || '';
+    $('hint').value = r.hint || '';
+    $('body').value = r.body || '';
+    $('image_url').value = r.image_url || '';
+    $('video_url').value = r.video_url || '';
+    $('model_url').value = r.model_url || '';
+    $('usdz_url').value  = r.usdz_url  || '';
+    $('ar_type').value   = r.ar_type || 'text';
+    $('ar_text').value   = r.ar_text || '';
+    $('ar_color').value  = r.ar_color || '';
+    syncArType();
+    $('points').value = r.points != null ? r.points : 0;
+    $('sort_order').value = r.sort_order != null ? r.sort_order : 0;
+    $('active').value = r.active === false ? 'false' : 'true';
+    $('formTitle').textContent = '✏️ تعديل: ' + (r.title||'');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function syncArType(){
+    var t = $('ar_type').value;
+    $('arTextWrap').style.display = (t === 'text') ? 'block' : 'none';
+    var notes = {
+      text:  'الكلام هيظهر ثلاثي الأبعاد بلون دهبي طاير في الهوا.',
+      image: 'هيستخدم "لينك صورة" اللي فوق ويعرضها طايرة قدام الشاب.',
+      video: 'هيستخدم "لينك فيديو" اللي فوق. لازم يكون ملف mp4 مباشر — لينكات يوتيوب مش هتشتغل هنا.',
+      model: 'هيستخدم ملف .glb اللي تحت.'
+    };
+    $('arNote').textContent = notes[t] || '';
+  }
+  $('ar_type').addEventListener('change', syncArType);
+  syncArType();
+
+  $('resetBtn').addEventListener('click', function(){
+    ['stId','code','title','hint','body','image_url','video_url','model_url','usdz_url','ar_text','ar_color','points','sort_order']
+      .forEach(function(i){ $(i).value=''; });
+    $('active').value='true';
+    $('ar_type').value='text';
+    syncArType();
+    $('formTitle').textContent='➕ محطة جديدة';
+  });
+
+  $('saveBtn').addEventListener('click', async function(){
+    $('formErr').style.display='none'; $('formOk').style.display='none';
+    var code = $('code').value.trim(), title = $('title').value.trim();
+    if(!code || !title){
+      $('formErr').textContent='الكود والعنوان مطلوبين'; $('formErr').style.display='block'; return;
+    }
+    var btn = this; btn.disabled = true; btn.textContent = 'بيحفظ…';
+    try{
+      var r = await supabase.rpc('admin_upsert_qr_station', {
+        p_password: PW,
+        p_id: $('stId').value || null,
+        p_code: code,
+        p_title: title,
+        p_body: $('body').value || null,
+        p_image_url: $('image_url').value || null,
+        p_video_url: $('video_url').value || null,
+        p_hint: $('hint').value || null,
+        p_points: parseInt($('points').value||'0',10) || 0,
+        p_active: $('active').value === 'true',
+        p_sort_order: parseInt($('sort_order').value||'0',10) || 0,
+        p_model_url: $('model_url').value || null,
+        p_usdz_url: $('usdz_url').value || null,
+        p_ar_type: $('ar_type').value || 'text',
+        p_ar_text: $('ar_text').value || null,
+        p_ar_color: $('ar_color').value || null
+      });
+      if(r.error) throw r.error;
+      $('formOk').textContent='اتحفظت ✅'; $('formOk').style.display='block';
+      $('resetBtn').click();
+      await refresh();
+    }catch(e){
+      $('formErr').textContent = /duplicate|unique/i.test(e.message||'')
+        ? 'الكود ده مستخدم قبل كده' : 'مش قادر يحفظ';
+      $('formErr').style.display='block';
+    }
+    btn.disabled=false; btn.textContent='حفظ';
+  });
+
+  async function del(r){
+    if(!confirm('تحذف "'+r.title+'"؟ هيتمسح معاها كل السكانات.')) return;
+    try{
+      await supabase.rpc('admin_delete_qr_station', { p_password: PW, p_id: r.id });
+      await refresh();
+      if(window.CTFX) window.CTFX.toast('اتمسحت','bad');
+    }catch(e){ if(window.CTFX) window.CTFX.toast('مش قادر يمسح','bad'); }
+  }
+
+  /* ---------------- ترتيب اللاعبين ---------------- */
+  $('lbBtn').addEventListener('click', loadLeaderboard);
+  async function loadLeaderboard(){
+    var box = $('lbBox');
+    box.innerHTML = '<div class="empty-state">…</div>';
+    try{
+      var r = await supabase.rpc('get_qr_hunt_leaderboard');
+      if(r.error) throw r.error;
+      var rows = r.data || [];
+      if(!rows.length){ box.innerHTML = '<div class="empty-state">لسه محدش عمل سكان</div>'; return; }
+      var html = '<table><thead><tr><th>#</th><th>الاسم</th><th>الفريق</th><th>محطات</th></tr></thead><tbody>';
+      rows.forEach(function(r2,i){
+        html += '<tr><td>' + (i+1) + '</td><td>' + esc(r2.member_name) + '</td><td>' +
+                esc(r2.team_name || '—') + '</td><td>' + r2.found + '</td></tr>';
+      });
+      box.innerHTML = html + '</tbody></table>';
+    }catch(e){
+      box.innerHTML = '<div class="empty-state">مش قادر يحمّل الترتيب</div>';
+    }
+  }
+
+  /* ---------------- printing ---------------- */
+  function makeCard(r){
+    var wrap = document.createElement('div');
+    wrap.className = 'qr-card';
+    wrap.innerHTML =
+      '<h3>' + esc(r.title) + '</h3>' +
+      '<div class="sub">صوّر الكود ده بكاميرا موبايلك</div>' +
+      '<div class="box"></div>' +
+      '<div class="code">' + esc(r.code) + '</div>' +
+      '<div class="foot">Connect Three · رحلة المحطات</div>';
+    var box = wrap.querySelector('.box');
+    new QRCode(box, {
+      text: scanUrl(r.code),
+      width: 230, height: 230,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    return wrap;
+  }
+  function printOne(r){
+    var a = $('printArea'); a.innerHTML=''; a.appendChild(makeCard(r));
+    setTimeout(function(){ window.print(); }, 250);
+  }
+  $('printBtn').addEventListener('click', function(){
+    var a = $('printArea'); a.innerHTML='';
+    rows.forEach(function(r){ a.appendChild(makeCard(r)); });
+    setTimeout(function(){ window.print(); }, 400);
+  });
+})();
+</script>
+<script src="js/vendor3d.min.js"></script>
+<script src="js/experience.js"></script>
+<script src="js/fx.js"></script>
+</body>
+</html>
