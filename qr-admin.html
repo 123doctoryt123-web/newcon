@@ -39,6 +39,7 @@
   .qr-card h3{ font-family:'Changa',sans-serif; font-size:22px; margin:0 0 4px; color:#111; }
   .qr-card .sub{ font-size:12px; color:#555; margin-bottom:16px; }
   .qr-card .box{ display:flex; justify-content:center; margin-bottom:14px; }
+  .qr-card .box canvas{ width:250px; height:250px; image-rendering:pixelated; }
   .qr-card .code{ font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:2px; color:#111; }
   .qr-card .foot{ font-size:11px; color:#666; margin-top:8px; }
 
@@ -371,8 +372,11 @@
       $('resetBtn').click();
       await refresh();
     }catch(e){
-      $('formErr').textContent = /duplicate|unique/i.test(e.message||'')
-        ? 'الكود ده مستخدم قبل كده' : 'مش قادر يحفظ';
+      var dup = (e && (e.code === '23505' ||
+                 /duplicate|unique|409/i.test((e.message||'') + ' ' + (e.details||''))));
+      $('formErr').textContent = dup
+        ? 'الكود "' + code + '" مستخدم في محطة تانية — غيّره'
+        : 'مش قادر يحفظ: ' + ((e && e.message) || 'خطأ غير معروف');
       $('formErr').style.display='block';
     }
     btn.disabled=false; btn.textContent='حفظ';
@@ -409,7 +413,10 @@
   }
 
   /* ---------------- printing ---------------- */
-  function makeCard(r){
+  // المكتبة الموجودة في المشروع بتعرض QRCode.toCanvas(canvas, text, options, cb)
+  // — مش الكونستركتور new QRCode(...). بنرسم على canvas بدقة عالية عشان
+  // الطباعة تطلع واضحة، والـCSS بيصغّرها للحجم المطلوب.
+  function makeCard(r, done){
     var wrap = document.createElement('div');
     wrap.className = 'qr-card';
     wrap.innerHTML =
@@ -418,24 +425,44 @@
       '<div class="box"></div>' +
       '<div class="code">' + esc(r.code) + '</div>' +
       '<div class="foot">Connect Three · رحلة المحطات</div>';
+
     var box = wrap.querySelector('.box');
-    new QRCode(box, {
-      text: scanUrl(r.code),
-      width: 230, height: 230,
-      colorDark: '#000000', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
+    var cv = document.createElement('canvas');
+    box.appendChild(cv);
+
+    if (typeof QRCode === 'undefined' || !QRCode.toCanvas) {
+      box.innerHTML = '<div style="color:#b00;font-size:13px">مكتبة الـQR مش محمّلة</div>';
+      if (done) done();
+      return wrap;
+    }
+
+    QRCode.toCanvas(cv, scanUrl(r.code), {
+      width: 720,            // دقة عالية للطباعة
+      margin: 4,
+      color: { dark: '#000000', light: '#ffffff' }
+    }, function(err){
+      if (err) {
+        box.innerHTML = '<div style="color:#b00;font-size:13px">مش قادر يعمل الكود</div>';
+      }
+      if (done) done();
     });
     return wrap;
   }
-  function printOne(r){
-    var a = $('printArea'); a.innerHTML=''; a.appendChild(makeCard(r));
-    setTimeout(function(){ window.print(); }, 250);
+
+  function printCards(list){
+    var a = $('printArea');
+    a.innerHTML = '';
+    if (!list.length) { alert('مفيش محطات للطباعة'); return; }
+    var left = list.length;
+    list.forEach(function(r){
+      a.appendChild(makeCard(r, function(){
+        if (--left === 0) setTimeout(function(){ window.print(); }, 150);
+      }));
+    });
   }
-  $('printBtn').addEventListener('click', function(){
-    var a = $('printArea'); a.innerHTML='';
-    rows.forEach(function(r){ a.appendChild(makeCard(r)); });
-    setTimeout(function(){ window.print(); }, 400);
-  });
+
+  function printOne(r){ printCards([r]); }
+  $('printBtn').addEventListener('click', function(){ printCards(rows); });
 })();
 </script>
 <script src="js/vendor3d.min.js"></script>
